@@ -75,13 +75,11 @@ def main():
         if summary["extract"]:
             row[8] = trim_words(summary["extract"], MAX_WORDS)
             enriched += 1
-        # index 13 holds the thumbnail URL for the image pipeline (indexes 10-12 are confidence, sitelinks, source)
-        while len(row) < 13:
+        # index 15 holds the thumbnail URL for the image pipeline
+        # (10 confidence, 11 sitelinks, 12 source, 13 exact date, 14 discoverer/author — never overwrite those)
+        while len(row) < 16:
             row.append(None)
-        if len(row) == 13:
-            row.append(summary["thumbnail"])
-        else:
-            row[13] = summary["thumbnail"]
+        row[15] = summary["thumbnail"]
         if index % 200 == 0:
             print(str(index) + "/" + str(len(rows)) + " enriched " + str(enriched), file=sys.stderr)
             with open(path, "w", encoding="utf-8") as output_file:

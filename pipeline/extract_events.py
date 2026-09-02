@@ -260,11 +260,16 @@ def year_of(iso_date_string):
 
 
 def date_of(iso_date_string):
-    # "1945-08-06T00:00:00Z" -> "1945-08-06"; keeps only the part Wikidata actually asserted is unknown to us,
-    # so a bare "-0563-01-01" (year-only precision) still comes back as -0563-01-01. Returns None if missing.
+    # "1945-08-06T00:00:00Z" -> "1945-08-06". The truthy wdt: value carries no precision, and Wikidata pads
+    # year-only and month-only dates to the 1st, so a date on the 1st of January is treated as year precision
+    # and dropped (a real 1 January event loses its day; a query on p:/psv: with wikibase:timePrecision
+    # would fix both). Returns None if missing.
     if iso_date_string is None:
         return None
-    return iso_date_string.split("T")[0]
+    date = iso_date_string.split("T")[0]
+    if date.endswith("-01-01"):
+        return None
+    return date
 
 
 def parse_point(wkt_point):
@@ -346,6 +351,7 @@ def collect_events():
                 "sitelinks": sitelinks, "place": place_label or "",
                 "description": description, "slug": slug_of(value_of(binding, "article")),
                 "confidence": confidence,
+                "date": date_of(value_of(binding, "when")) or date_of(value_of(binding, "start")),
             })
     return rows
 

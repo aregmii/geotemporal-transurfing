@@ -50,7 +50,7 @@ One event is one row in `site/data/events.json`:
 | 7 | place | label of the resolved location |
 | 8 | description | Wikipedia lead paragraph, trimmed to 80 words; curated rows carry their own text |
 | 9 | slug | English Wikipedia article name; also the key into `images.json` |
-| 10 | date | exact date `YYYY-MM-DD` when Wikidata records one (day precision), else `null` |
+| 10 | date | exact date `YYYY-MM-DD` when Wikidata records one, else `null`. Dates falling on 1 January are treated as year-precision and dropped (the `wdt:` value carries no precision flag); `pipeline/curated_dates.json` fills in checked dates for curated rows |
 | 11 | who | discoverer, inventor or author, when known |
 
 `site/data/images.json` maps slug → `{ file, author, license, licenseUrl, source, filePage }`. Only files under Creative Commons, CC0, public-domain or GFDL terms are kept; the app shows the credit in every panel.
@@ -58,6 +58,10 @@ One event is one row in `site/data/events.json`:
 ### What qualifies as an event
 
 An event is included if it **happened somewhere a reader can be shown**. Battles and earthquakes carry a coordinate; a birth resolves to the birthplace; an album release has no place and is excluded. This one rule is what keeps founders and turning points and drops celebrity milestones. Details in `docs/spec.html`, Sections 06–07.
+
+`pipeline/events_wikidata.json` (the extractor's output, not committed) carries five more columns: 10 confidence, 11 sitelinks, 12 source (`event`, `discovery`, `launch`, `publication`, `person`), 13 exact date, 14 discoverer or author, 15 Wikipedia lead-image URL (written by `fetch_summaries.py`, read by `fetch_images.py`).
+
+`merge.js` also drops routine launches (fewer than 30 sitelinks — every Shuttle and Soyuz flight has an item), events dated after the current year, and "Death of X" rows that duplicate an "Assassination of X" in the same year; discovery rows are titled "Discovery of", "Invention of" or "Constellation … charted" from what the first sentence of the article says the thing is.
 
 ### Ranking
 
@@ -71,6 +75,7 @@ pipeline/
   fetch_summaries.py  Wikipedia REST summaries
   fetch_images.py     Commons licence check + thumbnails → site/img
   merge.js            curated + Wikidata rows, dedupe, clean-up, weight by rank
+  curated_dates.json  exact dates for curated rows (slug → YYYY-MM-DD)
   build.js            runs merge into site/data/events.json
   refresh.sh          all of the above, in order
   curated/            342 hand-written rows: prehistory, founders, and well-known events (checked, but not Wikidata-sourced)
@@ -88,7 +93,8 @@ docs/
 ## Known gaps
 
 - Wikidata's coverage is strongest for Europe, North America, and the last two centuries. Prehistory and the ancient eras rely mostly on the curated rows.
-- Three class identifiers (Olympic Games, ecumenical councils, premieres) return nothing and need checking against wikidata.org; the v0.4/v0.5 additions (assassinations, attacks, elections, sport finals, scientific publications) are also unverified until a run shows rows.
+- Three class identifiers (Olympic Games, ecumenical councils, premieres) return nothing and need checking against wikidata.org.
+- Date precision is inferred, not queried: a real 1 January event loses its day. Querying `p:`/`psv:` with `wikibase:timePrecision` would fix it.
 - The Wikidata class and property identifiers were written without live access to wikidata.org and have only been validated by what they returned.
 - No clustering yet: dense windows show the top N markers and hide the rest until you zoom.
 - Desktop only. A phone-sized viewport works but is not designed for.

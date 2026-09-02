@@ -151,14 +151,17 @@ def main():
     with open(arguments.events, "r", encoding="utf-8") as events_file:
         rows = json.load(events_file)
 
-    # slug -> filename, for rows in range with a Commons thumbnail (index 10 in the current data)
+    # slug -> filename, for rows in range with a Commons thumbnail
     wanted = {}
     for row in rows:
         if row[4] < arguments.year_from:
             continue
-        thumb = row[10] if len(row) > 10 else None
-        if len(row) > 13 and isinstance(row[13], str):
-            thumb = row[13]
+        # thumbnail URL lives at index 15 (index 13 is the exact date, 14 the discoverer); older files kept it at 13 or 10
+        thumb = None
+        for index in (15, 13, 10):
+            if len(row) > index and isinstance(row[index], str) and row[index].startswith("http"):
+                thumb = row[index]
+                break
         if not isinstance(thumb, str) or "/wikipedia/commons/" not in thumb:
             continue
         slug = row[9]

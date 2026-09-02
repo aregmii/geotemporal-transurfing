@@ -12,7 +12,10 @@ const skyImage = 'data:image/jpeg;base64,' + fs.readFileSync(path.join(site, 'as
 const astro = fs.readFileSync(path.join(site, 'vendor/astronomy.browser.min.js'), 'utf8');
 const earth = 'data:image/jpeg;base64,' + fs.readFileSync(path.join(site, 'assets/earth.jpg')).toString('base64');
 const manifest = JSON.parse(fs.readFileSync(path.join(site, 'data/images.json'), 'utf8'));
-// shrink every photo to 224px / q58 with pillow, inline as data URI
+// only photos an event actually uses (the manifest also keeps rows that merge.js later dropped)
+const usedSlugs = new Set(JSON.parse(events).map(r => r[9]));
+for (const slug of Object.keys(manifest)) if (!usedSlugs.has(slug)) delete manifest[slug];
+// shrink every photo to 208px / q55 with pillow, inline as data URI (the hosted artifact must stay under 16 MB)
 const tmp = path.join(root, '.playground-img'); fs.mkdirSync(tmp, { recursive: true });
 const py = `
 import sys, json, io, os
@@ -22,9 +25,9 @@ man = json.load(open(os.path.join(site, 'data/images.json')))
 for slug, v in man.items():
     src = os.path.join(site, 'img', v['file']); dst = os.path.join(tmp, v['file'])
     if not os.path.exists(src) or os.path.exists(dst): continue
-    im = Image.open(src).convert('RGB'); w, h = im.size; k = min(1.0, 224 / max(w, h))
+    im = Image.open(src).convert('RGB'); w, h = im.size; k = min(1.0, 208 / max(w, h))
     if k < 1: im = im.resize((max(1, int(w * k)), max(1, int(h * k))), Image.LANCZOS)
-    im.save(dst, 'JPEG', quality=58, optimize=True, progressive=True)
+    im.save(dst, 'JPEG', quality=55, optimize=True, progressive=True)
 `;
 execFileSync('python3', ['-c', py, site, tmp], { stdio: 'inherit' });
 let bytes = 0;
