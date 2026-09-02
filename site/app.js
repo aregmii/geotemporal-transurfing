@@ -21,6 +21,13 @@ var EVENTS = RAW.map(function(r, i){
 
 // Two rails. "century" = calendar decades with 5-year windows; "all" = eleven eras from the first stone tools.
 var ERA_SETS = {
+  recent: [
+    {name:'', label:'2000–05', from:2000, to:2005, step:5},
+    {name:'', label:'2005–10', from:2005, to:2010, step:5},
+    {name:'', label:'2010–15', from:2010, to:2015, step:5},
+    {name:'', label:'2015–20', from:2015, to:2020, step:5},
+    {name:'', label:'2020–25', from:2020, to:2026, step:6}
+  ],
   century: [
     {name:'', label:'1926–30', from:1926, to:1930, step:4},
     {name:'', label:'1930s', from:1930, to:1940, step:5},
@@ -48,7 +55,7 @@ var ERA_SETS = {
     {name:'CONTEMPORARY',   label:'1990–2026',        from:1990,     to:2026,    step:12}
   ]
 };
-var mode = 'century';
+var mode = 'recent';
 var ERAS = ERA_SETS[mode];
 var WINDOWS = [];
 function buildWindows(){
@@ -143,7 +150,8 @@ var ICON_URL = {};
 Object.keys(CATS).forEach(function(k){ ICON_URL[k] = iconCanvas(k, 64, false).toDataURL(); });
 
 // ---------- state ----------
-var wi = WINDOWS.findIndex(function(w){ return w.start <= 1969 && w.end >= 1969; });
+var wi = WINDOWS.findIndex(function(w){ return w.start <= 2022 && w.end >= 2022; });
+if (wi < 0) wi = WINDOWS.length - 1;
 var selected = null, hovered = null, idle = true, idleTimer = null;
 var off = { con:false, cul:false, sci:false, dis:false };
 var camDist = 3.9;
@@ -231,8 +239,14 @@ for (var pi = 0; pi < MAX_SHOWN; pi++){
   var ps = new THREE.Sprite(new THREE.SpriteMaterial({ map:SPRITE_TEX.con, transparent:true, depthTest:true, depthWrite:false }));
   ps.visible = false; POOL.push(ps); markers.add(ps);
 }
+var PIN_H = 0.06;
+var pinGeo = new THREE.BufferGeometry();
+pinGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(MAX_SHOWN * 6), 3));
+var pins = new THREE.LineSegments(pinGeo, new THREE.LineBasicMaterial({ color:0xffffff, transparent:true, opacity:0.35 }));
+pins.frustumCulled = false; globe.add(pins);
 EVENTS.forEach(function(e){
-  e.pos = toVec(e.lat, e.lon, 1.012);
+  e.pos = toVec(e.lat, e.lon, 1.0 + PIN_H);
+  e.foot = toVec(e.lat, e.lon, 1.002);
   e.normal = toVec(e.lat, e.lon, 1);
   e.size = 0.056 + e.w * 0.009;
 });
@@ -268,16 +282,20 @@ function bindWindow(){
   windowTotal = list.length;
   shown = list.slice(0, shownCap());
   EVENTS.forEach(function(e){ e.sprite = null; e._sx = null; });
+  var pa = pinGeo.attributes.position.array; pa.fill(0);
   shown.forEach(function(e, i){
+    pa[i*6] = e.foot.x; pa[i*6+1] = e.foot.y; pa[i*6+2] = e.foot.z; pa[i*6+3] = e.pos.x; pa[i*6+4] = e.pos.y; pa[i*6+5] = e.pos.z;
     var s = POOL[i];
     var photo = IMAGES[e.slug] ? photoTexture(e, function(tex){ if (e.sprite === s){ s.material.map = tex; s.material.needsUpdate = true; render(); } }) : null;
     s.material.map = photo || SPRITE_TEX[e.cat]; s.material.needsUpdate = true;
-    var sz = IMAGES[e.slug] ? e.size * 1.75 : e.size;
+    var zoomBoost = Math.max(1, Math.min(1.6, 3.9 / camDist));
+    var sz = (IMAGES[e.slug] ? e.size * 1.75 : e.size) * zoomBoost;
     s.scale.set(sz, sz, 1);
     s.position.copy(e.pos);
     e.sprite = s;
   });
   for (var j = shown.length; j < MAX_SHOWN; j++){ POOL[j].visible = false; }
+  pinGeo.attributes.position.needsUpdate = true; pinGeo.setDrawRange(0, shown.length * 2);
 }
 var windowTotal = 0;
 var selRing = new THREE.Sprite(new THREE.SpriteMaterial({ map:RING_TEX, transparent:true, depthTest:false }));
@@ -326,6 +344,8 @@ function render(){
     var front = worldNormal(e).z > (IMAGES[e.slug] ? 0.2 : 0.10);
     if (!e.sprite) return;
     e.sprite.visible = front;
+    var pi = shown.indexOf(e), pa2 = pinGeo.attributes.position.array;
+    if (pi >= 0){ var v = front ? e.pos : e.foot; pa2[pi*6+3] = v.x; pa2[pi*6+4] = v.y; pa2[pi*6+5] = v.z; }
     e.sprite.material.opacity = (selected && selected.id !== e.id && ctxEls.indexOf(e) < 0) ? 0.5 : 1;
     if (front){ var p = toScreen(e); e._sx = p[0]; e._sy = p[1]; }
     else { e._sx = null; behind++; }
@@ -346,6 +366,7 @@ function render(){
     r.visible = worldNormal(e).z > 0.1;
   });
 
+  pinGeo.attributes.position.needsUpdate = true;
   renderer.render(scene, camera);
   document.getElementById('count').innerHTML =
     (windowTotal > list.length ? 'TOP ' + list.length + ' OF ' + windowTotal + ' EVENTS IN THIS WINDOW — ZOOM IN FOR MORE' : list.length + ' EVENT' + (list.length === 1 ? '' : 'S') + ' IN THIS WINDOW') +
@@ -430,11 +451,13 @@ function spinTo(e){
 
 // ---------- pointer ----------
 var dragging = false, lastX = 0, lastY = 0, moved = 0, shifted = false;
+var velX = 0, velY = 0, lastMoveT = 0;
 var AX = new THREE.Vector3(1,0,0), AY = new THREE.Vector3(0,1,0), AZ = new THREE.Vector3(0,0,1);
 var qTmp = new THREE.Quaternion(), qTmp2 = new THREE.Quaternion();
 
 canvas.addEventListener('pointerdown', function(ev){
   dragging = true; moved = 0; lastX = ev.clientX; lastY = ev.clientY; shifted = ev.shiftKey;
+  velX = 0; velY = 0; lastMoveT = performance.now();
   canvas.classList.add('drag'); canvas.setPointerCapture(ev.pointerId); bumpIdle();
 });
 canvas.addEventListener('pointermove', function(ev){
@@ -448,6 +471,8 @@ canvas.addEventListener('pointermove', function(ev){
     } else {
       qTmp.setFromAxisAngle(AY, dx * k); qTmp2.setFromAxisAngle(AX, dy * k);
       globe.quaternion.premultiply(qTmp).premultiply(qTmp2);
+      var now = performance.now(), dt = Math.max(1, now - lastMoveT); lastMoveT = now;
+      velX = 0.6 * velX + 0.4 * (dx * k) * (16 / dt); velY = 0.6 * velY + 0.4 * (dy * k) * (16 / dt);
     }
     render(); bumpIdle(); return;
   }
@@ -468,7 +493,8 @@ canvas.addEventListener('pointermove', function(ev){
 function endDrag(ev){
   if (!dragging) return;
   dragging = false; canvas.classList.remove('drag');
-  if (moved < 5){
+  if (performance.now() - lastMoveT > 80){ velX = 0; velY = 0; }   // held still before release: no throw
+  if (moved < 5){ velX = 0; velY = 0;
     var rect = canvas.getBoundingClientRect();
     var hit = pick(ev.clientX - rect.left, ev.clientY - rect.top);
     if (hit) openPanel(hit); else closePanel();
@@ -486,7 +512,12 @@ canvas.addEventListener('wheel', function(ev){
 // ---------- idle spin ----------
 function bumpIdle(){ idle = false; clearTimeout(idleTimer); idleTimer = setTimeout(function(){ idle = true; }, 4500); }
 function tick(){
-  if (idle && !selected && !dragging){
+  if (!dragging && (Math.abs(velX) > 0.0003 || Math.abs(velY) > 0.0003)){
+    qTmp.setFromAxisAngle(AY, velX); qTmp2.setFromAxisAngle(AX, velY);
+    globe.quaternion.premultiply(qTmp).premultiply(qTmp2);
+    velX *= 0.965; velY *= 0.965;           // decay: a flick coasts for a second or two, then settles
+    render();
+  } else if (idle && !selected && !dragging){
     qTmp.setFromAxisAngle(AY, 0.0011); globe.quaternion.premultiply(qTmp); render();
   }
   requestAnimationFrame(tick);
@@ -503,7 +534,7 @@ function buildRail(){
     track.appendChild(d);
   });
   handle = document.createElement('div'); handle.id = 'handle'; track.appendChild(handle);
-  document.getElementById('railLeft').textContent = mode === 'century' ? '1926' : '4 MILLION YEARS AGO';
+  document.getElementById('railLeft').textContent = mode === 'recent' ? '2000' : mode === 'century' ? '1926' : '4 MILLION YEARS AGO';
 }
 buildRail();
 function placeHandle(){
@@ -563,7 +594,7 @@ function setMode(next, keepYear){
   var year = keepYear != null ? keepYear : WINDOWS[wi].start;
   mode = next; ERAS = ERA_SETS[mode]; buildWindows(); buildRail();
   wi = WINDOWS.findIndex(function(w){ return w.start <= year && w.end > year; });
-  if (wi < 0) wi = mode === 'century' ? WINDOWS.findIndex(function(w){ return w.start <= 1969 && w.end >= 1969; }) : WINDOWS.length - 1;
+  if (wi < 0) wi = WINDOWS.length - 1;
   Array.prototype.forEach.call(document.querySelectorAll('#modes button'), function(b){ b.setAttribute('aria-pressed', b.dataset.mode === mode ? 'true' : 'false'); });
   closePanel(); bindWindow(); syncHeader(); placeHandle(); render(); writeHash();
 }

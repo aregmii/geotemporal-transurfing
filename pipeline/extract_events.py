@@ -1,5 +1,5 @@
 """
-Atlas of When — Wikidata extraction script (v0.3). v0.2 ran; four dense birth-decades timed out and are now split into 5-year slices.
+Atlas of When — Wikidata extraction script (v0.4). Adds political, attack and sport classes and a country-level location fallback.
 
 Run:   python3 extract_events.py --out events_wikidata.json
 Needs: Python 3.9+, `pip install requests`
@@ -77,7 +77,22 @@ EVENT_CLASSES = {
     "Q1084566":  "cul",   # premiere
     "Q2761147":  "cul",   # summit meeting
     "Q1656682":  "cul",   # event (generic)
+    # v0.4 — the kinds of thing Amish named: political turning points, attacks, sport. QIDs UNVERIFIED; a wrong one returns 0 rows.
+    "Q3882219":  "con",   # assassination
+    "Q2223653":  "con",   # terrorist attack
+    "Q1071027":  "con",   # assassination attempt (verify)
+    "Q40231":    "cul",   # election — located via the country it applies to (P1001 / P17)
+    "Q19317":    "cul",   # FIFA World Cup (each tournament is an instance)
+    "Q159821":   "cul",   # Summer Olympic Games
+    "Q82414":    "cul",   # Winter Olympic Games
+    "Q260858":   "cul",   # UEFA European Championship
+    "Q42586":    "cul",   # Cricket World Cup
+    "Q32096":    "cul",   # Super Bowl
+    "Q744913":   "dis",   # aviation accident
 }
+
+# Lower popularity floor for the classes added in v0.4 — recent events have fewer language editions than old wars.
+MIN_SITELINKS_OVERRIDE = {"Q3882219": 15, "Q2223653": 15, "Q1071027": 10, "Q40231": 40, "Q19317": 10, "Q159821": 10, "Q82414": 10, "Q260858": 10, "Q42586": 10, "Q32096": 10, "Q744913": 20}
 
 # Classes whose instances mostly sit under subclasses (e.g. "Summer Olympic Games" under "Olympic Games").
 # For these the query walks the subclass tree. Only do this for small trees; "occurrence" would time out.
@@ -93,6 +108,8 @@ SELECT ?item ?itemLabel ?itemDescription ?when ?start ?end ?coord ?placeLabel ?p
   OPTIONAL { ?item wdt:P582 ?end . }
   OPTIONAL { ?item wdt:P625 ?coord . }
   OPTIONAL { ?item wdt:P276 ?place . ?place wdt:P625 ?placeCoord . }
+  OPTIONAL { ?item wdt:P1001 ?jurisdiction . ?jurisdiction wdt:P625 ?countryCoord . }
+  OPTIONAL { ?item wdt:P17 ?country . ?country wdt:P625 ?countryCoord2 . }
   OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
 }
@@ -238,6 +255,8 @@ def collect_events():
         min_sitelinks = EVENT_MIN_SITELINKS
         if class_qid in ("Q1190554", "Q1656682"):
             min_sitelinks = 80
+        if class_qid in MIN_SITELINKS_OVERRIDE:
+            min_sitelinks = MIN_SITELINKS_OVERRIDE[class_qid]
         print("events: class " + class_qid + " (" + category + ")", file=sys.stderr)
         class_path = "wdt:P31"
         cache_key = "events_" + class_qid
@@ -263,6 +282,9 @@ def collect_events():
             if point is None:
                 point = parse_point(value_of(binding, "placeCoord"))
                 confidence = "place"
+            if point is None:
+                point = parse_point(value_of(binding, "countryCoord")) or parse_point(value_of(binding, "countryCoord2"))
+                confidence = "country"
             if point is None:
                 continue
             title = value_of(binding, "itemLabel")
