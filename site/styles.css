@@ -58,8 +58,8 @@ canvas.drag{cursor:grabbing}
   position:absolute; font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:10.5px;
   letter-spacing:.09em; color:var(--ink-3); pointer-events:none; line-height:1.7;
 }
-.hint{left:20px; bottom:16px}
-.count{right:20px; bottom:16px; text-align:right}
+.hint{left:20px; bottom:16px; max-width:28%}
+.count{right:20px; bottom:16px; text-align:right; max-width:30%}
 .count em{font-style:normal; color:var(--dis)}
 .credit{right:20px; top:14px; font-size:9.5px; text-align:right; opacity:.8}
 .skydate{right:20px; top:14px; font-size:9.5px; text-align:right; opacity:.7}
@@ -116,3 +116,11 @@ canvas.drag{cursor:grabbing}
 .railfoot b{color:var(--ink); font-weight:500; font-size:12px; font-variant-numeric:tabular-nums}
 :focus-visible{outline:2px solid var(--hi); outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.ticker{position:absolute; left:50%; bottom:16px; transform:translateX(-50%); max-width:min(620px, 40%); z-index:4; display:none;
+  background:rgba(13,17,27,.82); border:1px solid var(--rule); border-radius:24px; padding:8px 18px; font-size:12.5px; line-height:1.45;
+  color:var(--ink-2); text-align:center; cursor:pointer; backdrop-filter:blur(6px)}
+.ticker.on{display:block}
+.ticker:hover{color:var(--ink)}
+.ticker .tk{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--dis); margin-right:6px}
+.ticker em{font-style:normal; color:var(--ink-3); font-size:11px}

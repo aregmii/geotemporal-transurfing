@@ -226,7 +226,7 @@ function makeTextSprite(text, size, dim){
   var ctx = c.getContext('2d'); ctx.font = '500 30px "IBM Plex Mono", monospace'; ctx.fillStyle = dim ? 'rgba(180,196,224,.55)' : 'rgba(232,236,244,.9)';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, 256, 32);
   var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(c), transparent:true, depthTest:false, sizeAttenuation:false }));
-  sp.scale.set(size * 8, size, 1); sp.center.set(0.5, 1.6); sp.renderOrder = 20; return sp;
+  sp.scale.set(size * 12, size, 1); sp.center.set(0.5, 1.7); sp.renderOrder = 20; return sp;
 }
 var SKYLABELS = window.__ATLAS.skyLabels || { stars:[], constellations:[] };
 
@@ -242,7 +242,6 @@ function buildSkyStatic(){
   // the Moon: a lit sphere at its true distance and size, so its phase and apparent size are right
   moonMesh = new THREE.Mesh(new THREE.SphereGeometry(0.2727, 32, 24), new THREE.MeshLambertMaterial({ color:0xd9d9d2 }));
   sky.add(moonMesh);
-  var moonLabel = makeTextSprite('MOON', 0.028); sky.add(moonLabel); moonMesh.userData.label = moonLabel; skyLabelSprites.push(moonLabel);
 
   // the Sun: a bright sprite far out, plus the directional light comes from it
   var sc = document.createElement('canvas'); sc.width = sc.height = 256; var sctx = sc.getContext('2d');
@@ -257,19 +256,72 @@ function buildSkyStatic(){
     pctx.beginPath(); pctx.arc(16, 16, 6, 0, 2 * Math.PI); pctx.fillStyle = name === 'Mars' ? '#ffb28a' : '#fff4d6'; pctx.fill();
     var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(pc), transparent:true, depthTest:false, sizeAttenuation:false }));
     sp.scale.set(0.014, 0.014, 1); sky.add(sp);
-    var lb = makeTextSprite(name.toUpperCase(), 0.028); sky.add(lb); skyLabelSprites.push(lb);
-    planetSprites[name] = sp; sp.userData.label = lb;
+    planetSprites[name] = sp;
   });
-  var sunLabel = makeTextSprite('SUN', 0.028); sky.add(sunLabel); sunSprite.userData.label = sunLabel; skyLabelSprites.push(sunLabel);
-  // named bright stars and major constellations, placed on the sky sphere
+  // sky label candidates — the picker below shows the dozen most important ones on screen each frame
   SKYLABELS.stars.forEach(function(st){
-    var ll = skyLonLat(st[1], st[2], 0), lb = makeTextSprite(st[0].toUpperCase(), 0.024, true);
-    lb.position.copy(toVec(ll[0], ll[1], SKY_R - 20)); sky.add(lb); skyLabelSprites.push(lb); lb.userData.far = true;
+    var ll = skyLonLat(st[1], st[2], 0);
+    var text = st[0].toUpperCase() + ' · STAR' + (st[4] ? ' · ' + fmtLy(st[4]) : '');
+    LABEL_CANDIDATES.push({ text:text, pos:toVec(ll[0], ll[1], SKY_R - 20), prio: 6 - st[3] });
+  });
+  SKYLABELS.dsos.forEach(function(d){
+    var ll = skyLonLat(d[1], d[2], 0);
+    var text = d[0].toUpperCase() + ' · ' + String(d[4]).toUpperCase() + (d[5] ? ' · ' + fmtLy(d[5]) : '');
+    LABEL_CANDIDATES.push({ text:text, pos:toVec(ll[0], ll[1], SKY_R - 20), prio: 5.5 - (d[3] || 5) });
   });
   SKYLABELS.constellations.forEach(function(cn){
-    var ll = skyLonLat(cn[1], cn[2], 0), lb = makeTextSprite(cn[0].toUpperCase(), 0.022, true);
-    lb.position.copy(toVec(ll[0], ll[1], SKY_R - 20)); sky.add(lb); skyLabelSprites.push(lb); lb.userData.far = true;
+    var ll = skyLonLat(cn[1], cn[2], 0);
+    LABEL_CANDIDATES.push({ text:cn[0].toUpperCase(), pos:toVec(ll[0], ll[1], SKY_R - 20), prio: cn[3] === 1 ? 2.5 : cn[3] === 2 ? 1.5 : 0.5, dim:true });
   });
+  for (var li = 0; li < LABEL_POOL_SIZE; li++){
+    var lb = makeTextSprite('', 0.026); lb.visible = false; sky.add(lb); LABEL_POOL.push(lb);
+  }
+}
+var LABEL_CANDIDATES = [], LABEL_POOL = [], LABEL_POOL_SIZE = 14, LABEL_TEX = {};
+function fmtLy(ly){ return ly >= 1000000 ? (ly / 1000000).toFixed(1) + ' M LY' : ly >= 1000 ? Math.round(ly / 100) / 10 + ' K LY' : ly + ' LY'; }
+function labelTexture(text, dim){
+  var key = (dim ? 'd:' : 'b:') + text;
+  if (LABEL_TEX[key]) return LABEL_TEX[key];
+  var c = document.createElement('canvas'); c.width = 768; c.height = 64;
+  var ctx = c.getContext('2d'); ctx.font = '500 28px "IBM Plex Mono", monospace'; ctx.fillStyle = dim ? 'rgba(180,196,224,.6)' : 'rgba(236,240,248,.92)';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, 384, 32);
+  var tex = new THREE.CanvasTexture(c); LABEL_TEX[key] = tex; return tex;
+}
+var _lw = new THREE.Vector3();
+function pickSkyLabels(){
+  // project every candidate; keep the ones on screen and clear of the Earth's disc; show the top few
+  if (!LABEL_CANDIDATES.length) return;
+  var earthPx = Math.asin(Math.min(1, 1 / camDist)) / (camera.fov * DEG / 2) * (H / 2);
+  var cx = W / 2, cy = H / 2, chosen = [];
+  var bodies = [{ obj:moonMesh, text:'MOON · ' + Math.round(moonMesh.position.length() * 6371).toLocaleString() + ' KM', prio:99 },
+                { obj:sunSprite, text:'SUN · 150 M KM', prio:98 }];
+  Object.keys(planetSprites).forEach(function(n){ bodies.push({ obj:planetSprites[n], text:n.toUpperCase() + ' · PLANET', prio:90 }); });
+  var all = bodies.map(function(b){ return { text:b.text, pos:b.obj.position, prio:b.prio }; }).concat(LABEL_CANDIDATES);
+  for (var i = 0; i < all.length; i++){
+    var c = all[i];
+    _lw.copy(c.pos).applyEuler(sky.rotation).applyQuaternion(globe.quaternion);
+    if (_lw.z < 0 && c.prio < 90) { /* behind the camera plane is fine for far sky; projection handles it */ }
+    _lw.project(camera);
+    if (_lw.z > 1) continue;
+    var sx = (_lw.x + 1) / 2 * W, sy = (1 - _lw.y) / 2 * H;
+    if (sx < 30 || sx > W - 30 || sy < 30 || sy > H - 30) continue;
+    if (Math.hypot(sx - cx, sy - cy) < earthPx + 24 && c.prio < 90) continue;   // hidden behind the Earth
+    c._sx = sx; c._sy = sy; chosen.push(c);
+  }
+  chosen.sort(function(a, b){ return b.prio - a.prio; });
+  var used = [];
+  var n = 0;
+  for (var k = 0; k < chosen.length && n < LABEL_POOL_SIZE; k++){
+    var c2 = chosen[k], ok = true;
+    for (var u = 0; u < used.length; u++){ if (Math.abs(used[u].x - c2._sx) < 150 && Math.abs(used[u].y - c2._sy) < 22){ ok = false; break; } }
+    if (!ok) continue;
+    used.push({ x:c2._sx, y:c2._sy });
+    var lb = LABEL_POOL[n++];
+    lb.material.map = labelTexture(c2.text, !!c2.dim); lb.material.needsUpdate = true;
+    lb.scale.set(0.026 * 12, 0.026, 1);
+    lb.position.copy(c2.pos); lb.visible = true;
+  }
+  for (; n < LABEL_POOL_SIZE; n++) LABEL_POOL[n].visible = false;
 }
 
 function setSkyDate(date){
@@ -284,12 +336,11 @@ function setSkyDate(date){
     return { v: toVec(ll[0], ll[1], radius), distAU: eq.dist };
   }
   var moon = place('Moon', 1); moonMesh.position.copy(moon.v.multiplyScalar(moon.distAU * AU_IN_EARTH_RADII));
-  moonMesh.userData.label.position.copy(moonMesh.position);
-  var sun = place('Sun', 700); sunSprite.position.copy(sun.v); sunSprite.userData.label.position.copy(sun.v);
+  var sun = place('Sun', 700); sunSprite.position.copy(sun.v);
   // light the Earth (and the Moon) from the Sun's real direction; ambient keeps the night side readable
   var sunWorld = sun.v.clone().applyEuler(sky.rotation).applyQuaternion(globe.quaternion).normalize();
   sunLight.position.copy(sunWorld.multiplyScalar(50));
-  Object.keys(planetSprites).forEach(function(name){ var v = place(name, SKY_R - 10).v; planetSprites[name].position.copy(v); planetSprites[name].userData.label.position.copy(v); });
+  Object.keys(planetSprites).forEach(function(name){ var v = place(name, SKY_R - 10).v; planetSprites[name].position.copy(v); });
   document.getElementById('skyDate').textContent = 'SKY FOR ' + date.toISOString().slice(0, 10) + ' ' + date.toISOString().slice(11, 16) + ' UTC';
 }
 function updateSunLight(){
@@ -524,7 +575,7 @@ function render(){
   });
 
   updateSunLight();
-  skyLabelSprites.forEach(function(lb){ lb.visible = lb.userData.far ? camDist > 30 : camDist > 9; });
+  pickSkyLabels();
   renderer.render(scene, camera);
   document.getElementById('count').innerHTML =
     (windowTotal > list.length ? 'TOP ' + list.length + ' OF ' + windowTotal + ' EVENTS IN THIS WINDOW — ZOOM IN FOR MORE' : list.length + ' EVENT' + (list.length === 1 ? '' : 'S') + ' IN THIS WINDOW') +
@@ -685,7 +736,17 @@ canvas.addEventListener('wheel', function(ev){
 
 // ---------- idle spin ----------
 function bumpIdle(){ idle = false; clearTimeout(idleTimer); idleTimer = setTimeout(function(){ idle = true; }, 4500); }
+var kb = { tex:null };
+function kenBurns(t){
+  var tex = selected && selected.holder && IMAGES[selected.slug] ? CARD_TEX[selected.slug] : null;
+  if (kb.tex && kb.tex !== tex){ kb.tex.repeat.set(1, 1); kb.tex.offset.set(0, 0); kb.tex.needsUpdate = true; kb.tex = null; }
+  if (!tex) return;
+  kb.tex = tex; tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  var z = 0.82 + 0.04 * Math.sin(t / 2600);
+  tex.repeat.set(z, z); tex.offset.set((1 - z) / 2 + 0.05 * Math.sin(t / 3100), (1 - z) / 2 + 0.05 * Math.cos(t / 4300));
+}
 function tick(){
+  kenBurns(performance.now()); if (selected) render();
   if (!dragging && (Math.abs(velX) > 0.0003 || Math.abs(velY) > 0.0003)){
     qTmp.setFromAxisAngle(AY, velX); qTmp2.setFromAxisAngle(AX, velY);
     globe.quaternion.premultiply(qTmp).premultiply(qTmp2);
@@ -739,7 +800,7 @@ function setWindow(next){
   hovered = null; document.getElementById('tip').classList.remove('on'); canvas.style.cursor = '';
   if (selected && !(selected.start <= WINDOWS[wi].end && selected.end >= WINDOWS[wi].start)) closePanel();
   else if (selected) openPanel(selected);
-  bindWindow(); syncHeader(); placeHandle(); bumpIdle(); render(); writeHash();
+  bindWindow(); syncHeader(); placeHandle(); bumpIdle(); render(); writeHash(); resetTicker();
 }
 function syncHeader(){
   var w = WINDOWS[wi], era = ERAS[w.era];
@@ -797,12 +858,52 @@ function readHash(){
   }
 }
 
+// ---------- 'while this was happening' ticker ----------
+function continentOf(e){ return e.normal; }
+function coincidences(){
+  var w = WINDOWS[wi];
+  var list = EVENTS.filter(function(e){ return e.start <= w.end && e.end >= w.start && e.w >= 2; });
+  var dated = list.filter(function(e){ return e.date; }), pairs = [];
+  for (var i = 0; i < dated.length; i++) for (var j = i + 1; j < dated.length; j++){
+    var a = dated[i], b = dated[j];
+    if (a.normal.angleTo(b.normal) < 0.6) continue;
+    var gap = Math.abs(dayNumber(a.date) - dayNumber(b.date));
+    if (gap <= 7) pairs.push({ a:a, b:b, gap:Math.round(gap), score:a.w + b.w - gap * 0.2 });
+  }
+  if (!pairs.length){
+    // no exact dates in this window yet: pair the biggest events on different sides of the world, same year
+    var byYear = {};
+    list.forEach(function(e){ (byYear[e.start] = byYear[e.start] || []).push(e); });
+    Object.keys(byYear).forEach(function(y){
+      var arr = byYear[y].sort(function(p, q){ return q.w - p.w; });
+      for (var i = 0; i < arr.length; i++) for (var j = i + 1; j < Math.min(arr.length, i + 6); j++){
+        if (arr[i].normal.angleTo(arr[j].normal) > 0.6) pairs.push({ a:arr[i], b:arr[j], gap:null, score:arr[i].w + arr[j].w });
+      }
+    });
+  }
+  pairs.sort(function(p, q){ return q.score - p.score; });
+  return pairs.slice(0, 12);
+}
+var tickerPairs = [], tickerIndex = 0, tickerTimer = null;
+function showTicker(){
+  var el = document.getElementById('ticker');
+  if (!tickerPairs.length){ el.classList.remove('on'); return; }
+  var p = tickerPairs[tickerIndex % tickerPairs.length];
+  var when = p.gap == null ? 'In ' + yearLabel(p.a.start) : p.gap === 0 ? 'On ' + dayLabel(p.a.date) : 'Within ' + (p.gap === 1 ? 'a day' : p.gap + ' days') + ' of ' + dayLabel(p.a.date);
+  el.innerHTML = '<span class="tk">' + when + '</span> ' + p.a.title + ' <em>' + p.a.place + '</em> — while — ' + p.b.title + ' <em>' + p.b.place + '</em>';
+  el.classList.add('on');
+  el.onclick = function(){ spinTo(p.a); openPanel(p.a); };
+}
+function resetTicker(){
+  tickerPairs = coincidences(); tickerIndex = 0; showTicker();
+  clearInterval(tickerTimer); tickerTimer = setInterval(function(){ tickerIndex++; showTicker(); }, 9000);
+}
 document.getElementById('aboutCounts').textContent = EVENTS.length.toLocaleString() + ' events · ' + Object.keys(IMAGES).length.toLocaleString() + ' photographs';
 document.getElementById('aboutBtn').onclick = function(){ document.getElementById('about').classList.toggle('on'); };
 document.getElementById('aboutClose').onclick = function(){ document.getElementById('about').classList.remove('on'); };
 window.addEventListener('resize', resize);
 buildSkyStatic(); setSkyDate(new Date());
-bindWindow(); syncHeader(); placeHandle(); resize(); tick(); readHash(); setTimeout(placeHandle, 60);
+bindWindow(); syncHeader(); placeHandle(); resize(); tick(); readHash(); resetTicker(); setTimeout(placeHandle, 60);
 setInterval(function(){ if (!selected || !selected.date) setSkyDate(new Date()); }, 60000);
 };
 // Load data files, then start the app.
