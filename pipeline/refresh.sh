@@ -1,5 +1,5 @@
 #!/bin/bash
-# Atlas of When — full data refresh. Run from anywhere:
+# Chrono Geography Transfusion — full data refresh. Run from anywhere:
 #   pipeline/refresh.sh            # events + summaries + images for the last century
 #   pipeline/refresh.sh --all      # images for every event, not only the last century
 # Every step caches and resumes; re-running is cheap.
@@ -10,16 +10,16 @@ python3 -c "import requests, PIL" 2>/dev/null || pip3 install --quiet -r require
 IMAGE_FROM=1926
 if [ "${1:-}" = "--all" ]; then IMAGE_FROM=-4000000; fi
 
-echo "== 1/4 events from Wikidata"
+echo "== 1/5 events from Wikidata"
 python3 extract_events.py || echo "   (some queries failed — continuing with what came back)"
 
-echo "== 2/4 Wikipedia lead paragraphs"
+echo "== 2/5 Wikipedia lead paragraphs"
 python3 fetch_summaries.py events_wikidata.json
 
-echo "== 3/4 licensed images from Commons (from year $IMAGE_FROM)"
+echo "== 3/5 licensed images from Commons (from year $IMAGE_FROM)"
 python3 fetch_images.py events_wikidata.json --from "$IMAGE_FROM" --img-dir ../site/img --out ../site/data/images.json
 
-echo "== 4/4 images for curated events that have no Wikidata row"
+echo "== 4/5 images for curated events that have no Wikidata row"
 node -e '
 const fs=require("fs");const path=require("path");
 const rows=fs.readdirSync("curated").filter(f=>f.endsWith(".json")).flatMap(f=>JSON.parse(fs.readFileSync(path.join("curated",f),"utf8")));
@@ -32,4 +32,7 @@ python3 fetch_images.py events_wikidata.json --from "$IMAGE_FROM" --img-dir ../s
 
 echo "== build site/data/events.json"
 node build.js
+
+echo "== 5/5 audio and video clips for the biggest events (from year $IMAGE_FROM; needs ffmpeg for small files)"
+python3 fetch_media.py ../site/data/events.json --from "$IMAGE_FROM" --min-weight 3 --media-dir ../site/media --out ../site/data/media.json || echo "   (media step failed — the site works without clips)"
 echo "== done"

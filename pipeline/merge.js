@@ -61,23 +61,29 @@ try {
     if (b.article) discoverySlugs.add(b.article.value.rsplit ? '' : b.article.value.split('/').pop().toLowerCase());
   }
 } catch (e) { /* no discoveries cache available */ }
-const NOT_EVENTS = /\b(continent|country|sovereign state|ocean|sea|island|planet|moon|star|galaxy|dwarf planet|asteroid|comet|element|chemical|mineral|river|lake|mountain|region)\b/i;
+// geopolitical entities carry a P575 "discovery" date (Brazil, Europe) but are not events; natural objects (Neptune, a comet, an element) are
+const NOT_EVENTS = /\b(is (a|the) (largest |smallest |second-largest |third-largest )?(continent|country|sovereign state|nation|ocean|sea|region|state|province|territory|city|town|municipality|colony|kingdom|republic|empire))\b/i;
 function humanizeSlug(slug) { return decodeURIComponent(String(slug)).replace(/_/g, ' '); }
 const THIS_YEAR = new Date().getUTCFullYear();
 const MIN_LAUNCH_SITELINKS = 30;
-// P575 is Wikidata's "time of discovery or invention": pick the verb from what the first sentence says the thing is.
+// P575 is Wikidata's "time of discovery or invention": pick the verb from what the thing is.
+// Natural objects and archaeological finds are discovered; devices, processes, foods and drugs are invented;
+// everything else (a theorem, a projection, a fallacy) is "introduced".
+const CATALOG = /^(\(?\d+\)? [A-Z][\w'-]+|\d{4} [A-Z]{2}\d*|(IC|NGC|UGC|PGC|KV|TT|QV|WV|Messier|M) ?\d+[A-Za-z]?|[A-Z]+ \d+[A-Za-z]?|\d+P\/.+)$/;   // 463 Lola, 2003 UB313, IC 4970, KV36, 21P/…
 const CONSTELLATION = /\bconstellation/i;
-const DISCOVERED = /\b(nebula|cluster|galaxy|galaxies|comet|asteroid|moon|planet|star|supernova|element|isotope|particle|boson|fossil|dinosaur|reptile|genus|species|tree|plant|bacterium|virus|cell|hormone|vitamin|enzyme|protein|molecule|compound|mineral|island|islands|archipelago|territory|bay|cape|strait|cave|tomb|site|manuscript|library|mechanism|diamond|effect|force|law|constant|paradox|theorem|formula|number|numbers|sequence|theory|principle|phenomenon|wave|radiation|current|experiment|effect|scattering|spacetime|principle|pole|paradox|positron|electron|proton|neutron|isotope|deuterium|process|crater|trojan|bog body|bust|statue|city|town|settlement|harbour|mummy|wreck|shipwreck)\b/i;
+const DISCOVERED = /\b(nebula|cluster|galaxy|galaxies|comet|asteroid|moon|moons|satellite|planet|planets|star|stars|supernova|atoll|reef|peninsula|river|lake|basin|mine|tablet|jewel|horns?|sculpture|marble|bronze|relief|mosaic|treasure|element|isotope|particle|boson|positron|electron|proton|neutron|deuterium|fossil|dinosaur|reptile|genus|species|tree|plant|bacterium|virus|cell|hormone|vitamin|enzyme|protein|molecule|compound|mineral|meteorite|crater|island|islands|archipelago|territory|land|bay|cape|strait|glacier|falls|cave|tomb|site|ruins|manuscript|manuscripts|scroll|inscription|stele|library|mechanism|diamond|hoard|ship|wreck|shipwreck|chariot|statue|bust|helmet|mummy|bog body|men|man|city|town|settlement|harbour|effect|force|law|constant|paradox|theorem|formula|number|numbers|sequence|principle|phenomenon|wave|radiation|current|scattering|spacetime|pole|expedition|event|calendar|observatory)\b/i;
+const INVENTED = /\b(engine|turbine|motor|filter|diode|triode|transistor|battery|cell|lamp|bulb|rod|cylinder|kaleidoscope|stroboscope|transformer|inductor|thermistor|code|press|machine|computer|maser|laser|telescope|microscope|reactor|drug|opioid|analgesic|anaesthetic|vaccine|dye|plastic|polymer|resin|process|alloy|food|dish|drink|cocktail|snack|sandwich|sauce|dessert|instrument|device|apparatus|tool|weapon|gun|rifle|bomb|vehicle|aircraft|rocket|camera|projector|phonograph|telephone|radio|television|typewriter|pen|semicolon|sign|symbol|font|typeface|game|sport|toy|projection|calendar|sort|algorithm|protocol|language)\b/i;
 function discoveryTitle(title, description) {
   const first = String(description).split(/\.\s/)[0];
   if (/^(Messier|NGC|IC) \d/.test(title)) return 'Discovery of ' + title;
   if (/\b(nebula|cluster|pillars|galaxy)\b/i.test(title + ' ' + first)) return 'Discovery of ' + title;
   if (CONSTELLATION.test(first)) return 'Constellation ' + title + ' charted';
   if (DISCOVERED.test(first) || DISCOVERED.test(title)) return 'Discovery of ' + title;
-  return 'Invention of ' + title;
+  if (INVENTED.test(first) || INVENTED.test(title)) return 'Invention of ' + title;
+  return title + ' introduced';
 }
 
-let wikidataKept = 0, wikidataDropped = 0, notEvents = 0, routineLaunches = 0;
+let wikidataKept = 0, wikidataDropped = 0, notEvents = 0, routineLaunches = 0, catalogObjects = 0;
 for (const file of wikidataFiles) {
   const rows = JSON.parse(fs.readFileSync(file, 'utf8'));
   for (const row of rows) {
@@ -97,9 +103,10 @@ for (const file of wikidataFiles) {
     const copy = row.slice();
     // raw QID leaked into a title ("Birth of Q692") — recover the name from the article slug
     if (/\bQ\d+\b/.test(copy[0]) && slug && !/^q\d+$/.test(slug)) copy[0] = copy[0].replace(/\bQ\d+\b/, humanizeSlug(row[9]));
-    if (discoverySlugs.has(slug)) {
+    if (copy[12] === 'discovery' || discoverySlugs.has(slug)) {
       if (NOT_EVENTS.test(copy[8] || '')) { notEvents++; continue; }
-      if (!/^(discovery|invention|constellation)/i.test(copy[0])) copy[0] = discoveryTitle(copy[0], copy[8] || '');
+      if (CATALOG.test(copy[0]) && (copy[11] || 0) < 60) { catalogObjects++; continue; }   // numbered asteroids, tomb codes, faint galaxies
+      if (!/^(discovery|invention|constellation)/i.test(copy[0]) && !/ introduced$/.test(copy[0])) copy[0] = discoveryTitle(copy[0], copy[8] || '');
     }
     // routine launches (every Shuttle and Soyuz flight has a Wikidata item) crowd the map: keep the notable ones
     if (copy[12] === 'launch' && (copy[11] || 0) < MIN_LAUNCH_SITELINKS) { routineLaunches++; continue; }
@@ -137,4 +144,4 @@ const wd = out.filter(r => r._sitelinks !== undefined).sort((a, b) => b._sitelin
 wd.forEach((r, i) => { const q = i / wd.length; r[6] = q < 0.08 ? 4 : q < 0.25 ? 3 : q < 0.55 ? 2 : 1; delete r._sitelinks; });
 out.sort((a, b) => a[3] - b[3]);
 fs.writeFileSync(outPath, JSON.stringify(out));
-console.log('curated', out.length - wikidataKept, '| wikidata kept', wikidataKept, 'dropped as duplicate', wikidataDropped, 'dropped as not-an-event', notEvents, 'routine launches', routineLaunches, 'deaths folded into assassinations', mergedDeaths, '| total', out.length);
+console.log('curated', out.length - wikidataKept, '| wikidata kept', wikidataKept, 'dropped as duplicate', wikidataDropped, 'dropped as not-an-event', notEvents, 'routine launches', routineLaunches, 'catalogue objects', catalogObjects, 'deaths folded into assassinations', mergedDeaths, '| total', out.length);

@@ -21,6 +21,7 @@
       <button data-mode="century" aria-pressed="false">Last 100 years</button>
       <button data-mode="all" aria-pressed="false">All of history</button>
     </div>
+    <button class="sound" id="soundBtn" aria-pressed="false" title="Clips play louder as you zoom toward them">Sound off</button>
     <div class="filters" id="filters"></div>
   </header>
   <div id="stage">
@@ -45,11 +46,6 @@
   </div>
   <div id="rail">
     <div class="track" id="track" tabindex="0" role="slider" aria-label="Time window"></div>
-    <div class="railfoot">
-      <span id="railLeft">1926</span>
-      <span><b id="railNow"></b></span>
-      <span id="railRight">2026</span>
-    </div>
   </div>
 </div>
 <script src="vendor/three.min.js"></script>

@@ -11,3 +11,4 @@ node_modules/
 playground.html
 pipeline/skybake_in.json
 pipeline/mw_mask.pgm
+pipeline/media_cache/

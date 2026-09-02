@@ -37,6 +37,20 @@ for (const slug of Object.keys(manifest)) {
   const b = fs.readFileSync(f); bytes += b.length;
   manifest[slug].file = 'data:image/jpeg;base64,' + b.toString('base64');
 }
+// clips: a small demo set inlined as data URIs — the ten heaviest events with a clip inside the United States,
+// then the rest by weight, until the media budget is spent (the hosted page must stay under 16 MB)
+let media = {};
+try { media = JSON.parse(fs.readFileSync(path.join(site, 'data/media.json'), 'utf8')); } catch (e) { /* no clips yet */ }
+const weightOf = {}; JSON.parse(events).forEach(r => { weightOf[r[9]] = { w: r[6], us: r[1] > 24 && r[1] < 50 && r[2] > -125 && r[2] < -66 }; });
+const MEDIA_BUDGET = 2.4 * 1048576; let mediaBytes = 0; const mediaOut = {};
+Object.keys(media).filter(s => weightOf[s]).sort((a, b) => (weightOf[b].us - weightOf[a].us) || (weightOf[b].w - weightOf[a].w)).forEach(slug => {
+  const f = path.join(site, 'media', media[slug].file);
+  if (!fs.existsSync(f)) return;
+  const b = fs.readFileSync(f); if (mediaBytes + b.length > MEDIA_BUDGET) return;
+  mediaBytes += b.length;
+  const mime = /\.opus$|\.ogg$|\.oga$/.test(media[slug].file) ? 'audio/ogg' : /\.mp3$/.test(media[slug].file) ? 'audio/mpeg' : /\.webm$/.test(media[slug].file) ? 'video/webm' : /\.mp4$/.test(media[slug].file) ? 'video/mp4' : 'application/octet-stream';
+  mediaOut[slug] = Object.assign({}, media[slug], { file: 'data:' + mime + ';base64,' + b.toString('base64') });
+});
 let html = fs.readFileSync(path.join(site, 'index.html'), 'utf8');
 const css = fs.readFileSync(path.join(site, 'styles.css'), 'utf8');
 const app = fs.readFileSync(path.join(site, 'app.js'), 'utf8');
@@ -50,7 +64,7 @@ html = html.replace('<script src="app.js"></script>',
   '<script id="pg-events" type="application/json">' + events + '</script>\n' +
   '<script id="pg-images" type="application/json">' + JSON.stringify(manifest) + '</script>\n' +
   '<script id="pg-borders" type="application/json">' + borders + '</script>\n' +
-  '<script>window.__ATLAS = { events: JSON.parse(document.getElementById("pg-events").textContent), images: JSON.parse(document.getElementById("pg-images").textContent), borders: JSON.parse(document.getElementById("pg-borders").textContent), skyLabels: ' + skyLabels + ', skyImage: ' + JSON.stringify(skyImage) + ', earth: ' + JSON.stringify(earth) + ', imgDir: "" };</script>\n' +
+  '<script>window.__ATLAS = { events: JSON.parse(document.getElementById("pg-events").textContent), images: JSON.parse(document.getElementById("pg-images").textContent), borders: JSON.parse(document.getElementById("pg-borders").textContent), skyLabels: ' + skyLabels + ', skyImage: ' + JSON.stringify(skyImage) + ', earth: ' + JSON.stringify(earth) + ', imgDir: "", media: ' + JSON.stringify(mediaOut) + ', mediaDir: "" };</script>\n' +
   '<script>\n' + app + '\n</script>');
 fs.writeFileSync(out, html);
-console.log('playground: ' + Object.keys(manifest).length + ' photos (' + (bytes / 1048576).toFixed(1) + ' MB), file ' + (html.length / 1048576).toFixed(1) + ' MB -> ' + out);
+console.log('playground: ' + Object.keys(manifest).length + ' photos (' + (bytes / 1048576).toFixed(1) + ' MB), ' + Object.keys(mediaOut).length + ' clips (' + (mediaBytes / 1048576).toFixed(1) + ' MB), file ' + (html.length / 1048576).toFixed(1) + ' MB -> ' + out);

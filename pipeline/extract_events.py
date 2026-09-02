@@ -1,5 +1,7 @@
 """
-Atlas of When — Wikidata extraction script (v0.5). Science and discovery at depth: exact dates, discoverer, and the discoverer's workplace as a location fallback; spacecraft launches; well-known scientific publications.
+Chrono Geography Transfusion — Wikidata extraction script (v0.6).
+v0.6 adds the wide pull: every item with a day-precision point in time (P585), coordinates and enough language editions,
+and every person with a day-precision birth or death and a located birth/death place, in adaptive date slices.
 
 Run:   python3 extract_events.py --out events_wikidata.json
 Needs: Python 3.9+, `pip install requests`
@@ -26,8 +28,10 @@ Honesty notes
 """
 
 import argparse
+import datetime
 import json
 import os
+import re
 import sys
 import time
 
@@ -37,9 +41,15 @@ ENDPOINT = "https://query.wikidata.org/sparql"
 USER_AGENT = "AtlasOfWhen/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
 CACHE_DIR = "wdqs_cache"
 PAUSE_SECONDS = 2.0
-MAX_EVENTS = 10000
+MAX_EVENTS = 250000
 PERSON_MIN_SITELINKS = 150
 EVENT_MIN_SITELINKS = 25
+# v0.6 wide pull — "everything with a date". Lower these for more rows; each query is capped at SLICE_LIMIT rows
+# and a slice that hits the cap or times out is split in half and retried (down to SLICE_MIN_DAYS).
+DATED_MIN_SITELINKS = 25        # items with a day-precision point in time (P585)
+PERSON_DEEP_MIN_SITELINKS = 60  # people with a day-precision birth or death
+SLICE_LIMIT = 4000
+SLICE_MIN_DAYS = 14
 
 # Wikidata class QID -> prototype category. Verify each QID before relying on it.
 EVENT_CLASSES = {
@@ -135,6 +145,7 @@ SELECT ?item ?itemLabel ?itemDescription ?when ?coord ?placeLabel ?placeCoord ?s
   OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
 }
+LIMIT %(limit)d
 """
 DISCOVERY_DATE_SLICES = [(-4000, 1700), (1700, 1850), (1850, 1900), (1900, 1930), (1930, 1960), (1960, 1990), (1990, 2030)]
 DISCOVERY_MIN_SITELINKS = 12
@@ -184,6 +195,59 @@ SELECT ?item ?itemLabel ?itemDescription ?born ?died ?birthPlaceLabel ?birthCoor
 }
 """
 
+# v0.6: anything with a day-precision point in time. p:/psv: exposes the precision (11 = day), so these dates are
+# exact by construction. Location: own coordinate, else the location's (P276), else the country's (P17).
+DATED_QUERY = """
+SELECT ?item ?itemLabel ?itemDescription ?when ?coord ?placeLabel ?placeCoord ?countryCoord ?classLabel ?article ?sitelinks WHERE {
+  ?item p:P585 ?st . ?st psv:P585 ?tv . ?tv wikibase:timePrecision 11 . ?tv wikibase:timeValue ?when .
+  hint:Prior hint:rangeSafe true .
+  FILTER(?when >= "%(date_from)s"^^xsd:dateTime && ?when < "%(date_to)s"^^xsd:dateTime)
+  ?item wikibase:sitelinks ?sitelinks . FILTER(?sitelinks >= %(min_sitelinks)d)
+  FILTER NOT EXISTS { ?item wdt:P31 wd:Q5 }
+  OPTIONAL { ?item wdt:P625 ?coord . }
+  OPTIONAL { ?item wdt:P276 ?place . ?place wdt:P625 ?placeCoord . }
+  OPTIONAL { ?item wdt:P17 ?country . ?country wdt:P625 ?countryCoord . }
+  OPTIONAL { ?item wdt:P31 ?class . }
+  ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> .
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}
+LIMIT %(limit)d
+"""
+
+# v0.6: people with a day-precision birth (this slice) — death handled by the same row when it is day-precise.
+PERSON_DEEP_QUERY = """
+SELECT ?item ?itemLabel ?itemDescription ?born ?died ?birthPlaceLabel ?birthCoord ?deathPlaceLabel ?deathCoord ?occLabel ?article ?sitelinks WHERE {
+  ?item p:P569 ?bs . ?bs psv:P569 ?bv . ?bv wikibase:timePrecision 11 . ?bv wikibase:timeValue ?born .
+  hint:Prior hint:rangeSafe true .
+  FILTER(?born >= "%(date_from)s"^^xsd:dateTime && ?born < "%(date_to)s"^^xsd:dateTime)
+  ?item wikibase:sitelinks ?sitelinks . FILTER(?sitelinks >= %(min_sitelinks)d)
+  OPTIONAL { ?item wdt:P19 ?birthPlace . ?birthPlace wdt:P625 ?birthCoord . }
+  OPTIONAL { ?item p:P570 ?ds . ?ds psv:P570 ?dv . ?dv wikibase:timePrecision 11 . ?dv wikibase:timeValue ?died . }
+  OPTIONAL { ?item wdt:P20 ?deathPlace . ?deathPlace wdt:P625 ?deathCoord . }
+  OPTIONAL { ?item wdt:P106 ?occ . }
+  ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> .
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}
+LIMIT %(limit)d
+"""
+
+# class / occupation label -> category, for the wide pull
+CLASS_CATEGORY = [
+    ("con", r"war|battle|siege|attack|bombing|massacre|coup|rebellion|revolt|uprising|invasion|offensive|conflict|assassination|shooting|riot|protest|election|referendum|treaty|armistice|ceasefire|genocide|insurgency|mutiny|crusade|terror|military|strike"),
+    ("dis", r"earthquake|flood|hurricane|cyclone|typhoon|tornado|storm|eruption|volcan|tsunami|wildfire|famine|pandemic|epidemic|outbreak|accident|crash|collision|derailment|shipwreck|sinking|disaster|explosion|fire|landslide|avalanche|drought|heat wave|blizzard"),
+    ("sci", r"discover|invention|experiment|launch|spaceflight|space mission|expedition|eclipse|transit|observation|publication|scientific|patent|first flight|maiden|test|telescope|satellite|probe|rover|nobel|theorem|comet|asteroid|supernova"),
+]
+OCC_CATEGORY = [
+    ("sci", r"scientist|physicist|chemist|biologist|mathematician|astronomer|engineer|inventor|physician|geologist|computer|economist|psychologist|explorer|astronaut|cosmonaut|aviator"),
+    ("con", r"politician|military|general|admiral|soldier|revolutionary|monarch|emperor|king|queen|president|prime minister|dictator|diplomat|statesman|activist"),
+]
+def category_from_label(label, table, default):
+    text = (label or "").lower()
+    for category, pattern in table:
+        if re.search(pattern, text):
+            return category
+    return default
+
 # Birth-year slices for the person query, so no single query runs long.
 # Slices that returned in v0.2 are kept as-is so their cache files are reused;
 # the four that timed out (1860-90, 1940-55, 1955-70, 1990-2010) are split into 5-year slices.
@@ -206,6 +270,9 @@ def iso_date(year):
     return str(year).zfill(4) + "-01-01T00:00:00Z"
 
 
+LAST_FAILURE = {"kind": None}   # "timeout" splits a slice; "connection" stops the wide pull
+
+
 def run_query(cache_key, sparql):
     if not os.path.isdir(CACHE_DIR):
         os.makedirs(CACHE_DIR)
@@ -223,12 +290,19 @@ def run_query(cache_key, sparql):
             response = requests.get(ENDPOINT, params={"query": sparql}, headers=headers, timeout=95)
         if response.status_code != 200:
             print("  FAILED " + cache_key + " with HTTP " + str(response.status_code) + " — skipping (likely a 60 s timeout)", file=sys.stderr)
+            LAST_FAILURE["kind"] = "timeout"
             time.sleep(PAUSE_SECONDS)
             return {"results": {"bindings": []}}
         payload = response.json()
-    except requests.RequestException as error:
-        print("  FAILED " + cache_key + ": " + str(error) + " — skipping", file=sys.stderr)
+    except requests.Timeout:
+        print("  FAILED " + cache_key + ": read timeout — skipping", file=sys.stderr)
+        LAST_FAILURE["kind"] = "timeout"
         return {"results": {"bindings": []}}
+    except requests.RequestException as error:
+        print("  FAILED " + cache_key + ": " + type(error).__name__ + " (no connection to the query service) — skipping", file=sys.stderr)
+        LAST_FAILURE["kind"] = "connection"
+        return {"results": {"bindings": []}}
+    LAST_FAILURE["kind"] = None
     with open(cache_path, "w", encoding="utf-8") as cache_file:
         json.dump(payload, cache_file)
     time.sleep(PAUSE_SECONDS)
@@ -368,10 +442,19 @@ def collect_discoveries():
     rows = []
     for date_slice in DISCOVERY_DATE_SLICES:
         print("discoveries: P575 " + str(date_slice[0]) + " to " + str(date_slice[1]), file=sys.stderr)
+        key = "discoveries_P575_" + str(date_slice[0]) + "_" + str(date_slice[1])
         sparql = DISCOVERY_QUERY % {"min_sitelinks": DISCOVERY_MIN_SITELINKS,
-                                    "date_from": iso_date(date_slice[0]), "date_to": iso_date(date_slice[1])}
-        payload = run_query("discoveries_P575_" + str(date_slice[0]) + "_" + str(date_slice[1]), sparql)
-        for binding in payload["results"]["bindings"]:
+                                    "date_from": iso_date(date_slice[0]), "date_to": iso_date(date_slice[1]), "limit": 100000}
+        payload = run_query(key, sparql)
+        bindings = payload["results"]["bindings"]
+        if not bindings and not os.path.exists(os.path.join(CACHE_DIR, key + ".json")) and date_slice[0] >= 1000:
+            # the whole slice timed out (1850-1900 and 1960-2030 did in the first runs): retry in adaptive smaller slices
+            if LAST_FAILURE["kind"] == "connection":
+                continue
+            print("  retrying " + key + " in smaller slices", file=sys.stderr)
+            bindings = list(run_sliced(DISCOVERY_QUERY, "discoveries_P575", {"min_sitelinks": DISCOVERY_MIN_SITELINKS},
+                                       datetime.date(date_slice[0], 1, 1), datetime.date(min(date_slice[1], 2027), 1, 1), 365 * 5))
+        for binding in bindings:
             when_year = year_of(value_of(binding, "when"))
             if when_year is None:
                 continue
@@ -478,6 +561,111 @@ def collect_people():
     return rows
 
 
+def iso_of(day):
+    # datetime.date -> Wikidata xsd:dateTime; only used for years >= 1 (the wide pull starts at 1000)
+    return day.strftime("%Y-%m-%dT00:00:00Z")
+
+
+def run_sliced(query, key_prefix, params, day_from, day_to, days):
+    """Run `query` over [day_from, day_to) in slices of `days`; a slice that times out (empty payload with no cache)
+    or hits SLICE_LIMIT is split in half, down to SLICE_MIN_DAYS. Yields bindings."""
+    cursor = day_from
+    while cursor < day_to:
+        end = min(day_to, cursor + datetime.timedelta(days=days))
+        key = key_prefix + "_" + cursor.isoformat() + "_" + end.isoformat()
+        cache_path = os.path.join(CACHE_DIR, key + ".json")
+        had_cache = os.path.exists(cache_path)
+        payload = run_query(key, query % dict(params, date_from=iso_of(cursor), date_to=iso_of(end), limit=SLICE_LIMIT))
+        bindings = payload["results"]["bindings"]
+        failed = not had_cache and not os.path.exists(cache_path)      # run_query only caches successes
+        if failed and LAST_FAILURE["kind"] == "connection":
+            raise ConnectionError("query service unreachable")
+        if (failed or len(bindings) >= SLICE_LIMIT) and days > SLICE_MIN_DAYS:
+            print("  splitting " + key + (" (timed out)" if failed else " (hit the row cap)"), file=sys.stderr)
+            for b in run_sliced(query, key_prefix, params, cursor, end, max(SLICE_MIN_DAYS, days // 2)):
+                yield b
+        else:
+            for b in bindings:
+                yield b
+        cursor = end
+
+
+def wide_slices():
+    # (from, to, initial slice in days): coarse before 1800, yearly to 1990, quarterly after
+    D = datetime.date
+    return [
+        (D(1000, 1, 1), D(1800, 1, 1), 3650 * 5),
+        (D(1800, 1, 1), D(1900, 1, 1), 3650),
+        (D(1900, 1, 1), D(1990, 1, 1), 365),
+        (D(1990, 1, 1), D(2027, 1, 1), 92),
+    ]
+
+
+def collect_dated():
+    """v0.6 wide pull: every non-human item with a day-precision point in time."""
+    rows = []
+    best = {}
+    for day_from, day_to, days in wide_slices():
+        print("dated: " + str(day_from.year) + " to " + str(day_to.year), file=sys.stderr)
+        for binding in run_sliced(DATED_QUERY, "dated", {"min_sitelinks": DATED_MIN_SITELINKS}, day_from, day_to, days):
+            qid = value_of(binding, "item").rsplit("/", 1)[-1]
+            point, point_key = first_point(binding, ["coord", "placeCoord", "countryCoord"])
+            if point is None:
+                continue
+            when = value_of(binding, "when")
+            year = year_of(when)
+            if year is None:
+                continue
+            category = category_from_label(value_of(binding, "classLabel"), CLASS_CATEGORY, None)
+            if qid in best:
+                if category and not best[qid]["_cat"]:
+                    best[qid]["category"] = category; best[qid]["_cat"] = True
+                continue
+            row = {
+                "qid": qid, "title": value_of(binding, "itemLabel"), "lat": point[0], "lon": point[1],
+                "start": year, "end": year, "category": category or "cul",
+                "sitelinks": int(value_of(binding, "sitelinks")), "place": value_of(binding, "placeLabel") or "",
+                "description": value_of(binding, "itemDescription") or "", "slug": slug_of(value_of(binding, "article")),
+                "confidence": {"coord": "exact", "placeCoord": "place", "countryCoord": "country"}[point_key], "source": "dated", "date": when.split("T")[0], "who": None, "_cat": bool(category),
+            }
+            best[qid] = row
+            rows.append(row)
+    for row in rows:
+        del row["_cat"]
+    return rows
+
+
+def collect_people_deep():
+    """v0.6: births and deaths at day precision for everyone above PERSON_DEEP_MIN_SITELINKS."""
+    rows = []
+    seen = set()
+    for day_from, day_to, days in wide_slices():
+        print("people (deep): born " + str(day_from.year) + " to " + str(day_to.year), file=sys.stderr)
+        for binding in run_sliced(PERSON_DEEP_QUERY, "peopledeep", {"min_sitelinks": PERSON_DEEP_MIN_SITELINKS}, day_from, day_to, days):
+            qid = value_of(binding, "item").rsplit("/", 1)[-1]
+            if qid in seen:
+                continue
+            seen.add(qid)
+            name = value_of(binding, "itemLabel")
+            description = value_of(binding, "itemDescription") or ""
+            sitelinks = int(value_of(binding, "sitelinks"))
+            slug = slug_of(value_of(binding, "article"))
+            category = category_from_label(value_of(binding, "occLabel"), OCC_CATEGORY, "cul")
+            for kind, when_key, place_key, coord_key in (("Birth", "born", "birthPlaceLabel", "birthCoord"), ("Death", "died", "deathPlaceLabel", "deathCoord")):
+                when = value_of(binding, when_key)
+                point = parse_point(value_of(binding, coord_key))
+                year = year_of(when)
+                if when is None or point is None or year is None:
+                    continue
+                rows.append({
+                    "qid": qid, "title": kind + " of " + name, "lat": point[0], "lon": point[1],
+                    "start": year, "end": year, "category": category, "sitelinks": sitelinks,
+                    "place": value_of(binding, place_key) or "", "description": description, "slug": slug,
+                    "confidence": "associated", "source": "person", "date": when.split("T")[0], "who": None,
+                })
+    return rows
+
+
 def sort_key(row):
     return -row["sitelinks"]
 
@@ -486,9 +674,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default="events_wikidata.json")
     parser.add_argument("--max", type=int, default=MAX_EVENTS)
+    parser.add_argument("--no-wide", action="store_true", help="skip the v0.6 wide pull (everything with a day-precision date)")
     arguments = parser.parse_args()
 
     all_rows = collect_events() + collect_discoveries() + collect_launches() + collect_publications() + collect_people()
+    if not arguments.no_wide:
+        try:
+            all_rows += collect_dated()
+            all_rows += collect_people_deep()
+        except ConnectionError as error:
+            print("wide pull stopped: " + str(error) + " — keeping what came back", file=sys.stderr)
 
     # Dedupe on (qid, title) — the same item can appear under several classes.
     seen = {}

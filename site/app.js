@@ -6,6 +6,8 @@ var IMG_DIR = window.__ATLAS.imgDir != null ? window.__ATLAS.imgDir : "img/";
 var BORDERS = window.__ATLAS.borders;
 var RAW = window.__ATLAS.events;
 var IMAGES = window.__ATLAS.images;
+var MEDIA = window.__ATLAS.media || {};          // slug -> { file, kind, author, license, licenseUrl, filePage, seconds }
+var MEDIA_DIR = window.__ATLAS.mediaDir != null ? window.__ATLAS.mediaDir : "media/";
 var DEG = Math.PI / 180;
 
 var CATS = {
@@ -15,33 +17,21 @@ var CATS = {
   dis:{label:'Disasters',       v:'--dis'}
 };
 
-var EVENTS = RAW.map(function(r, i){
+function parseRow(r, i){
   return { id:i, title:r[0], lat:r[1], lon:r[2], start:r[3], end:r[4], cat:r[5], w:r[6], place:r[7], desc:r[8], slug:r[9],
            date:(typeof r[10] === 'string' && /^-?\d{1,6}-\d{2}-\d{2}$/.test(r[10]) && !/-01-01$/.test(r[10])) ? r[10] : null, who:r[11] || null };
-});
+}
+var EVENTS = RAW.map(parseRow);
+// Large builds keep only the top events per year in events.json and the rest in data/y/<year>.json shards,
+// listed in data/index.json; a window loads the shards it touches on demand (not in the playground build).
+var SHARDS = window.__ATLAS.shards || null;   // { years:[...], dir:'data/y/' }
+var loadedYears = {};
 
 // Two rails. "century" = calendar decades with 5-year windows; "all" = eleven eras from the first stone tools.
 var ERA_SETS = {
-  recent: [
-    {name:'', label:'2000–05', from:2000, to:2005, step:5},
-    {name:'', label:'2005–10', from:2005, to:2010, step:5},
-    {name:'', label:'2010–15', from:2010, to:2015, step:5},
-    {name:'', label:'2015–20', from:2015, to:2020, step:5},
-    {name:'', label:'2020–25', from:2020, to:2026, step:6}
-  ],
-  century: [
-    {name:'', label:'1926–30', from:1926, to:1930, step:4},
-    {name:'', label:'1930s', from:1930, to:1940, step:5},
-    {name:'', label:'1940s', from:1940, to:1950, step:5},
-    {name:'', label:'1950s', from:1950, to:1960, step:5},
-    {name:'', label:'1960s', from:1960, to:1970, step:5},
-    {name:'', label:'1970s', from:1970, to:1980, step:5},
-    {name:'', label:'1980s', from:1980, to:1990, step:5},
-    {name:'', label:'1990s', from:1990, to:2000, step:5},
-    {name:'', label:'2000s', from:2000, to:2010, step:5},
-    {name:'', label:'2010s', from:2010, to:2020, step:5},
-    {name:'', label:'2020s', from:2020, to:2026, step:6}
-  ],
+  // a slider: the window is `width` years wide and moves one year at a time across from..to
+  recent:  [ {name:'', label:'', from:2000, to:2026, step:1, width:5,  slider:true, tick:5} ],
+  century: [ {name:'', label:'', from:1926, to:2026, step:1, width:10, slider:true, tick:10} ],
   all: [
     {name:'ORIGINS',        label:'4–0.3 Mya',        from:-4000000, to:-320000, step:1000000},
     {name:'HOMO SAPIENS',   label:'320–12 kya',       from:-320000,  to:-10000,  step:100000},
@@ -62,11 +52,12 @@ var WINDOWS = [];
 function buildWindows(){
   WINDOWS = [];
   ERAS.forEach(function(era, ei){
-    var n = Math.ceil((era.to - era.from) / era.step);
+    var width = era.width || era.step;
+    var n = era.slider ? (era.to - era.from - width) / era.step + 1 : Math.ceil((era.to - era.from) / era.step);
     era.first = WINDOWS.length; era.count = n;
     for (var k = 0; k < n; k++){
       var a = era.from + k * era.step;
-      WINDOWS.push({ start:a, end:Math.min(a + era.step, era.to), era:ei });
+      WINDOWS.push({ start:a, end:Math.min(a + width, era.to), era:ei });
     }
   });
 }
@@ -406,19 +397,38 @@ for (var pi = 0; pi < MAX_SHOWN; pi++){
   POOL.push(holder); markers.add(holder);
 }
 var Y_AXIS = new THREE.Vector3(0, 1, 0);
-EVENTS.forEach(function(e){
+function prepareEvent(e){
   e.normal = toVec(e.lat, e.lon, 1);
   e.foot = toVec(e.lat, e.lon, 1.002);
   e.pos = e.foot.clone();                                     // card position, set per frame from the stack height
   e.size = 0.75 + e.w * 0.18;                                 // 0.93 .. 1.47 — scales the card
   e.baseH = 0.045 + e.w * 0.018;                              // beam height before stacking
   e.quat = new THREE.Quaternion().setFromUnitVectors(Y_AXIS, e.normal.clone().normalize());
-});
+}
+EVENTS.forEach(prepareEvent);
+var shardLoads = 0;
+function ensureYears(start, end, done){
+  // fetch the shards a window touches, append their rows to EVENTS, then call done(true) if anything new arrived
+  if (!SHARDS){ done(false); return; }
+  var need = SHARDS.years.filter(function(y){ return y >= start && y <= end && !loadedYears[y]; });
+  if (!need.length){ done(false); return; }
+  need.forEach(function(y){ loadedYears[y] = 'loading'; });
+  var gen = ++shardLoads;
+  Promise.all(need.map(function(y){
+    return fetch(SHARDS.dir + y + '.json').then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; });
+  })).then(function(lists){
+    lists.forEach(function(rows, k){
+      loadedYears[need[k]] = true;
+      rows.forEach(function(r){ var e = parseRow(r, EVENTS.length); prepareEvent(e); EVENTS.push(e); });
+    });
+    done(true, gen === shardLoads);
+  });
+}
 
 // hologram card texture: the photo (or category glyph) with a tinted frame, scanlines and a badge
 var CARD_TEX = {};
 function cardTexture(e, onReady){
-  var key = IMAGES[e.slug] ? e.slug : 'glyph:' + e.cat;
+  var key = (IMAGES[e.slug] ? e.slug : 'glyph:' + e.cat) + (MEDIA[e.slug] ? '|m' : '');
   if (CARD_TEX[key]) return CARD_TEX[key];
   var cw = 256, ch = 192, col = css(CATS[e.cat].v);
   function paint(img){
@@ -440,6 +450,10 @@ function cardTexture(e, onReady){
     ctx.beginPath(); ctx.arc(cw - 26, ch - 26, 18, 0, 2 * Math.PI); ctx.fillStyle = col; ctx.fill();
     ctx.lineWidth = 2.5; ctx.strokeStyle = '#fff'; ctx.stroke();
     ctx.save(); ctx.translate(cw - 26 - 12, ch - 26 - 12); drawGlyph(ctx, e.cat, 24); ctx.restore();
+    if (MEDIA[e.slug]){   // a clip: play badge, bottom-left
+      ctx.beginPath(); ctx.arc(26, ch - 26, 16, 0, 2 * Math.PI); ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(21, ch - 34); ctx.lineTo(21, ch - 18); ctx.lineTo(34, ch - 26); ctx.closePath(); ctx.fillStyle = '#0b1220'; ctx.fill();
+    }
     var tex = new THREE.CanvasTexture(c); CARD_TEX[key] = tex; return tex;
   }
   var im = IMAGES[e.slug];
@@ -546,7 +560,7 @@ function render(){
       return;
     }
     placed.push({ x:sx, y:sy, hw:hwPx, hh:hhPx });
-    e._sx = sx; e._sy = sy; e.stackH = height;
+    e._sx = sx; e._sy = sy; e._px = hwPx * 2; e.stackH = height;
     u.card.visible = true; u.beam.visible = true; u.base.visible = true;
     u.beam.scale.set(1, height, 1);
     u.card.position.set(0, height, 0);
@@ -629,6 +643,14 @@ function openPanel(e){
   }
   html += '<h2>' + e.title + '</h2>';
   html += '<div class="pmeta">' + when + (e.who ? '<br>BY ' + e.who : '') + '<br>' + e.place + '</div>';
+  var md = MEDIA[e.slug];
+  if (md){
+    html += '<div class="pmedia">' + (md.kind === 'video'
+      ? '<video src="' + MEDIA_DIR + md.file + '" controls playsinline preload="metadata"></video>'
+      : '<audio src="' + MEDIA_DIR + md.file + '" controls preload="metadata"></audio>') +
+      '<div class="mcredit">' + (md.title ? md.title + ' · ' : '') + (md.author ? md.author + ' · ' : '') +
+      '<a href="' + (md.filePage || md.source || '#') + '" target="_blank" rel="noopener">' + (md.license || 'source') + '</a></div></div>';
+  }
   html += '<p class="pdesc">' + e.desc + '</p>';
   html += '<a class="plink" target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/' + e.slug + '">Read more →</a>';
   if (ctxEls.length){
@@ -655,6 +677,70 @@ function closePanel(){
   setSkyDate(new Date());
   document.getElementById('panel').classList.remove('on');
   resize(); writeHash();
+}
+
+// ---------- sound: clips get louder as their card grows on screen ----------
+// Each event with a clip gets an <audio> routed through a gain + stereo panner. Every frame the visible cards are
+// ranked by on-screen width; the three biggest play, gain follows width (quiet when small, full at ~300 px),
+// pan follows screen x. Everything else is paused. Browsers require a click before audio starts: the Sound button.
+var SOUND = { on:false, ctx:null, nodes:{}, active:[] };
+var SOUND_MAX = 3, SOUND_QUIET_PX = 45, SOUND_FULL_PX = 220;   // card width on screen: silent below, full above (a big card at max zoom is ~280 px)
+function soundNode(e){
+  var n = SOUND.nodes[e.slug];
+  if (n) return n;
+  var md = MEDIA[e.slug];
+  var el = document.createElement(md.kind === 'video' ? 'video' : 'audio');
+  el.src = MEDIA_DIR + md.file; el.loop = true; el.preload = 'auto'; el.crossOrigin = 'anonymous';
+  var src = SOUND.ctx.createMediaElementSource(el), gain = SOUND.ctx.createGain(), pan = SOUND.ctx.createStereoPanner ? SOUND.ctx.createStereoPanner() : null;
+  gain.gain.value = 0;
+  if (pan){ src.connect(gain); gain.connect(pan); pan.connect(SOUND.ctx.destination); } else { src.connect(gain); gain.connect(SOUND.ctx.destination); }
+  n = { el:el, gain:gain, pan:pan, playing:false };
+  SOUND.nodes[e.slug] = n; return n;
+}
+function updateSound(){
+  if (!SOUND.on || !SOUND.ctx) return;
+  var cands = [];
+  for (var i = 0; i < shown.length; i++){
+    var e = shown[i];
+    if (!MEDIA[e.slug] || e._sx == null) continue;
+    cands.push(e);
+  }
+  if (selected && MEDIA[selected.slug] && cands.indexOf(selected) < 0) cands.push(selected);
+  cands.sort(function(a, b){ return (b._px || 0) - (a._px || 0); });
+  var keep = cands.slice(0, SOUND_MAX), t = SOUND.ctx.currentTime;
+  keep.forEach(function(e){
+    var n = soundNode(e), px = e._px || 0;
+    var loud = Math.max(0, Math.min(1, (px - SOUND_QUIET_PX) / (SOUND_FULL_PX - SOUND_QUIET_PX)));
+    if (selected && selected.id === e.id) loud = 1;
+    n.gain.gain.setTargetAtTime(Math.pow(loud, 1.6), t, 0.25);          // perceived loudness curve
+    if (n.pan && e._sx != null) n.pan.pan.setTargetAtTime(Math.max(-1, Math.min(1, (e._sx / W - 0.5) * 1.6)), t, 0.25);
+    if (!n.playing){ n.playing = true; n.el.play().catch(function(){ n.playing = false; }); }
+  });
+  Object.keys(SOUND.nodes).forEach(function(slug){
+    var n = SOUND.nodes[slug];
+    if (n.playing && !keep.some(function(e){ return e.slug === slug; })){
+      n.gain.gain.setTargetAtTime(0, t, 0.2);
+      setTimeout(function(){ if (n.gain.gain.value < 0.02 && n.playing){ n.el.pause(); n.playing = false; } }, 600);
+    }
+  });
+}
+function setSound(on){
+  SOUND.on = on;
+  var b = document.getElementById('soundBtn');
+  if (b){ b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.textContent = on ? 'Sound on' : 'Sound off'; }
+  if (on){
+    if (!SOUND.ctx) SOUND.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (SOUND.ctx.state === 'suspended') SOUND.ctx.resume();
+    updateSound();
+  } else {
+    Object.keys(SOUND.nodes).forEach(function(k){ var n = SOUND.nodes[k]; n.el.pause(); n.playing = false; n.gain.gain.value = 0; });
+  }
+}
+window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtCam = function(){ return camDist.toFixed(2); };   // debugging hooks
+var soundBtn = document.getElementById('soundBtn');
+if (soundBtn){
+  if (!Object.keys(MEDIA).length) soundBtn.hidden = true;
+  soundBtn.onclick = function(){ setSound(!SOUND.on); };
 }
 
 // ---------- spin to ----------
@@ -747,6 +833,7 @@ function kenBurns(t){
 }
 function tick(){
   kenBurns(performance.now()); if (selected) render();
+  if (SOUND.on) updateSound();
   if (!dragging && (Math.abs(velX) > 0.0003 || Math.abs(velY) > 0.0003)){
     qTmp.setFromAxisAngle(AY, velX); qTmp2.setFromAxisAngle(AX, velY);
     globe.quaternion.premultiply(qTmp).premultiply(qTmp2);
@@ -763,29 +850,56 @@ var track = document.getElementById('track');
 var handle = null;
 function buildRail(){
   track.innerHTML = '';
-  ERAS.forEach(function(era){
-    var d = document.createElement('div'); d.className = 'era';
-    d.innerHTML = '<span class="yr">' + era.label + '</span>' + (era.name ? '<span class="nm">' + era.name + '</span>' : '');
-    track.appendChild(d);
-  });
+  track.classList.toggle('slider', !!ERAS[0].slider);
+  if (ERAS[0].slider){
+    var era = ERAS[0], span = era.to - era.from;
+    for (var y = era.from; y <= era.to; y++){
+      var t = document.createElement('div'); t.className = 'tick' + (y % era.tick === 0 ? ' major' : '');
+      t.style.left = ((y - era.from) / span * 100) + '%';
+      if (y % era.tick === 0 && y < era.to) t.innerHTML = '<span>' + y + '</span>';
+      track.appendChild(t);
+    }
+  } else {
+    ERAS.forEach(function(era){
+      var d = document.createElement('div'); d.className = 'era';
+      d.innerHTML = '<span class="yr">' + era.label + '</span>' + (era.name ? '<span class="nm">' + era.name + '</span>' : '');
+      track.appendChild(d);
+    });
+  }
   handle = document.createElement('div'); handle.id = 'handle'; track.appendChild(handle);
-  document.getElementById('railLeft').textContent = mode === 'recent' ? '2000' : mode === 'century' ? '1926' : '4 MILLION YEARS AGO';
 }
 buildRail();
 function placeHandle(){
-  var era = ERAS[WINDOWS[wi].era], segW = 100 / ERAS.length;
+  var w = WINDOWS[wi], era = ERAS[w.era];
+  if (era.slider){
+    var span = era.to - era.from;
+    handle.style.left = ((w.start - era.from) / span * 100) + '%';
+    handle.style.width = ((w.end - w.start) / span * 100) + '%';
+    handle.textContent = rangeLabel(w.start, w.end);
+    return;
+  }
+  var segW = 100 / ERAS.length;
   var within = (wi - era.first) / era.count;
-  handle.style.left = (WINDOWS[wi].era * segW + within * segW) + '%';
+  handle.style.left = (w.era * segW + within * segW) + '%';
   handle.style.width = (segW / era.count) + '%';
+  handle.textContent = '';
 }
-function railSet(clientX){
+var grabOffset = null;   // years between the pointer and the window start while dragging the slider
+function railSet(clientX, first){
   var rect = track.getBoundingClientRect();
   var f = Math.max(0, Math.min(0.9999, (clientX - rect.left) / rect.width));
-  var ei = Math.floor(f * ERAS.length), within = f * ERAS.length - ei, era = ERAS[ei];
-  setWindow(era.first + Math.min(era.count - 1, Math.floor(within * era.count)));
+  if (ERAS[0].slider){
+    var era = ERAS[0], width = era.width, yearAt = era.from + f * (era.to - era.from);
+    var w = WINDOWS[wi];
+    if (first) grabOffset = (yearAt >= w.start && yearAt <= w.end) ? yearAt - w.start : width / 2;
+    setWindow(Math.round(yearAt - grabOffset - era.from));
+    return;
+  }
+  var ei = Math.floor(f * ERAS.length), within = f * ERAS.length - ei, era2 = ERAS[ei];
+  setWindow(era2.first + Math.min(era2.count - 1, Math.floor(within * era2.count)));
 }
 var railDrag = false;
-track.addEventListener('pointerdown', function(ev){ railDrag = true; track.setPointerCapture(ev.pointerId); railSet(ev.clientX); });
+track.addEventListener('pointerdown', function(ev){ railDrag = true; track.setPointerCapture(ev.pointerId); railSet(ev.clientX, true); });
 track.addEventListener('pointermove', function(ev){ if (railDrag) railSet(ev.clientX); });
 track.addEventListener('pointerup', function(){ railDrag = false; });
 window.addEventListener('keydown', function(ev){
@@ -801,13 +915,13 @@ function setWindow(next){
   if (selected && !(selected.start <= WINDOWS[wi].end && selected.end >= WINDOWS[wi].start)) closePanel();
   else if (selected) openPanel(selected);
   bindWindow(); syncHeader(); placeHandle(); bumpIdle(); render(); writeHash(); resetTicker();
+  ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added, latest){ if (added && latest){ bindWindow(); render(); resetTicker(); } });
 }
 function syncHeader(){
   var w = WINDOWS[wi], era = ERAS[w.era];
   var span = w.end - w.start;
   var stepLabel = span >= 1000000 ? (span/1000000) + ' MILLION-YEAR' : span >= 1000 ? (span/1000) + ',000-YEAR' : span + '-YEAR';
   document.getElementById('now').innerHTML = '<b>' + rangeLabel(w.start, w.end) + '</b>' + (era.name ? ' · ' + era.name : '') + ' · ' + stepLabel + ' WINDOW';
-  document.getElementById('railNow').textContent = rangeLabel(w.start, w.end);
   track.setAttribute('aria-valuetext', rangeLabel(w.start, w.end));
 }
 
@@ -831,7 +945,8 @@ function setMode(next, keepYear){
   wi = WINDOWS.findIndex(function(w){ return w.start <= year && w.end > year; });
   if (wi < 0) wi = WINDOWS.length - 1;
   Array.prototype.forEach.call(document.querySelectorAll('#modes button'), function(b){ b.setAttribute('aria-pressed', b.dataset.mode === mode ? 'true' : 'false'); });
-  closePanel(); bindWindow(); syncHeader(); placeHandle(); render(); writeHash();
+  closePanel(); bindWindow(); syncHeader(); placeHandle(); render(); writeHash(); resetTicker();
+  ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added, latest){ if (added && latest){ bindWindow(); render(); resetTicker(); } });
 }
 Array.prototype.forEach.call(document.querySelectorAll('#modes button'), function(b){
   b.onclick = function(){ setMode(b.dataset.mode); };
@@ -860,37 +975,48 @@ function readHash(){
 
 // ---------- 'while this was happening' ticker ----------
 function continentOf(e){ return e.normal; }
+function family(e){ return e.title.toLowerCase().replace(/^(launch|death|birth|discovery|invention) of /, '').split(' ').slice(0, 3).join(' '); }
 function coincidences(){
   var w = WINDOWS[wi];
-  var list = EVENTS.filter(function(e){ return e.start <= w.end && e.end >= w.start && e.w >= 2; });
-  var dated = list.filter(function(e){ return e.date; }), pairs = [];
-  for (var i = 0; i < dated.length; i++) for (var j = i + 1; j < dated.length; j++){
-    var a = dated[i], b = dated[j];
-    if (a.normal.angleTo(b.normal) < 0.6) continue;
-    var gap = Math.abs(dayNumber(a.date) - dayNumber(b.date));
-    if (gap <= 7) pairs.push({ a:a, b:b, gap:Math.round(gap), score:a.w + b.w - gap * 0.2 });
-  }
+  var inWin = EVENTS.filter(function(e){ return e.start <= w.end && e.end >= w.start; });
+  var list = inWin.filter(function(e){ return e.w >= 2; });
+  var dated = inWin.filter(function(e){ return e.date; }), pairs = [];   // any weight: a same-day pair is rare enough to show
+  var byDay = {};
+  dated.forEach(function(e){ (byDay[e.date] = byDay[e.date] || []).push(e); });
+  Object.keys(byDay).forEach(function(d){
+    var arr = byDay[d];
+    for (var i = 0; i < arr.length; i++) for (var j = i + 1; j < arr.length; j++){
+      var a = arr[i], b = arr[j];
+      if (a.normal.angleTo(b.normal) < 0.6) continue;                       // same part of the world: not a coincidence
+      if (family(a) === family(b)) continue;                                // "COVID-19 pandemic in X" twice, two launches of one mission
+      if (/^launch of/i.test(a.title) && /^launch of/i.test(b.title)) continue;
+      // births and deaths of people, and discoveries, are the interesting half of a coincidence
+      var human = /^(birth|death) of /i, sci = function(e){ return e.cat === 'sci'; };
+      var bonus = (human.test(a.title) || human.test(b.title) ? 1.5 : 0) + (sci(a) || sci(b) ? 1 : 0) + (a.cat !== b.cat ? 0.5 : 0);
+      pairs.push({ a:a, b:b, gap:0, score:a.w + b.w + bonus });
+    }
+  });
   if (!pairs.length){
-    // no exact dates in this window yet: pair the biggest events on different sides of the world, same year
+    // no same-day pairs in this window: pair the biggest events on different sides of the world, same year
     var byYear = {};
     list.forEach(function(e){ (byYear[e.start] = byYear[e.start] || []).push(e); });
     Object.keys(byYear).forEach(function(y){
       var arr = byYear[y].sort(function(p, q){ return q.w - p.w; });
       for (var i = 0; i < arr.length; i++) for (var j = i + 1; j < Math.min(arr.length, i + 6); j++){
-        if (arr[i].normal.angleTo(arr[j].normal) > 0.6) pairs.push({ a:arr[i], b:arr[j], gap:null, score:arr[i].w + arr[j].w });
+        if (arr[i].normal.angleTo(arr[j].normal) > 0.6 && family(arr[i]) !== family(arr[j])) pairs.push({ a:arr[i], b:arr[j], gap:null, score:arr[i].w + arr[j].w });
       }
     });
   }
   pairs.sort(function(p, q){ return q.score - p.score; });
-  return pairs.slice(0, 12);
+  return pairs.slice(0, 14);
 }
 var tickerPairs = [], tickerIndex = 0, tickerTimer = null;
 function showTicker(){
   var el = document.getElementById('ticker');
   if (!tickerPairs.length){ el.classList.remove('on'); return; }
   var p = tickerPairs[tickerIndex % tickerPairs.length];
-  var when = p.gap == null ? 'In ' + yearLabel(p.a.start) : p.gap === 0 ? 'On ' + dayLabel(p.a.date) : 'Within ' + (p.gap === 1 ? 'a day' : p.gap + ' days') + ' of ' + dayLabel(p.a.date);
-  el.innerHTML = '<span class="tk">' + when + '</span> ' + p.a.title + ' <em>' + p.a.place + '</em> — while — ' + p.b.title + ' <em>' + p.b.place + '</em>';
+  var when = p.gap == null ? 'Same year · ' + yearLabel(p.a.start) : dayLabel(p.a.date);
+  el.innerHTML = '<span class="tk">' + when + '</span> While ' + p.a.title + ' <em>' + p.a.place + '</em> — ' + p.b.title + ' <em>' + p.b.place + '</em>';
   el.classList.add('on');
   el.onclick = function(){ spinTo(p.a); openPanel(p.a); };
 }
@@ -904,13 +1030,18 @@ document.getElementById('aboutClose').onclick = function(){ document.getElementB
 window.addEventListener('resize', resize);
 buildSkyStatic(); setSkyDate(new Date());
 bindWindow(); syncHeader(); placeHandle(); resize(); tick(); readHash(); resetTicker(); setTimeout(placeHandle, 60);
+ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added){ if (added){ bindWindow(); render(); resetTicker(); if (!selected && /[#&]e=/.test(location.hash)) readHash(); } });
 setInterval(function(){ if (!selected || !selected.date) setSkyDate(new Date()); }, 60000);
 };
 // Load data files, then start the app.
 (function(){
   if (window.__ATLAS){ window.__atlasStart(); return; }   // playground build: data already inlined
   function get(url){ return fetch(url).then(function(r){ if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); }); }
-  Promise.all([ get('data/events.json'), get('data/images.json'), get('assets/countries-110m.json'), get('assets/skylabels.json') ])
-    .then(function(res){ window.__ATLAS = { events:res[0], images:res[1], borders:res[2], skyLabels:res[3] }; window.__atlasStart(); })
+  Promise.all([ get('data/events.json'), get('data/images.json'), get('assets/countries-110m.json'), get('assets/skylabels.json'),
+                get('data/media.json').catch(function(){ return {}; }), get('data/index.json').catch(function(){ return null; }) ])
+    .then(function(res){
+      window.__ATLAS = { events:res[0], images:res[1], borders:res[2], skyLabels:res[3], media:res[4], shards: res[5] && res[5].years ? { years:res[5].years, dir:'data/y/' } : null };
+      window.__atlasStart();
+    })
     .catch(function(err){ document.getElementById('note').textContent = 'COULD NOT LOAD DATA — ' + err.message; console.error(err); });
 })();
