@@ -9,7 +9,7 @@
     "refresh:all": "bash pipeline/refresh.sh --all",
     "dev": "python3 -m http.server 8000 --directory site",
     "playground": "node pipeline/playground.js",
-    "build:sky": "node pipeline/build_sky.js"
+    "build:sky": "node pipeline/build_sky.js && node pipeline/mw_mask.js && python3 pipeline/bake_sky.py"
   },
   "license": "MIT",
   "devDependencies": {

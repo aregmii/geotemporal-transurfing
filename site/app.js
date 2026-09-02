@@ -6,7 +6,6 @@ var IMG_DIR = window.__ATLAS.imgDir != null ? window.__ATLAS.imgDir : "img/";
 var BORDERS = window.__ATLAS.borders;
 var RAW = window.__ATLAS.events;
 var IMAGES = window.__ATLAS.images;
-var SKY = window.__ATLAS.sky;
 var DEG = Math.PI / 180;
 
 var CATS = {
@@ -229,53 +228,14 @@ function makeTextSprite(text, size){
   sp.scale.set(size * 4, size, 1); return sp;
 }
 
-var starPoints, mwLines, constLines, moonMesh, sunSprite, sunGlow, planetSprites = {};
+var skySphere, moonMesh, sunSprite, planetSprites = {};
 function buildSkyStatic(){
-  // star field, sized by magnitude (brighter = bigger); two layers so bright stars stand out
-  var gmst = 0;   // static geometry at GMST 0; the group is rotated for the actual time in setSkyDate
-  var pos = [], sz = [];
-  SKY.stars.forEach(function(st){
-    var ll = skyLonLat(st[0], st[1], gmst), v = toVec(ll[0], ll[1], SKY_R);
-    pos.push(v.x, v.y, v.z); sz.push(Math.max(0.6, 4.2 - st[2] * 0.6));
-  });
-  var g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('size', new THREE.Float32BufferAttribute(sz, 1));
-  var mat = new THREE.ShaderMaterial({
-    transparent:true, depthWrite:false,
-    uniforms:{ scale:{ value:1 } },
-    vertexShader:'attribute float size; varying float vS; void main(){ vS=size; vec4 mv=modelViewMatrix*vec4(position,1.0); gl_PointSize=size*2.2; gl_Position=projectionMatrix*mv; }',
-    fragmentShader:'varying float vS; void main(){ float d=length(gl_PointCoord-0.5)*2.0; float a=smoothstep(1.0,0.2,d); gl_FragColor=vec4(0.93,0.95,1.0,a*min(1.0,vS*0.35)); }'
-  });
-  starPoints = new THREE.Points(g, mat); starPoints.frustumCulled = false; sky.add(starPoints);
-
-  // Milky Way contours, faint, brighter toward the core
-  var mwPos = [];
-  SKY.milkyWay.forEach(function(level, li){
-    level.forEach(function(ring){
-      for (var i = 0; i < ring.length; i++){
-        var a = ring[i], b = ring[(i + 1) % ring.length];
-        var va = toVec(a[1], ((a[0] - gmst + 540) % 360) - 180, SKY_R - 2), vb = toVec(b[1], ((b[0] - gmst + 540) % 360) - 180, SKY_R - 2);
-        mwPos.push(va.x, va.y, va.z, vb.x, vb.y, vb.z);
-      }
-    });
-  });
-  var mg = new THREE.BufferGeometry(); mg.setAttribute('position', new THREE.Float32BufferAttribute(mwPos, 3));
-  mwLines = new THREE.LineSegments(mg, new THREE.LineBasicMaterial({ color:0x9fb4d8, transparent:true, opacity:0.10 })); mwLines.frustumCulled = false; sky.add(mwLines);
-
-  // constellation lines
-  var cPos = [];
-  SKY.constellations.forEach(function(c){
-    c.lines.forEach(function(line){
-      for (var i = 0; i < line.length - 1; i++){
-        var a = line[i], b = line[i + 1];
-        var va = toVec(a[1], ((a[0] - gmst + 540) % 360) - 180, SKY_R - 1), vb = toVec(b[1], ((b[0] - gmst + 540) % 360) - 180, SKY_R - 1);
-        cPos.push(va.x, va.y, va.z, vb.x, vb.y, vb.z);
-      }
-    });
-  });
-  var cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.Float32BufferAttribute(cPos, 3));
-  constLines = new THREE.LineSegments(cg, new THREE.LineBasicMaterial({ color:0x7f92b5, transparent:true, opacity:0.16 })); constLines.frustumCulled = false; sky.add(constLines);
+  // the sky itself: a baked equirectangular photograph-style map (real stars and Milky Way, equatorial coordinates)
+  // on the inside of a far sphere. Same longitude mapping as the Earth texture, mirrored because we look from inside.
+  var skyTex = new THREE.TextureLoader().load(window.__ATLAS.skyImage || 'assets/sky.jpg', function(){ render(); });
+  skyTex.wrapS = THREE.RepeatWrapping; skyTex.repeat.x = -1;
+  skySphere = new THREE.Mesh(new THREE.SphereGeometry(SKY_R, 64, 40), new THREE.MeshBasicMaterial({ map:skyTex, side:THREE.BackSide, depthWrite:false }));
+  skySphere.renderOrder = -10; sky.add(skySphere);
 
   // the Moon: a lit sphere at its true distance and size, so its phase and apparent size are right
   moonMesh = new THREE.Mesh(new THREE.SphereGeometry(0.2727, 32, 24), new THREE.MeshLambertMaterial({ color:0xd9d9d2 }));
@@ -283,11 +243,11 @@ function buildSkyStatic(){
   var moonLabel = makeTextSprite('MOON', 2.2); moonMesh.add(moonLabel); moonLabel.position.set(0, 1.2, 0); skyLabelSprites.push(moonLabel);
 
   // the Sun: a bright sprite far out, plus the directional light comes from it
-  var sc = document.createElement('canvas'); sc.width = sc.height = 128; var sctx = sc.getContext('2d');
-  var grad = sctx.createRadialGradient(64, 64, 4, 64, 64, 64); grad.addColorStop(0, 'rgba(255,250,235,1)'); grad.addColorStop(0.25, 'rgba(255,240,200,.9)'); grad.addColorStop(1, 'rgba(255,220,150,0)');
-  sctx.fillStyle = grad; sctx.fillRect(0, 0, 128, 128);
+  var sc = document.createElement('canvas'); sc.width = sc.height = 256; var sctx = sc.getContext('2d');
+  var grad = sctx.createRadialGradient(128, 128, 0, 128, 128, 128); grad.addColorStop(0, 'rgba(255,255,250,1)'); grad.addColorStop(0.38, 'rgba(255,253,240,1)'); grad.addColorStop(0.40, 'rgba(255,240,205,.55)'); grad.addColorStop(0.7, 'rgba(255,225,170,.12)'); grad.addColorStop(1, 'rgba(255,220,150,0)');
+  sctx.fillStyle = grad; sctx.fillRect(0, 0, 256, 256);
   sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(sc), transparent:true, depthTest:false }));
-  sunSprite.scale.set(60, 60, 1); sky.add(sunSprite);
+  sunSprite.scale.set(700 * 0.0093 * 2.6, 700 * 0.0093 * 2.6, 1); sky.add(sunSprite);   // disc is 0.53° wide; the glare around it about 2.6× that
 
   // planets visible to the eye: small warm points with labels
   ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'].forEach(function(name){
@@ -357,70 +317,95 @@ RING_DASH = new THREE.CanvasTexture(ringCanvas(128, true));
 var markers = new THREE.Group(); globe.add(markers);
 var MAX_SHOWN = 400;
 function shownCap(){ return Math.round(Math.max(48, Math.min(MAX_SHOWN, 48 * Math.pow(3.9 / camDist, 2)))); }
+
+// Each event is a hologram: a translucent light beam rising from the exact spot, with the event's image floating
+// at the top as a framed card. Cards that would overlap on screen are lifted higher, so dense regions stack
+// upward instead of piling on one another.
+var CARD_W = 0.11, CARD_H = 0.0825;          // world units at weight 1; scales with weight and zoom
+var BEAM_GEO = new THREE.CylinderGeometry(0.004, 0.016, 1, 12, 1, true);
+BEAM_GEO.translate(0, 0.5, 0);               // base at the origin, rising along +Y
+var BASE_TEX = (function(){
+  var c = document.createElement('canvas'); c.width = c.height = 64; var ctx = c.getContext('2d');
+  var g = ctx.createRadialGradient(32, 32, 2, 32, 32, 30); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(0.35, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
+})();
 var POOL = [];
 for (var pi = 0; pi < MAX_SHOWN; pi++){
-  var ps = new THREE.Sprite(new THREE.SpriteMaterial({ map:SPRITE_TEX.con, transparent:true, depthTest:true, depthWrite:false }));
-  ps.visible = false; POOL.push(ps); markers.add(ps);
+  var holder = new THREE.Group();
+  var beam = new THREE.Mesh(BEAM_GEO, new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0.28, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide }));
+  var base = new THREE.Sprite(new THREE.SpriteMaterial({ map:BASE_TEX, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending }));
+  base.scale.set(0.03, 0.03, 1);
+  var card = new THREE.Sprite(new THREE.SpriteMaterial({ map:SPRITE_TEX.con, transparent:true, depthTest:true, depthWrite:false }));
+  holder.add(beam); holder.add(base); holder.add(card);
+  holder.visible = false; holder.userData = { beam:beam, base:base, card:card };
+  POOL.push(holder); markers.add(holder);
 }
-var PIN_H = 0.06;
-var pinGeo = new THREE.BufferGeometry();
-pinGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(MAX_SHOWN * 6), 3));
-var pins = new THREE.LineSegments(pinGeo, new THREE.LineBasicMaterial({ color:0xffffff, transparent:true, opacity:0.35 }));
-pins.frustumCulled = false; globe.add(pins);
+var Y_AXIS = new THREE.Vector3(0, 1, 0);
 EVENTS.forEach(function(e){
-  e.pos = toVec(e.lat, e.lon, 1.0 + PIN_H);
-  e.foot = toVec(e.lat, e.lon, 1.002);
   e.normal = toVec(e.lat, e.lon, 1);
-  e.size = 0.056 + e.w * 0.009;
+  e.foot = toVec(e.lat, e.lon, 1.002);
+  e.pos = e.foot.clone();                                     // card position, set per frame from the stack height
+  e.size = 0.75 + e.w * 0.18;                                 // 0.93 .. 1.47 — scales the card
+  e.baseH = 0.045 + e.w * 0.018;                              // beam height before stacking
+  e.quat = new THREE.Quaternion().setFromUnitVectors(Y_AXIS, e.normal.clone().normalize());
 });
-var PHOTO_TEX = {};   // slug -> CanvasTexture, built lazily
-function photoTexture(e, onReady){
-  if (PHOTO_TEX[e.slug]) return PHOTO_TEX[e.slug];
-  var im = IMAGES[e.slug]; if (!im) return null;
+
+// hologram card texture: the photo (or category glyph) with a tinted frame, scanlines and a badge
+var CARD_TEX = {};
+function cardTexture(e, onReady){
+  var key = IMAGES[e.slug] ? e.slug : 'glyph:' + e.cat;
+  if (CARD_TEX[key]) return CARD_TEX[key];
+  var cw = 256, ch = 192, col = css(CATS[e.cat].v);
+  function paint(img){
+    var c = document.createElement('canvas'); c.width = cw; c.height = ch; var ctx = c.getContext('2d');
+    ctx.fillStyle = 'rgba(8,14,26,.72)'; ctx.fillRect(0, 0, cw, ch);
+    if (img){
+      var sw = img.width, sh = img.height, sc = Math.max(cw / sw, ch / sh);
+      var dw = sw * sc, dh = sh * sc;
+      ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+      var tint = ctx.createLinearGradient(0, 0, 0, ch); tint.addColorStop(0, 'rgba(110,200,255,.16)'); tint.addColorStop(1, 'rgba(110,160,255,.28)');
+      ctx.fillStyle = tint; ctx.fillRect(0, 0, cw, ch);
+    } else {
+      ctx.save(); ctx.translate(cw / 2 - 50, ch / 2 - 50); ctx.globalAlpha = 0.9; drawGlyph(ctx, e.cat, 100); ctx.restore();
+    }
+    ctx.fillStyle = 'rgba(0,0,0,.16)';
+    for (var y = 0; y < ch; y += 4) ctx.fillRect(0, y, cw, 1.5);
+    ctx.lineWidth = 5; ctx.strokeStyle = col; ctx.strokeRect(2.5, 2.5, cw - 5, ch - 5);
+    ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.strokeRect(8, 8, cw - 16, ch - 16);
+    ctx.beginPath(); ctx.arc(cw - 26, ch - 26, 18, 0, 2 * Math.PI); ctx.fillStyle = col; ctx.fill();
+    ctx.lineWidth = 2.5; ctx.strokeStyle = '#fff'; ctx.stroke();
+    ctx.save(); ctx.translate(cw - 26 - 12, ch - 26 - 12); drawGlyph(ctx, e.cat, 24); ctx.restore();
+    var tex = new THREE.CanvasTexture(c); CARD_TEX[key] = tex; return tex;
+  }
+  var im = IMAGES[e.slug];
+  if (!im) return paint(null);
   var img = new Image();
-  img.onload = function(){
-    var px = 160, c = document.createElement('canvas'); c.width = px; c.height = px;
-    var ctx = c.getContext('2d'), r = px / 2;
-    // cover-fit the photo into a circle
-    var sw = img.width, sh = img.height, side = Math.min(sw, sh);
-    ctx.save(); ctx.beginPath(); ctx.arc(r, r, r - 4, 0, 2*Math.PI); ctx.clip();
-    ctx.drawImage(img, (sw - side)/2, (sh - side)/2, side, side, 0, 0, px, px); ctx.restore();
-    ctx.beginPath(); ctx.arc(r, r, r - 4, 0, 2*Math.PI); ctx.lineWidth = 6; ctx.strokeStyle = css(CATS[e.cat].v); ctx.stroke();
-    ctx.beginPath(); ctx.arc(r, r, r - 4, 0, 2*Math.PI); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.stroke();
-    // category badge
-    var bx = px - 30, by = px - 30;
-    ctx.beginPath(); ctx.arc(bx, by, 22, 0, 2*Math.PI); ctx.fillStyle = css(CATS[e.cat].v); ctx.fill();
-    ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke();
-    ctx.save(); ctx.translate(bx - 15, by - 15); drawGlyph(ctx, e.cat, 30); ctx.restore();
-    var tex = new THREE.CanvasTexture(c); PHOTO_TEX[e.slug] = tex; onReady(tex);
-  };
+  img.onload = function(){ onReady(paint(img)); };
   img.src = IMG_DIR + im.file;
   return null;
 }
-var shown = [];   // events currently bound to pool sprites
+var GLYPH_TEX = {};
+Object.keys(CATS).forEach(function(k){ GLYPH_TEX[k] = cardTexture({ cat:k, slug:'' }, function(){}); });
+
+var shown = [];   // events currently bound to pool holders
+var windowTotal = 0;
 function bindWindow(){
   var w = WINDOWS[wi];
   var list = EVENTS.filter(function(e){ return !off[e.cat] && e.start <= w.end && e.end >= w.start; });
   list.sort(function(a, b){ return b.w - a.w; });
   windowTotal = list.length;
   shown = list.slice(0, shownCap());
-  EVENTS.forEach(function(e){ e.sprite = null; e._sx = null; });
-  var pa = pinGeo.attributes.position.array; pa.fill(0);
+  EVENTS.forEach(function(e){ e.holder = null; e._sx = null; });
   shown.forEach(function(e, i){
-    pa[i*6] = e.foot.x; pa[i*6+1] = e.foot.y; pa[i*6+2] = e.foot.z; pa[i*6+3] = e.pos.x; pa[i*6+4] = e.pos.y; pa[i*6+5] = e.pos.z;
-    var s = POOL[i];
-    var photo = IMAGES[e.slug] ? photoTexture(e, function(tex){ if (e.sprite === s){ s.material.map = tex; s.material.needsUpdate = true; render(); } }) : null;
-    s.material.map = photo || SPRITE_TEX[e.cat]; s.material.needsUpdate = true;
-    var zoomBoost = Math.max(1, Math.min(1.6, 3.9 / camDist));
-    var sz = (IMAGES[e.slug] ? e.size * 1.75 : e.size) * zoomBoost;
-    s.scale.set(sz, sz, 1);
-    s.position.copy(e.pos);
-    e.sprite = s;
+    var h = POOL[i], u = h.userData;
+    var tex = cardTexture(e, function(t){ if (e.holder === h){ u.card.material.map = t; u.card.material.needsUpdate = true; render(); } });
+    u.card.material.map = tex || GLYPH_TEX[e.cat]; u.card.material.needsUpdate = true;
+    u.beam.material.color.set(css(CATS[e.cat].v));
+    h.position.copy(e.foot); h.quaternion.copy(e.quat);
+    e.holder = h; e.stackH = 0;
   });
   for (var j = shown.length; j < MAX_SHOWN; j++){ POOL[j].visible = false; }
-  pinGeo.attributes.position.needsUpdate = true; pinGeo.setDrawRange(0, shown.length * 2);
 }
-var windowTotal = 0;
 var selRing = new THREE.Sprite(new THREE.SpriteMaterial({ map:RING_TEX, transparent:true, depthTest:false }));
 selRing.visible = false; selRing.renderOrder = 5; globe.add(selRing);
 var ctxRings = [0,1,2].map(function(){
@@ -453,43 +438,70 @@ function resize(){
 function visibleEvents(){ return shown; }
 var _tmp = new THREE.Vector3();
 function worldNormal(e){ return _tmp.copy(e.normal).applyQuaternion(globe.quaternion); }
-function toScreen(e){
-  var v = e.pos.clone().applyQuaternion(globe.quaternion).project(camera);
-  return [ (v.x + 1) / 2 * W, (1 - v.y) / 2 * H ];
-}
 
+var _v = new THREE.Vector3();
+function cardPixels(){
+  // approximate on-screen height in px of a unit-size card at the globe's front
+  return CARD_H * H / (2 * Math.tan(camera.fov * DEG / 2) * Math.max(0.3, camDist - 1));
+}
 function render(){
   if (!W) return;
   var list = shown;
   var ctxEls = selected ? contextFor(selected) : [];
   var behind = 0;
+  var zoomBoost = Math.max(1, Math.min(1.25, 3.9 / camDist));
+  var pxPerUnit = cardPixels();
+  var placed = [];      // {x, y, hw, hh} of cards already laid out this frame, in px
+  // lay out by importance so the biggest events claim their spot first
   list.forEach(function(e){
-    var front = worldNormal(e).z > (IMAGES[e.slug] ? 0.2 : 0.10);
-    if (!e.sprite) return;
-    e.sprite.visible = front;
-    var pi = shown.indexOf(e), pa2 = pinGeo.attributes.position.array;
-    if (pi >= 0){ var v = front ? e.pos : e.foot; pa2[pi*6+3] = v.x; pa2[pi*6+4] = v.y; pa2[pi*6+5] = v.z; }
-    e.sprite.material.opacity = (selected && selected.id !== e.id && ctxEls.indexOf(e) < 0) ? 0.5 : 1;
-    if (front){ var p = toScreen(e); e._sx = p[0]; e._sy = p[1]; }
-    else { e._sx = null; behind++; }
+    var h = e.holder; if (!h) return;
+    var front = worldNormal(e).z > 0.12;
+    h.visible = front;
+    if (!front){ e._sx = null; behind++; return; }
+    var scale = e.size * zoomBoost;
+    var cw = CARD_W * scale, chh = CARD_H * scale;
+    var hwPx = cw * pxPerUnit / CARD_H * 0.5, hhPx = chh * pxPerUnit / CARD_H * 0.5;
+    // start at the base height; raise while overlapping something already placed
+    var height = e.baseH * zoomBoost, tries = 0, sx, sy;
+    while (true){
+      _v.copy(e.normal).multiplyScalar(1.002 + height).applyQuaternion(globe.quaternion).project(camera);
+      sx = (_v.x + 1) / 2 * W; sy = (1 - _v.y) / 2 * H;
+      var clash = false;
+      for (var i = 0; i < placed.length; i++){
+        var p = placed[i];
+        if (Math.abs(p.x - sx) < p.hw + hwPx && Math.abs(p.y - sy) < p.hh + hhPx){ clash = true; break; }
+      }
+      if (!clash || tries > 8) break;
+      height += chh * 1.15; tries++;
+    }
+    placed.push({ x:sx, y:sy, hw:hwPx, hh:hhPx });
+    e._sx = sx; e._sy = sy; e.stackH = height;
+    var u = h.userData;
+    u.beam.scale.set(1, height, 1);
+    u.card.position.set(0, height, 0);
+    u.card.scale.set(cw, chh, 1);
+    var dim = selected && selected.id !== e.id && ctxEls.indexOf(e) < 0;
+    u.card.material.opacity = dim ? 0.45 : 0.96;
+    u.beam.material.opacity = (dim ? 0.10 : 0.30) / (1 + height * 3);
+    u.base.material.opacity = dim ? 0.3 : 0.9;
+    e.pos.copy(e.normal).multiplyScalar(1.002 + height);
   });
   window.__borders.visible = WINDOWS[wi].start >= 1900;
   camera.position.z = camDist;
 
-  if (selected){
+  if (selected && selected.holder){
     selRing.position.copy(selected.pos);
-    var sz = selected.size * (IMAGES[selected.slug] ? 2.3 : 1.9); selRing.scale.set(sz, sz, 1);
-    selRing.visible = worldNormal(selected).z > 0.1;
+    var sz = CARD_W * selected.size * zoomBoost * 1.35; selRing.scale.set(sz, sz, 1);
+    selRing.visible = worldNormal(selected).z > 0.12;
   } else selRing.visible = false;
   ctxRings.forEach(function(r, i){
     var e = ctxEls[i];
-    if (!e){ r.visible = false; return; }
+    if (!e || !e.holder){ r.visible = false; return; }
     r.position.copy(e.pos);
-    var s2 = e.size * (IMAGES[e.slug] ? 2.2 : 1.8); r.scale.set(s2, s2, 1);
-    r.visible = worldNormal(e).z > 0.1;
+    var s2 = CARD_W * e.size * zoomBoost * 1.3; r.scale.set(s2, s2, 1);
+    r.visible = worldNormal(e).z > 0.12;
   });
 
-  pinGeo.attributes.position.needsUpdate = true;
   updateSunLight();
   renderer.render(scene, camera);
   document.getElementById('count').innerHTML =
@@ -499,7 +511,7 @@ function render(){
 }
 
 function pick(mx, my){
-  var best = null, bestD = 22;
+  var best = null, bestD = 28;
   visibleEvents().forEach(function(e){
     if (e._sx == null) return;
     var d = Math.hypot(e._sx - mx, e._sy - my);
@@ -774,7 +786,7 @@ setInterval(function(){ if (!selected || !selected.date) setSkyDate(new Date());
 (function(){
   if (window.__ATLAS){ window.__atlasStart(); return; }   // playground build: data already inlined
   function get(url){ return fetch(url).then(function(r){ if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); }); }
-  Promise.all([ get('data/events.json'), get('data/images.json'), get('assets/countries-110m.json'), get('assets/sky.json') ])
-    .then(function(res){ window.__ATLAS = { events:res[0], images:res[1], borders:res[2], sky:res[3] }; window.__atlasStart(); })
+  Promise.all([ get('data/events.json'), get('data/images.json'), get('assets/countries-110m.json') ])
+    .then(function(res){ window.__ATLAS = { events:res[0], images:res[1], borders:res[2] }; window.__atlasStart(); })
     .catch(function(err){ document.getElementById('note').textContent = 'COULD NOT LOAD DATA — ' + err.message; console.error(err); });
 })();

@@ -9,3 +9,5 @@ node_modules/
 .DS_Store
 .playground-img/
 playground.html
+pipeline/skybake_in.json
+pipeline/mw_mask.pgm

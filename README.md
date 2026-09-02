@@ -76,9 +76,9 @@ pipeline/
   curated/            342 hand-written rows: prehistory, founders, and well-known events (checked, but not Wikidata-sourced)
 site/
   index.html app.js styles.css
-  assets/             earth.jpg (NASA Blue Marble), countries-110m.json (Natural Earth), sky.json (stars, constellations, Milky Way)
+  assets/             earth.jpg (NASA Blue Marble), countries-110m.json (Natural Earth), sky.jpg (baked star map, equatorial coordinates)
   vendor/             three.min.js r128, astronomy.browser.min.js (astronomy-engine 2.1.19, MIT)
-  build_sky.js        regenerates assets/sky.json from the d3-celestial package (npm run build:sky)
+  build_sky.js        exports star/Milky Way data from the d3-celestial package; mw_mask.js + bake_sky.py render assets/sky.jpg from it (npm run build:sky)
   data/               generated: events.json, images.json
   img/                generated: photographs
 docs/
