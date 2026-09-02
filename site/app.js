@@ -6,6 +6,7 @@ var IMG_DIR = window.__ATLAS.imgDir != null ? window.__ATLAS.imgDir : "img/";
 var BORDERS = window.__ATLAS.borders;
 var RAW = window.__ATLAS.events;
 var IMAGES = window.__ATLAS.images;
+var SKY = window.__ATLAS.sky;
 var DEG = Math.PI / 180;
 
 var CATS = {
@@ -179,13 +180,13 @@ var renderer = new THREE.WebGLRenderer({ canvas:canvas, antialias:true, alpha:fa
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.setClearColor(0x05070d, 1);
 var scene = new THREE.Scene();
-var camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+var camera = new THREE.PerspectiveCamera(42, 1, 0.1, 3000);
 camera.position.set(0, 0, camDist);
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.72));
-var sun = new THREE.DirectionalLight(0xffffff, 0.75);
-sun.position.set(1.5, 1.0, 2.5);
-scene.add(sun);
+scene.add(new THREE.AmbientLight(0xffffff, 0.62));
+var sunLight = new THREE.DirectionalLight(0xfff4e0, 0.9);
+sunLight.position.set(1.5, 1.0, 2.5);
+scene.add(sunLight);
 
 var globe = new THREE.Group();
 scene.add(globe);
@@ -203,20 +204,126 @@ var atmo2 = new THREE.Mesh(new THREE.SphereGeometry(1.075, 64, 48),
   new THREE.MeshBasicMaterial({ color:0x3a7fe0, transparent:true, opacity:0.05, side:THREE.BackSide }));
 scene.add(atmo2);
 
-// stars
-(function(){
-  var n = 1600, pos = new Float32Array(n * 3);
-  for (var i = 0; i < n; i++){
-    var u = Math.random() * 2 - 1, t = Math.random() * 2 * Math.PI, s = Math.sqrt(1 - u * u);
-    pos[i*3] = 40 * s * Math.cos(t); pos[i*3+1] = 40 * u; pos[i*3+2] = 40 * s * Math.sin(t);
-  }
-  var g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color:0xffffff, size:0.09, transparent:true, opacity:0.55, sizeAttenuation:true })));
-})();
-
 function toVec(lat, lon, r){
   var theta = (90 - lat) * DEG, phi = (lon + 180) * DEG;
   return new THREE.Vector3(-r * Math.cos(phi) * Math.sin(theta), r * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta));
+}
+
+// ---------- the real sky ----------
+// Everything in the sky is placed in Earth-fixed coordinates: a star at right ascension RA and declination Dec sits
+// over longitude RA − GMST (Greenwich sidereal time) and latitude Dec. The sky group is a child of the globe, so it
+// turns with the Earth as you spin it and stays correct for the moment shown. Positions come from astronomy-engine.
+var SKY_R = 900;                       // stars, far behind everything
+var AU_IN_EARTH_RADII = 23455;         // 1 AU / Earth's radius — the Moon lands ~60 R away, its real distance
+var sky = new THREE.Group(); globe.add(sky);
+var skyDate = new Date();
+var skyLabelSprites = [];
+
+function skyLonLat(raDeg, decDeg, gmstDeg){ return [decDeg, ((raDeg - gmstDeg + 540) % 360) - 180]; }
+
+function makeTextSprite(text, size){
+  var c = document.createElement('canvas'); c.width = 256; c.height = 64;
+  var ctx = c.getContext('2d'); ctx.font = '500 26px "IBM Plex Mono", monospace'; ctx.fillStyle = 'rgba(232,236,244,.85)';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, 128, 32);
+  var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(c), transparent:true, depthTest:false }));
+  sp.scale.set(size * 4, size, 1); return sp;
+}
+
+var starPoints, mwLines, constLines, moonMesh, sunSprite, sunGlow, planetSprites = {};
+function buildSkyStatic(){
+  // star field, sized by magnitude (brighter = bigger); two layers so bright stars stand out
+  var gmst = 0;   // static geometry at GMST 0; the group is rotated for the actual time in setSkyDate
+  var pos = [], sz = [];
+  SKY.stars.forEach(function(st){
+    var ll = skyLonLat(st[0], st[1], gmst), v = toVec(ll[0], ll[1], SKY_R);
+    pos.push(v.x, v.y, v.z); sz.push(Math.max(0.6, 4.2 - st[2] * 0.6));
+  });
+  var g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('size', new THREE.Float32BufferAttribute(sz, 1));
+  var mat = new THREE.ShaderMaterial({
+    transparent:true, depthWrite:false,
+    uniforms:{ scale:{ value:1 } },
+    vertexShader:'attribute float size; varying float vS; void main(){ vS=size; vec4 mv=modelViewMatrix*vec4(position,1.0); gl_PointSize=size*2.2; gl_Position=projectionMatrix*mv; }',
+    fragmentShader:'varying float vS; void main(){ float d=length(gl_PointCoord-0.5)*2.0; float a=smoothstep(1.0,0.2,d); gl_FragColor=vec4(0.93,0.95,1.0,a*min(1.0,vS*0.35)); }'
+  });
+  starPoints = new THREE.Points(g, mat); starPoints.frustumCulled = false; sky.add(starPoints);
+
+  // Milky Way contours, faint, brighter toward the core
+  var mwPos = [];
+  SKY.milkyWay.forEach(function(level, li){
+    level.forEach(function(ring){
+      for (var i = 0; i < ring.length; i++){
+        var a = ring[i], b = ring[(i + 1) % ring.length];
+        var va = toVec(a[1], ((a[0] - gmst + 540) % 360) - 180, SKY_R - 2), vb = toVec(b[1], ((b[0] - gmst + 540) % 360) - 180, SKY_R - 2);
+        mwPos.push(va.x, va.y, va.z, vb.x, vb.y, vb.z);
+      }
+    });
+  });
+  var mg = new THREE.BufferGeometry(); mg.setAttribute('position', new THREE.Float32BufferAttribute(mwPos, 3));
+  mwLines = new THREE.LineSegments(mg, new THREE.LineBasicMaterial({ color:0x9fb4d8, transparent:true, opacity:0.10 })); mwLines.frustumCulled = false; sky.add(mwLines);
+
+  // constellation lines
+  var cPos = [];
+  SKY.constellations.forEach(function(c){
+    c.lines.forEach(function(line){
+      for (var i = 0; i < line.length - 1; i++){
+        var a = line[i], b = line[i + 1];
+        var va = toVec(a[1], ((a[0] - gmst + 540) % 360) - 180, SKY_R - 1), vb = toVec(b[1], ((b[0] - gmst + 540) % 360) - 180, SKY_R - 1);
+        cPos.push(va.x, va.y, va.z, vb.x, vb.y, vb.z);
+      }
+    });
+  });
+  var cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.Float32BufferAttribute(cPos, 3));
+  constLines = new THREE.LineSegments(cg, new THREE.LineBasicMaterial({ color:0x7f92b5, transparent:true, opacity:0.16 })); constLines.frustumCulled = false; sky.add(constLines);
+
+  // the Moon: a lit sphere at its true distance and size, so its phase and apparent size are right
+  moonMesh = new THREE.Mesh(new THREE.SphereGeometry(0.2727, 32, 24), new THREE.MeshLambertMaterial({ color:0xd9d9d2 }));
+  sky.add(moonMesh);
+  var moonLabel = makeTextSprite('MOON', 2.2); moonMesh.add(moonLabel); moonLabel.position.set(0, 1.2, 0); skyLabelSprites.push(moonLabel);
+
+  // the Sun: a bright sprite far out, plus the directional light comes from it
+  var sc = document.createElement('canvas'); sc.width = sc.height = 128; var sctx = sc.getContext('2d');
+  var grad = sctx.createRadialGradient(64, 64, 4, 64, 64, 64); grad.addColorStop(0, 'rgba(255,250,235,1)'); grad.addColorStop(0.25, 'rgba(255,240,200,.9)'); grad.addColorStop(1, 'rgba(255,220,150,0)');
+  sctx.fillStyle = grad; sctx.fillRect(0, 0, 128, 128);
+  sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(sc), transparent:true, depthTest:false }));
+  sunSprite.scale.set(60, 60, 1); sky.add(sunSprite);
+
+  // planets visible to the eye: small warm points with labels
+  ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'].forEach(function(name){
+    var pc = document.createElement('canvas'); pc.width = pc.height = 32; var pctx = pc.getContext('2d');
+    pctx.beginPath(); pctx.arc(16, 16, 6, 0, 2 * Math.PI); pctx.fillStyle = name === 'Mars' ? '#ffb28a' : '#fff4d6'; pctx.fill();
+    var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(pc), transparent:true, depthTest:false }));
+    sp.scale.set(5, 5, 1); sky.add(sp);
+    var lb = makeTextSprite(name.toUpperCase(), 2.0); sp.add(lb); lb.position.set(0, 1.4, 0); skyLabelSprites.push(lb);
+    planetSprites[name] = sp;
+  });
+}
+
+function setSkyDate(date){
+  if (typeof Astronomy === 'undefined'){ return; }
+  skyDate = date;
+  var gmstDeg = Astronomy.SiderealTime(date) * 15;
+  // the static sky was built at GMST 0 — turn it about the Earth's axis (three.js +Y) by −GMST
+  sky.rotation.set(0, -gmstDeg * DEG, 0);
+  function place(body, radius){
+    var eq = Astronomy.EquatorFromVector(Astronomy.GeoVector(body, date, true));
+    var ll = skyLonLat(eq.ra * 15, eq.dec, 0);   // GMST 0 frame, the group rotation adds the time
+    return { v: toVec(ll[0], ll[1], radius), distAU: eq.dist };
+  }
+  var moon = place('Moon', 1); moonMesh.position.copy(moon.v.multiplyScalar(moon.distAU * AU_IN_EARTH_RADII));
+  var sun = place('Sun', 700); sunSprite.position.copy(sun.v);
+  // light the Earth (and the Moon) from the Sun's real direction; ambient keeps the night side readable
+  var sunWorld = sun.v.clone().applyEuler(sky.rotation).applyQuaternion(globe.quaternion).normalize();
+  sunLight.position.copy(sunWorld.multiplyScalar(50));
+  Object.keys(planetSprites).forEach(function(name){ planetSprites[name].position.copy(place(name, SKY_R - 10).v); });
+  document.getElementById('skyDate').textContent = 'SKY FOR ' + date.toISOString().slice(0, 10) + ' ' + date.toISOString().slice(11, 16) + ' UTC';
+}
+function updateSunLight(){
+  // the Sun sprite lives in the sky group (a child of the globe); re-derive the world-space light direction after any spin
+  if (!sunSprite) return;
+  var w = sunSprite.position.clone().applyEuler(sky.rotation).applyQuaternion(globe.quaternion).normalize();
+  sunLight.position.copy(w.multiplyScalar(50));
 }
 
 // borders as line segments
@@ -383,6 +490,7 @@ function render(){
   });
 
   pinGeo.attributes.position.needsUpdate = true;
+  updateSunLight();
   renderer.render(scene, camera);
   document.getElementById('count').innerHTML =
     (windowTotal > list.length ? 'TOP ' + list.length + ' OF ' + windowTotal + ' EVENTS IN THIS WINDOW — ZOOM IN FOR MORE' : list.length + ' EVENT' + (list.length === 1 ? '' : 'S') + ' IN THIS WINDOW') +
@@ -413,8 +521,14 @@ function contextFor(e){
 }
 
 // ---------- panel ----------
+function skyDateFor(e){
+  // a dated event within the ephemeris' reliable range shows the sky of that day at noon UTC
+  if (e && e.date){ var y = parseInt(e.date, 10); if (y > 1600 && y < 2200){ var d = new Date(e.date + 'T12:00:00Z'); if (!isNaN(d)) return d; } }
+  return new Date();
+}
 function openPanel(e){
   selected = e;
+  setSkyDate(skyDateFor(e));
   var p = document.getElementById('panel');
   var ctxEls = contextFor(e);
   var when = whenLabel(e);
@@ -452,6 +566,7 @@ function openPanel(e){
 }
 function closePanel(){
   selected = null;
+  setSkyDate(new Date());
   document.getElementById('panel').classList.remove('on');
   resize(); writeHash();
 }
@@ -528,7 +643,8 @@ canvas.addEventListener('pointercancel', function(){ dragging = false; canvas.cl
 canvas.addEventListener('pointerleave', function(){ hovered = null; document.getElementById('tip').classList.remove('on'); });
 canvas.addEventListener('wheel', function(ev){
   ev.preventDefault();
-  camDist = Math.max(1.6, Math.min(7, camDist * (ev.deltaY > 0 ? 1.07 : 0.93)));
+  camDist = Math.max(1.6, Math.min(40, camDist * (ev.deltaY > 0 ? 1.07 : 0.93)));
+  hovered = null; document.getElementById('tip').classList.remove('on');
   bindWindow(); bumpIdle(); render();
 }, { passive:false });
 
@@ -646,15 +762,19 @@ function readHash(){
   }
 }
 
-document.getElementById('note').textContent = EVENTS.length.toLocaleString() + ' EVENTS · ' + Object.keys(IMAGES).length.toLocaleString() + ' PHOTOS · WIKIDATA + WIKIPEDIA + COMMONS';
+document.getElementById('aboutCounts').textContent = EVENTS.length.toLocaleString() + ' events · ' + Object.keys(IMAGES).length.toLocaleString() + ' photographs';
+document.getElementById('aboutBtn').onclick = function(){ document.getElementById('about').classList.toggle('on'); };
+document.getElementById('aboutClose').onclick = function(){ document.getElementById('about').classList.remove('on'); };
 window.addEventListener('resize', resize);
+buildSkyStatic(); setSkyDate(new Date());
 bindWindow(); syncHeader(); placeHandle(); resize(); tick(); readHash(); setTimeout(placeHandle, 60);
+setInterval(function(){ if (!selected || !selected.date) setSkyDate(new Date()); }, 60000);
 };
 // Load data files, then start the app.
 (function(){
   if (window.__ATLAS){ window.__atlasStart(); return; }   // playground build: data already inlined
   function get(url){ return fetch(url).then(function(r){ if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); }); }
-  Promise.all([ get('data/events.json'), get('data/images.json'), get('assets/countries-110m.json') ])
-    .then(function(res){ window.__ATLAS = { events:res[0], images:res[1], borders:res[2] }; window.__atlasStart(); })
+  Promise.all([ get('data/events.json'), get('data/images.json'), get('assets/countries-110m.json'), get('assets/sky.json') ])
+    .then(function(res){ window.__ATLAS = { events:res[0], images:res[1], borders:res[2], sky:res[3] }; window.__atlasStart(); })
     .catch(function(err){ document.getElementById('note').textContent = 'COULD NOT LOAD DATA — ' + err.message; console.error(err); });
 })();

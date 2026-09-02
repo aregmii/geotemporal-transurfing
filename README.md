@@ -1,10 +1,8 @@
-# Atlas of When
+# Chrono Geography Transfusion
 
 A globe with a time slider. Spin to a place, slide to a moment, click an event: a photograph, a paragraph, a source, and what was happening elsewhere in the world at the same time.
 
-Two rails: **Last 100 years** (calendar decades, 5-year windows, photographs for most events) and **All of history** (eleven eras from the first stone tools 3.3 million years ago to today).
-
-The product name is a placeholder.
+Three rails: **2000–2025** (five 5-year windows), **Last 100 years** (calendar decades, 5-year windows, photographs for most events) and **All of history** (eleven eras from the first stone tools 3.3 million years ago to today).
 
 ## How it works
 
@@ -15,7 +13,7 @@ Commons ───API─────▶ fetch_images.py ────▶ site/img/
 curated/*.json ────▶ merge.js ───────────▶ site/data/events.json
 ```
 
-`site/` is a plain static site: `index.html`, `app.js`, `styles.css`, a vendored three.js, and the generated data. No build tool, no framework. Cloudflare Pages (or any static host) serves the `site/` directory as-is.
+`site/` is a plain static site: `index.html`, `app.js`, `styles.css`, vendored three.js and astronomy-engine, and the generated data. The sky behind the Earth is real: stars and constellations from the Yale Bright Star Catalog placed for the moment shown, the Moon at its true distance and phase, planets, and the Earth lit from the Sun's actual direction. A dated event shows the sky of that day. No build tool, no framework. Cloudflare Pages (or any static host) serves the `site/` directory as-is.
 
 Everything the page shows comes from files in `site/`. The pipeline only runs when the data is refreshed.
 
@@ -78,8 +76,9 @@ pipeline/
   curated/            342 hand-written rows: prehistory, founders, and well-known events (checked, but not Wikidata-sourced)
 site/
   index.html app.js styles.css
-  assets/             earth.jpg (NASA Blue Marble, 2048×1024), countries-110m.json (Natural Earth)
-  vendor/three.min.js r128
+  assets/             earth.jpg (NASA Blue Marble), countries-110m.json (Natural Earth), sky.json (stars, constellations, Milky Way)
+  vendor/             three.min.js r128, astronomy.browser.min.js (astronomy-engine 2.1.19, MIT)
+  build_sky.js        regenerates assets/sky.json from the d3-celestial package (npm run build:sky)
   data/               generated: events.json, images.json
   img/                generated: photographs
 docs/

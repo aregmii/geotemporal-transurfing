@@ -7,6 +7,8 @@ const root = path.resolve(__dirname, '..'), site = path.join(root, 'site');
 const out = process.argv[2] || path.join(root, 'playground.html');
 const events = fs.readFileSync(path.join(site, 'data/events.json'), 'utf8');
 const borders = fs.readFileSync(path.join(site, 'assets/countries-110m.json'), 'utf8');
+const skyData = fs.readFileSync(path.join(site, 'assets/sky.json'), 'utf8');
+const astro = fs.readFileSync(path.join(site, 'vendor/astronomy.browser.min.js'), 'utf8');
 const earth = 'data:image/jpeg;base64,' + fs.readFileSync(path.join(site, 'assets/earth.jpg')).toString('base64');
 const manifest = JSON.parse(fs.readFileSync(path.join(site, 'data/images.json'), 'utf8'));
 // shrink every photo to 224px / q58 with pillow, inline as data URI
@@ -39,11 +41,13 @@ html = html.replace(/<!doctype html>\s*<html[^>]*>\s*<head>/i, '').replace(/<\/h
 html = html.replace(/<meta charset="utf-8">\s*<meta name="viewport"[^>]*>\s*/i, '');
 html = html.replace('<link rel="stylesheet" href="styles.css">', '<style>\n' + css + '\n</style>');
 html = html.replace('<script src="vendor/three.min.js"></script>', '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>');
+html = html.replace('<script src="vendor/astronomy.browser.min.js"></script>', '<script>\n' + astro + '\n</script>');
 html = html.replace('<script src="app.js"></script>',
   '<script id="pg-events" type="application/json">' + events + '</script>\n' +
   '<script id="pg-images" type="application/json">' + JSON.stringify(manifest) + '</script>\n' +
   '<script id="pg-borders" type="application/json">' + borders + '</script>\n' +
-  '<script>window.__ATLAS = { events: JSON.parse(document.getElementById("pg-events").textContent), images: JSON.parse(document.getElementById("pg-images").textContent), borders: JSON.parse(document.getElementById("pg-borders").textContent), earth: ' + JSON.stringify(earth) + ', imgDir: "" };</script>\n' +
+  '<script id="pg-sky" type="application/json">' + skyData + '</script>\n' +
+  '<script>window.__ATLAS = { events: JSON.parse(document.getElementById("pg-events").textContent), images: JSON.parse(document.getElementById("pg-images").textContent), borders: JSON.parse(document.getElementById("pg-borders").textContent), sky: JSON.parse(document.getElementById("pg-sky").textContent), earth: ' + JSON.stringify(earth) + ', imgDir: "" };</script>\n' +
   '<script>\n' + app + '\n</script>');
 fs.writeFileSync(out, html);
 console.log('playground: ' + Object.keys(manifest).length + ' photos (' + (bytes / 1048576).toFixed(1) + ' MB), file ' + (html.length / 1048576).toFixed(1) + ' MB -> ' + out);

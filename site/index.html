@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Atlas of When</title>
+<title>Chrono Geography Transfusion</title>
 <meta name="description" content="A globe with a time slider: spin to a place, slide to a moment, see what happened there and what was happening elsewhere.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,7 +13,7 @@
 <body>
 <div id="app">
   <header>
-    <span class="brand">Atlas of When</span>
+    <span class="brand">Chrono Geography Transfusion</span>
     <span class="now" id="now"></span>
     <span class="spacer"></span>
     <div class="modes" id="modes">
@@ -26,11 +26,19 @@
   <div id="stage">
     <div id="globewrap">
       <canvas id="c"></canvas>
-      <div class="note" id="note"></div>
-      <div class="credit">EARTH: NASA BLUE MARBLE<br>PHOTOS: WIKIMEDIA COMMONS, CREDITED PER PANEL</div>
+      <div class="skydate" id="skyDate"></div>
       <div id="tip"><div class="tt"></div><div class="ty"></div></div>
       <div class="hint">FLICK TO SPIN · SCROLL TO ZOOM · SHIFT-DRAG TO TILT<br>← → MOVE THROUGH TIME</div>
       <div class="count" id="count"></div>
+      <button class="about-btn" id="aboutBtn" aria-label="About and credits">i</button>
+      <div class="about" id="about">
+        <button class="pclose" id="aboutClose" aria-label="Close">✕</button>
+        <b>Chrono Geography Transfusion</b>
+        <p id="aboutCounts"></p>
+        <p>Events from Wikidata; descriptions from Wikipedia (CC BY-SA); photographs from Wikimedia Commons under the licence shown in each panel.</p>
+        <p>Earth: NASA Blue Marble. Borders: Natural Earth. Stars, constellations and Milky Way: d3-celestial (Yale Bright Star Catalog, HYG). Sun, Moon and planet positions: astronomy-engine.</p>
+        <p>The sky is the real sky: stars are placed for the moment shown, the Moon at its true distance with its true phase, the Earth lit from the Sun's actual direction. Open a dated event and the sky becomes that day's.</p>
+      </div>
     </div>
     <aside id="panel"></aside>
   </div>
@@ -44,6 +52,7 @@
   </div>
 </div>
 <script src="vendor/three.min.js"></script>
+<script src="vendor/astronomy.browser.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

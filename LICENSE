@@ -26,4 +26,5 @@ This licence covers the code in this repository only. Data and media have their 
 - Photographs in site/img are from Wikimedia Commons under the licence recorded per file in site/data/images.json (public domain or Creative Commons), credited in each event panel.
 - The Earth texture is NASA's Blue Marble (public domain).
 - Country outlines are Natural Earth (public domain) via the world-atlas package (ISC).
-- three.js (site/vendor) is MIT.
+- three.js (site/vendor) is MIT; astronomy-engine (site/vendor) is MIT.
+- Star, constellation and Milky Way data (site/assets/sky.json) derive from d3-celestial (BSD-3-Clause, Olaf Frohn), which draws on the Yale Bright Star Catalog and the HYG database.
