@@ -26,6 +26,7 @@ header{
 .now b{color:var(--ink); font-weight:500}
 .spacer{flex:1}
 .modes{display:flex; border:1px solid var(--rule); border-radius:20px; overflow:hidden; margin-right:6px}
+.modes:has(button:only-child){display:none}   /* one rail only for now: the header already names it */
 .modes button{font:inherit; font-size:11.5px; padding:4px 12px; border:none; background:var(--panel-2); color:var(--ink-3); cursor:pointer}
 .modes button[aria-pressed="true"]{background:var(--ink); color:var(--bg)}
 .sound{font:inherit; font-size:11.5px; padding:4px 12px; border:1px solid var(--rule); border-radius:20px; background:var(--panel-2); color:var(--ink-3); cursor:pointer; margin-left:0}

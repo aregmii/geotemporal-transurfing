@@ -39,6 +39,8 @@ for (const slug of Object.keys(manifest)) {
 }
 // clips: a small demo set inlined as data URIs — the ten heaviest events with a clip inside the United States,
 // then the rest by weight, until the media budget is spent (the hosted page must stay under 16 MB)
+let links = [];
+try { links = JSON.parse(fs.readFileSync(path.join(site, 'data/links.json'), 'utf8')); } catch (e) { /* no links yet */ }
 let media = {};
 try { media = JSON.parse(fs.readFileSync(path.join(site, 'data/media.json'), 'utf8')); } catch (e) { /* no clips yet */ }
 const weightOf = {}; JSON.parse(events).forEach(r => { weightOf[r[9]] = { w: r[6], us: r[1] > 24 && r[1] < 50 && r[2] > -125 && r[2] < -66 }; });
@@ -64,7 +66,7 @@ html = html.replace('<script src="app.js"></script>',
   '<script id="pg-events" type="application/json">' + events + '</script>\n' +
   '<script id="pg-images" type="application/json">' + JSON.stringify(manifest) + '</script>\n' +
   '<script id="pg-borders" type="application/json">' + borders + '</script>\n' +
-  '<script>window.__ATLAS = { events: JSON.parse(document.getElementById("pg-events").textContent), images: JSON.parse(document.getElementById("pg-images").textContent), borders: JSON.parse(document.getElementById("pg-borders").textContent), skyLabels: ' + skyLabels + ', skyImage: ' + JSON.stringify(skyImage) + ', earth: ' + JSON.stringify(earth) + ', imgDir: "", media: ' + JSON.stringify(mediaOut) + ', mediaDir: "" };</script>\n' +
+  '<script>window.__GT = { events: JSON.parse(document.getElementById("pg-events").textContent), images: JSON.parse(document.getElementById("pg-images").textContent), borders: JSON.parse(document.getElementById("pg-borders").textContent), skyLabels: ' + skyLabels + ', skyImage: ' + JSON.stringify(skyImage) + ', earth: ' + JSON.stringify(earth) + ', imgDir: "", media: ' + JSON.stringify(mediaOut) + ', mediaDir: "", links: ' + JSON.stringify(links) + ' };</script>\n' +
   '<script>\n' + app + '\n</script>');
 fs.writeFileSync(out, html);
 console.log('playground: ' + Object.keys(manifest).length + ' photos (' + (bytes / 1048576).toFixed(1) + ' MB), ' + Object.keys(mediaOut).length + ' clips (' + (mediaBytes / 1048576).toFixed(1) + ' MB), file ' + (html.length / 1048576).toFixed(1) + ' MB -> ' + out);

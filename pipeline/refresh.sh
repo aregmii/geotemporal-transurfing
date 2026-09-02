@@ -1,5 +1,5 @@
 #!/bin/bash
-# Chrono Geography Transfusion — full data refresh. Run from anywhere:
+# Geotemporal Transfusion — full data refresh. Run from anywhere:
 #   pipeline/refresh.sh            # events + summaries + images for the last century
 #   pipeline/refresh.sh --all      # images for every event, not only the last century
 # Every step caches and resumes; re-running is cheap.
@@ -33,6 +33,8 @@ python3 fetch_images.py events_wikidata.json --from "$IMAGE_FROM" --img-dir ../s
 echo "== build site/data/events.json"
 node build.js
 
-echo "== 5/5 audio and video clips for the biggest events (from year $IMAGE_FROM; needs ffmpeg for small files)"
+echo "== 5/6 audio and video clips for the biggest events (from year $IMAGE_FROM; needs ffmpeg for small files)"
 python3 fetch_media.py ../site/data/events.json --from "$IMAGE_FROM" --min-weight 3 --media-dir ../site/media --out ../site/data/media.json || echo "   (media step failed — the site works without clips)"
+echo "== 6/6 cause-and-effect links between events"
+python3 fetch_links.py ../site/data/events.json --out ../site/data/links.json || echo "   (links step failed — the ticker falls back to same-day pairs)"
 echo "== done"

@@ -1,8 +1,8 @@
-# Chrono Geography Transfusion
+# Geotemporal Transfusion
 
 A globe with a time slider. Spin to a place, slide to a moment, click an event: a photograph, a paragraph, a source, and what was happening elsewhere in the world at the same time.
 
-Three rails: **2000–2025** (a slider: a 5-year window you drag a year at a time), **Last 100 years** (the same with a 10-year window, photographs for most events) and **All of history** (eleven eras from the first stone tools 3.3 million years ago to today). A ticker at the bottom shows same-day coincidences on different sides of the world. With clips fetched, a **Sound** toggle plays each event's audio or video louder as you zoom toward its card.
+One rail for now: **2000–2025**, a slider whose 5-year window you drag a year at a time (**Last 100 years** and **All of history** still exist behind `#mode=century` / `#mode=all`). A ticker at the bottom shows consequences Wikidata records between events in the window ("September 11 attacks — led to — War in Afghanistan"), and otherwise same-day coincidences on different sides of the world. Events with a video clip play it, muted, inside their hologram card. With clips fetched, a **Sound** toggle plays each event's audio or video louder as you zoom toward its card.
 
 ## How it works
 
@@ -12,6 +12,7 @@ Wikipedia ──REST───▶ fetch_summaries.py ──▶ lead paragraph + l
 Commons ───API─────▶ fetch_images.py ────▶ site/img/<hash>.jpg + site/data/images.json (licence + credit)
 curated/*.json ────▶ merge.js ───────────▶ site/data/events.json (+ data/y/<year>.json shards and data/index.json past 12,000 rows)
 Commons ───API─────▶ fetch_media.py ─────▶ site/media/<hash>.opus|webm + site/data/media.json (one clip per major event; needs ffmpeg for small files)
+Wikidata ──SPARQL──▶ fetch_links.py ─────▶ site/data/links.json (cause/effect/part-of links between shown events)
 ```
 
 `site/` is a plain static site: `index.html`, `app.js`, `styles.css`, vendored three.js and astronomy-engine, and the generated data. The sky behind the Earth is real: stars and constellations from the Yale Bright Star Catalog placed for the moment shown, the Moon at its true distance and phase, planets, and the Earth lit from the Sun's actual direction. A dated event shows the sky of that day. No build tool, no framework. Cloudflare Pages (or any static host) serves the `site/` directory as-is.
@@ -77,7 +78,8 @@ pipeline/
   extract_events.py   Wikidata SPARQL, one class at a time, plus births/deaths of well-known people
   fetch_summaries.py  Wikipedia REST summaries
   fetch_images.py     Commons licence check + thumbnails → site/img
-  fetch_media.py      one licensed audio/video clip per major event → site/media (curated_media.json first)
+  fetch_media.py      one licensed audio/video clip per major event → site/media (curated_media.json first; video preferred, gifs become webm)
+  fetch_links.py      consequence links between events (P1542 has effect, P828 has cause, P361 part of, …) → site/data/links.json
   merge.js            curated + Wikidata rows, dedupe, clean-up, weight by rank
   curated_dates.json  exact dates for curated rows (slug → YYYY-MM-DD)
   build.js            runs merge into site/data/events.json

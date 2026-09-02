@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chrono Geography Transfusion</title>
+<title>Geotemporal Transfusion</title>
 <meta name="description" content="A globe with a time slider: spin to a place, slide to a moment, see what happened there and what was happening elsewhere.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,13 +13,12 @@
 <body>
 <div id="app">
   <header>
-    <span class="brand">Chrono Geography Transfusion</span>
+    <span class="brand">Geotemporal Transfusion</span>
     <span class="now" id="now"></span>
     <span class="spacer"></span>
     <div class="modes" id="modes">
       <button data-mode="recent" aria-pressed="true">2000–2025</button>
-      <button data-mode="century" aria-pressed="false">Last 100 years</button>
-      <button data-mode="all" aria-pressed="false">All of history</button>
+      <!-- "Last 100 years" and "All of history" still work via #mode=century / #mode=all; buttons hidden for now -->
     </div>
     <button class="sound" id="soundBtn" aria-pressed="false" title="Clips play louder as you zoom toward them">Sound off</button>
     <div class="filters" id="filters"></div>
@@ -35,7 +34,7 @@
       <button class="about-btn" id="aboutBtn" aria-label="About and credits">i</button>
       <div class="about" id="about">
         <button class="pclose" id="aboutClose" aria-label="Close">✕</button>
-        <b>Chrono Geography Transfusion</b>
+        <b>Geotemporal Transfusion</b>
         <p id="aboutCounts"></p>
         <p>Events from Wikidata; descriptions from Wikipedia (CC BY-SA); photographs from Wikimedia Commons under the licence shown in each panel.</p>
         <p>Earth: NASA Blue Marble. Borders: Natural Earth. Sky: rendered from the Yale Bright Star Catalog and Milky Way contours (via d3-celestial) — every star to magnitude 6 at its catalog position and colour. Sun, Moon and planet positions: astronomy-engine.</p>

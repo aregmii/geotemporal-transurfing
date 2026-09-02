@@ -1,13 +1,14 @@
-window.__atlasStart = function(){
+window.__gtStart = function(){
 "use strict";
 
-var EARTH_SRC = window.__ATLAS.earth || "assets/earth.jpg";
-var IMG_DIR = window.__ATLAS.imgDir != null ? window.__ATLAS.imgDir : "img/";
-var BORDERS = window.__ATLAS.borders;
-var RAW = window.__ATLAS.events;
-var IMAGES = window.__ATLAS.images;
-var MEDIA = window.__ATLAS.media || {};          // slug -> { file, kind, author, license, licenseUrl, filePage, seconds }
-var MEDIA_DIR = window.__ATLAS.mediaDir != null ? window.__ATLAS.mediaDir : "media/";
+var EARTH_SRC = window.__GT.earth || "assets/earth.jpg";
+var IMG_DIR = window.__GT.imgDir != null ? window.__GT.imgDir : "img/";
+var BORDERS = window.__GT.borders;
+var RAW = window.__GT.events;
+var IMAGES = window.__GT.images;
+var MEDIA = window.__GT.media || {};
+var LINKS = window.__GT.links || [];              // [[slugA, relation, slugB], ...] from Wikidata cause/effect properties          // slug -> { file, kind, author, license, licenseUrl, filePage, seconds }
+var MEDIA_DIR = window.__GT.mediaDir != null ? window.__GT.mediaDir : "media/";
 var DEG = Math.PI / 180;
 
 var CATS = {
@@ -24,7 +25,7 @@ function parseRow(r, i){
 var EVENTS = RAW.map(parseRow);
 // Large builds keep only the top events per year in events.json and the rest in data/y/<year>.json shards,
 // listed in data/index.json; a window loads the shards it touches on demand (not in the playground build).
-var SHARDS = window.__ATLAS.shards || null;   // { years:[...], dir:'data/y/' }
+var SHARDS = window.__GT.shards || null;   // { years:[...], dir:'data/y/' }
 var loadedYears = {};
 
 // Two rails. "century" = calendar decades with 5-year windows; "all" = eleven eras from the first stone tools.
@@ -157,7 +158,9 @@ var ICON_URL = {};
 Object.keys(CATS).forEach(function(k){ ICON_URL[k] = iconCanvas(k, 64, false).toDataURL(); });
 
 // ---------- state ----------
-var wi = WINDOWS.findIndex(function(w){ return w.start <= 2022 && w.end >= 2022; });
+// opening window: 2020–2025 (a slider window is keyed by its start year)
+var wi = WINDOWS.findIndex(function(w){ return w.start === 2020; });
+if (wi < 0) wi = WINDOWS.findIndex(function(w){ return w.start <= 2022 && w.end >= 2022; });
 if (wi < 0) wi = WINDOWS.length - 1;
 var selected = null, hovered = null, idle = true, idleTimer = null;
 var off = { con:false, cul:false, sci:false, dis:false };
@@ -219,13 +222,13 @@ function makeTextSprite(text, size, dim){
   var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(c), transparent:true, depthTest:false, sizeAttenuation:false }));
   sp.scale.set(size * 12, size, 1); sp.center.set(0.5, 1.7); sp.renderOrder = 20; return sp;
 }
-var SKYLABELS = window.__ATLAS.skyLabels || { stars:[], constellations:[] };
+var SKYLABELS = window.__GT.skyLabels || { stars:[], constellations:[] };
 
 var skySphere, moonMesh, sunSprite, planetSprites = {};
 function buildSkyStatic(){
   // the sky itself: a baked equirectangular photograph-style map (real stars and Milky Way, equatorial coordinates)
   // on the inside of a far sphere. Same longitude mapping as the Earth texture, mirrored because we look from inside.
-  var skyTex = new THREE.TextureLoader().load(window.__ATLAS.skyImage || 'assets/sky.jpg', function(){ render(); });
+  var skyTex = new THREE.TextureLoader().load(window.__GT.skyImage || 'assets/sky.jpg', function(){ render(); });
   skyTex.wrapS = THREE.RepeatWrapping; skyTex.repeat.x = -1;
   skySphere = new THREE.Mesh(new THREE.SphereGeometry(SKY_R, 64, 40), new THREE.MeshBasicMaterial({ map:skyTex, side:THREE.BackSide, depthWrite:false }));
   skySphere.renderOrder = -10; sky.add(skySphere);
@@ -429,13 +432,13 @@ function ensureYears(start, end, done){
 var CARD_TEX = {};
 function cardTexture(e, onReady){
   var key = (IMAGES[e.slug] ? e.slug : 'glyph:' + e.cat) + (MEDIA[e.slug] ? '|m' : '');
-  if (CARD_TEX[key]) return CARD_TEX[key];
+  if (CARD_TEX[key] && onReady !== 'painter') return CARD_TEX[key];
   var cw = 256, ch = 192, col = css(CATS[e.cat].v);
-  function paint(img){
-    var c = document.createElement('canvas'); c.width = cw; c.height = ch; var ctx = c.getContext('2d');
+  function paint(img, canvas){
+    var c = canvas || document.createElement('canvas'); c.width = cw; c.height = ch; var ctx = c.getContext('2d');
     ctx.fillStyle = 'rgba(8,14,26,.72)'; ctx.fillRect(0, 0, cw, ch);
     if (img){
-      var sw = img.width, sh = img.height, sc = Math.max(cw / sw, ch / sh);
+      var sw = img.videoWidth || img.width, sh = img.videoHeight || img.height, sc = Math.max(cw / sw, ch / sh);
       var dw = sw * sc, dh = sh * sc;
       ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
       var tint = ctx.createLinearGradient(0, 0, 0, ch); tint.addColorStop(0, 'rgba(110,200,255,.16)'); tint.addColorStop(1, 'rgba(110,160,255,.28)');
@@ -454,8 +457,10 @@ function cardTexture(e, onReady){
       ctx.beginPath(); ctx.arc(26, ch - 26, 16, 0, 2 * Math.PI); ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fill();
       ctx.beginPath(); ctx.moveTo(21, ch - 34); ctx.lineTo(21, ch - 18); ctx.lineTo(34, ch - 26); ctx.closePath(); ctx.fillStyle = '#0b1220'; ctx.fill();
     }
+    if (canvas) return c;                                   // live frame: caller owns the texture
     var tex = new THREE.CanvasTexture(c); CARD_TEX[key] = tex; return tex;
   }
+  if (onReady === 'painter') return paint;                    // used by the live (video) cards
   var im = IMAGES[e.slug];
   if (!im) return paint(null);
   var img = new Image();
@@ -679,6 +684,49 @@ function closePanel(){
   resize(); writeHash();
 }
 
+// ---------- live cards: a video clip plays (muted) inside its hologram, so a hurricane loops on the globe ----------
+// The few biggest on-screen cards with a video clip get a canvas texture repainted from the video every frame.
+var LIVE = {}, LIVE_MAX = 4;
+var liveClips = Object.keys(MEDIA).some(function(k){ return MEDIA[k].kind === 'video'; });
+function liveFor(e){
+  var L = LIVE[e.slug];
+  if (L) return L;
+  var v = document.createElement('video');
+  v.src = MEDIA_DIR + MEDIA[e.slug].file; v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto'; v.crossOrigin = 'anonymous';
+  var canvas = document.createElement('canvas');
+  var tex = new THREE.CanvasTexture(canvas);
+  L = { video:v, canvas:canvas, tex:tex, paint:cardTexture(e, 'painter'), on:false, ready:false };
+  v.addEventListener('loadeddata', function(){ L.ready = true; });
+  LIVE[e.slug] = L; return L;
+}
+function updateLive(){
+  var cands = [];
+  for (var i = 0; i < shown.length; i++){
+    var e = shown[i], md = MEDIA[e.slug];
+    if (!md || md.kind !== 'video' || e._sx == null || !e.holder) continue;
+    cands.push(e);
+  }
+  cands.sort(function(a, b){ return (b._px || 0) - (a._px || 0); });
+  var keep = {};
+  cands.slice(0, LIVE_MAX).forEach(function(e){
+    var L = liveFor(e); keep[e.slug] = true;
+    if (!L.on){ L.on = true; L.video.play().catch(function(){ L.on = false; }); }
+    if (L.ready && !L.video.paused){
+      L.paint(L.video, L.canvas); L.tex.needsUpdate = true;
+      var u = e.holder.userData;
+      if (u.card.material.map !== L.tex){ u.card.material.map = L.tex; u.card.material.needsUpdate = true; }
+    }
+  });
+  Object.keys(LIVE).forEach(function(slug){
+    var L = LIVE[slug];
+    if (L.on && !keep[slug]){
+      L.on = false; L.video.pause();
+      var e = EVENTS.find(function(x){ return x.slug === slug && x.holder; });
+      if (e){ var u = e.holder.userData; var t = cardTexture(e, function(){}); if (t){ u.card.material.map = t; u.card.material.needsUpdate = true; } }
+    }
+  });
+}
+
 // ---------- sound: clips get louder as their card grows on screen ----------
 // Each event with a clip gets an <audio> routed through a gain + stereo panner. Every frame the visible cards are
 // ranked by on-screen width; the three biggest play, gain follows width (quiet when small, full at ~300 px),
@@ -834,6 +882,7 @@ function kenBurns(t){
 function tick(){
   kenBurns(performance.now()); if (selected) render();
   if (SOUND.on) updateSound();
+  if (liveClips){ updateLive(); if (!selected) render(); }
   if (!dragging && (Math.abs(velX) > 0.0003 || Math.abs(velY) > 0.0003)){
     qTmp.setFromAxisAngle(AY, velX); qTmp2.setFromAxisAngle(AX, velY);
     globe.quaternion.premultiply(qTmp).premultiply(qTmp2);
@@ -942,7 +991,8 @@ function setMode(next, keepYear){
   if (next === mode) return;
   var year = keepYear != null ? keepYear : WINDOWS[wi].start;
   mode = next; ERAS = ERA_SETS[mode]; buildWindows(); buildRail();
-  wi = WINDOWS.findIndex(function(w){ return w.start <= year && w.end > year; });
+  wi = WINDOWS.findIndex(function(w){ return w.start === year; });
+  if (wi < 0) wi = WINDOWS.findIndex(function(w){ return w.start <= year && w.end > year; });
   if (wi < 0) wi = WINDOWS.length - 1;
   Array.prototype.forEach.call(document.querySelectorAll('#modes button'), function(b){ b.setAttribute('aria-pressed', b.dataset.mode === mode ? 'true' : 'false'); });
   closePanel(); bindWindow(); syncHeader(); placeHandle(); render(); writeHash(); resetTicker();
@@ -961,7 +1011,7 @@ function writeHash(){
 function readHash(){
   var h = {}; location.hash.slice(1).split('&').forEach(function(p){ var kv = p.split('='); if (kv[0]) h[kv[0]] = decodeURIComponent(kv[1] || ''); });
   if (h.mode && ERA_SETS[h.mode] && h.mode !== mode) setMode(h.mode, h.y ? +h.y : null);
-  else if (h.y){ var y = +h.y; var i = WINDOWS.findIndex(function(w){ return w.start <= y && w.end > y; }); if (i >= 0) wi = i; }
+  else if (h.y){ var y = +h.y; var i = WINDOWS.findIndex(function(w){ return w.start === y; }); if (i < 0) i = WINDOWS.findIndex(function(w){ return w.start <= y && w.end > y; }); if (i >= 0 && i !== wi){ wi = i; bindWindow(); syncHeader(); placeHandle(); resetTicker(); } }
   if (h.e){
     var w = WINDOWS[wi];
     var matches = EVENTS.filter(function(x){ return x.slug === h.e; });
@@ -976,37 +1026,42 @@ function readHash(){
 // ---------- 'while this was happening' ticker ----------
 function continentOf(e){ return e.normal; }
 function family(e){ return e.title.toLowerCase().replace(/^(launch|death|birth|discovery|invention) of /, '').split(' ').slice(0, 3).join(' '); }
+// relation -> how the ticker reads it, "A <verb> B"
+var REL_TEXT = { P1542:'led to', P828:'was caused by', P1536:'triggered', P1478:'was triggered by', P1479:'fed', P155:'followed', P156:'was followed by', P361:'was part of', P527:'included' };
+var LINKS_BY_SLUG = {};
+LINKS.forEach(function(l){ (LINKS_BY_SLUG[l[0]] = LINKS_BY_SLUG[l[0]] || []).push(l); });
 function coincidences(){
   var w = WINDOWS[wi];
   var inWin = EVENTS.filter(function(e){ return e.start <= w.end && e.end >= w.start; });
-  var list = inWin.filter(function(e){ return e.w >= 2; });
-  var dated = inWin.filter(function(e){ return e.date; }), pairs = [];   // any weight: a same-day pair is rare enough to show
+  var bySlug = {};
+  inWin.forEach(function(e){ if (!bySlug[e.slug]) bySlug[e.slug] = e; });
+  var pairs = [], seen = {};
+  // 1. consequences: pairs Wikidata links by cause / effect / part-of, both ends in this window
+  inWin.forEach(function(a){
+    (LINKS_BY_SLUG[a.slug] || []).forEach(function(l){
+      var b = bySlug[l[2]];
+      if (!b || b === a || !REL_TEXT[l[1]]) return;
+      var key = a.slug < b.slug ? a.slug + '|' + b.slug : b.slug + '|' + a.slug;
+      if (seen[key]) return; seen[key] = true;
+      var far = a.normal.angleTo(b.normal) > 0.6;
+      pairs.push({ a:a, b:b, rel:REL_TEXT[l[1]], gap:null, score:10 + a.w + b.w + (far ? 2 : 0) + (a.date && b.date ? 1 : 0) });
+    });
+  });
+  // 2. same day, different sides of the world — people and science first
   var byDay = {};
-  dated.forEach(function(e){ (byDay[e.date] = byDay[e.date] || []).push(e); });
+  inWin.forEach(function(e){ if (e.date) (byDay[e.date] = byDay[e.date] || []).push(e); });
   Object.keys(byDay).forEach(function(d){
     var arr = byDay[d];
     for (var i = 0; i < arr.length; i++) for (var j = i + 1; j < arr.length; j++){
       var a = arr[i], b = arr[j];
-      if (a.normal.angleTo(b.normal) < 0.6) continue;                       // same part of the world: not a coincidence
-      if (family(a) === family(b)) continue;                                // "COVID-19 pandemic in X" twice, two launches of one mission
+      if (a.normal.angleTo(b.normal) < 0.6) continue;
+      if (family(a) === family(b)) continue;
       if (/^launch of/i.test(a.title) && /^launch of/i.test(b.title)) continue;
-      // births and deaths of people, and discoveries, are the interesting half of a coincidence
       var human = /^(birth|death) of /i, sci = function(e){ return e.cat === 'sci'; };
       var bonus = (human.test(a.title) || human.test(b.title) ? 1.5 : 0) + (sci(a) || sci(b) ? 1 : 0) + (a.cat !== b.cat ? 0.5 : 0);
-      pairs.push({ a:a, b:b, gap:0, score:a.w + b.w + bonus });
+      pairs.push({ a:a, b:b, rel:null, gap:0, score:a.w + b.w + bonus });
     }
   });
-  if (!pairs.length){
-    // no same-day pairs in this window: pair the biggest events on different sides of the world, same year
-    var byYear = {};
-    list.forEach(function(e){ (byYear[e.start] = byYear[e.start] || []).push(e); });
-    Object.keys(byYear).forEach(function(y){
-      var arr = byYear[y].sort(function(p, q){ return q.w - p.w; });
-      for (var i = 0; i < arr.length; i++) for (var j = i + 1; j < Math.min(arr.length, i + 6); j++){
-        if (arr[i].normal.angleTo(arr[j].normal) > 0.6 && family(arr[i]) !== family(arr[j])) pairs.push({ a:arr[i], b:arr[j], gap:null, score:arr[i].w + arr[j].w });
-      }
-    });
-  }
   pairs.sort(function(p, q){ return q.score - p.score; });
   return pairs.slice(0, 14);
 }
@@ -1015,8 +1070,12 @@ function showTicker(){
   var el = document.getElementById('ticker');
   if (!tickerPairs.length){ el.classList.remove('on'); return; }
   var p = tickerPairs[tickerIndex % tickerPairs.length];
-  var when = p.gap == null ? 'Same year · ' + yearLabel(p.a.start) : dayLabel(p.a.date);
-  el.innerHTML = '<span class="tk">' + when + '</span> While ' + p.a.title + ' <em>' + p.a.place + '</em> — ' + p.b.title + ' <em>' + p.b.place + '</em>';
+  if (p.rel){
+    var whenA = p.a.date ? dayLabel(p.a.date) : yearLabel(p.a.start);
+    el.innerHTML = '<span class="tk">' + whenA + '</span> ' + p.a.title + ' <em>' + p.a.place + '</em> — ' + p.rel + ' — ' + p.b.title + ' <em>' + p.b.place + (p.b.date ? ' · ' + dayLabel(p.b.date) : '') + '</em>';
+  } else {
+    el.innerHTML = '<span class="tk">' + dayLabel(p.a.date) + '</span> While ' + p.a.title + ' <em>' + p.a.place + '</em> — ' + p.b.title + ' <em>' + p.b.place + '</em>';
+  }
   el.classList.add('on');
   el.onclick = function(){ spinTo(p.a); openPanel(p.a); };
 }
@@ -1035,13 +1094,13 @@ setInterval(function(){ if (!selected || !selected.date) setSkyDate(new Date());
 };
 // Load data files, then start the app.
 (function(){
-  if (window.__ATLAS){ window.__atlasStart(); return; }   // playground build: data already inlined
+  if (window.__GT){ window.__gtStart(); return; }   // playground build: data already inlined
   function get(url){ return fetch(url).then(function(r){ if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); }); }
   Promise.all([ get('data/events.json'), get('data/images.json'), get('assets/countries-110m.json'), get('assets/skylabels.json'),
-                get('data/media.json').catch(function(){ return {}; }), get('data/index.json').catch(function(){ return null; }) ])
+                get('data/media.json').catch(function(){ return {}; }), get('data/index.json').catch(function(){ return null; }), get('data/links.json').catch(function(){ return []; }) ])
     .then(function(res){
-      window.__ATLAS = { events:res[0], images:res[1], borders:res[2], skyLabels:res[3], media:res[4], shards: res[5] && res[5].years ? { years:res[5].years, dir:'data/y/' } : null };
-      window.__atlasStart();
+      window.__GT = { events:res[0], images:res[1], borders:res[2], skyLabels:res[3], media:res[4], shards: res[5] && res[5].years ? { years:res[5].years, dir:'data/y/' } : null, links:res[6] };
+      window.__gtStart();
     })
     .catch(function(err){ document.getElementById('note').textContent = 'COULD NOT LOAD DATA — ' + err.message; console.error(err); });
 })();

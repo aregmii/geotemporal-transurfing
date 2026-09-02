@@ -1,5 +1,5 @@
 """
-Chrono Geography Transfusion — find, licence-check and pack one audio or video clip per major event.
+Geotemporal Transfusion — find, licence-check and pack one audio or video clip per major event.
 
 Run:   python3 fetch_media.py ../site/data/events.json --from 1926 --min-weight 3 --media-dir ../site/media --out ../site/data/media.json
 Needs: pip install requests        optional: ffmpeg on PATH (clips are then cut to --seconds and re-encoded small)
@@ -32,14 +32,14 @@ import urllib.parse
 
 import requests
 
-USER_AGENT = "ChronoGeographyTransfusion/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
+USER_AGENT = "GeotemporalTransfusion/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 WDQS = "https://query.wikidata.org/sparql"
 CACHE_DIR = "media_cache"
 PAUSE_SECONDS = 0.3
 ALLOWED_LICENSE = re.compile(r"(CC|Creative Commons|Public domain|PD|CC0|GFDL|No restrictions)", re.IGNORECASE)
 AUDIO_EXT = (".ogg", ".oga", ".opus", ".mp3", ".wav", ".flac", ".m4a")
-VIDEO_EXT = (".webm", ".ogv", ".mp4", ".mpg", ".mpeg")
+VIDEO_EXT = (".webm", ".ogv", ".mp4", ".mpg", ".mpeg", ".gif")   # a gif is re-encoded to webm by ffmpeg
 HAVE_FFMPEG = shutil.which("ffmpeg") is not None
 
 
@@ -161,6 +161,8 @@ def pack(raw_path, out_path, kind, seconds):
         return
     if kind == "audio":
         cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", raw_path, "-t", str(seconds), "-vn", "-ac", "1", "-c:a", "libopus", "-b:a", "40k", out_path]
+    elif raw_path.lower().endswith(".gif"):
+        cmd = ["ffmpeg", "-y", "-loglevel", "error", "-ignore_loop", "0", "-i", raw_path, "-t", str(seconds), "-vf", "scale=-2:360:flags=lanczos,fps=15", "-c:v", "libvpx-vp9", "-b:v", "400k", "-an", out_path]
     else:
         cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", raw_path, "-t", str(seconds), "-vf", "scale=-2:360", "-c:v", "libvpx-vp9", "-b:v", "500k", "-c:a", "libopus", "-b:a", "48k", "-ac", "1", out_path]
     subprocess.run(cmd, check=True)
@@ -218,8 +220,9 @@ def main():
         if candidates[slug]:
             continue
         clean = re.sub(r"\s*\(.*?\)\s*", " ", title).strip()
-        candidates[slug].extend(search_commons(clean, "audio"))
+        # video first: a moving hurricane or a launch says more on the globe than a sound; audio for speeches and the rest
         candidates[slug].extend(search_commons(clean, "video"))
+        candidates[slug].extend(search_commons(clean, "audio"))
 
     added = 0
     for slug, title in wanted:

@@ -1,5 +1,5 @@
 """
-Atlas of When — enrich events_wikidata.json with a real first paragraph from English Wikipedia.
+Geotemporal Transfusion — enrich events_wikidata.json with a real first paragraph from English Wikipedia.
 
 Run:   python3 fetch_summaries.py events_wikidata.json
 Needs: Python 3.9+, `pip install requests`
@@ -20,7 +20,7 @@ import urllib.parse
 
 import requests
 
-USER_AGENT = "AtlasOfWhen/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
+USER_AGENT = "GeotemporalTransfusion/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
 CACHE_DIR = "wiki_cache"
 PAUSE_SECONDS = 0.1
 MAX_WORDS = 80

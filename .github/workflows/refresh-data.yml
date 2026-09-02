@@ -36,8 +36,8 @@ jobs:
             pipeline/wdqs_cache
             pipeline/wiki_cache
             pipeline/img_cache
-          key: atlas-caches-${{ github.run_id }}
-          restore-keys: atlas-caches-
+          key: gt-caches-${{ github.run_id }}
+          restore-keys: gt-caches-
 
       - run: pip install -r pipeline/requirements.txt
 
@@ -51,8 +51,8 @@ jobs:
 
       - name: Commit refreshed data
         run: |
-          git config user.name "atlas-refresh[bot]"
-          git config user.email "atlas-refresh@users.noreply.github.com"
+          git config user.name "gt-refresh[bot]"
+          git config user.email "gt-refresh@users.noreply.github.com"
           git add site/data site/img
           if git diff --cached --quiet; then
             echo "no data changes"

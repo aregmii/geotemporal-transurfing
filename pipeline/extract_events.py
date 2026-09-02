@@ -1,5 +1,5 @@
 """
-Chrono Geography Transfusion — Wikidata extraction script (v0.6).
+Geotemporal Transfusion — Wikidata extraction script (v0.6).
 v0.6 adds the wide pull: every item with a day-precision point in time (P585), coordinates and enough language editions,
 and every person with a day-precision birth or death and a located birth/death place, in adaptive date slices.
 
@@ -38,7 +38,7 @@ import time
 import requests
 
 ENDPOINT = "https://query.wikidata.org/sparql"
-USER_AGENT = "AtlasOfWhen/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
+USER_AGENT = "GeotemporalTransfusion/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
 CACHE_DIR = "wdqs_cache"
 PAUSE_SECONDS = 2.0
 MAX_EVENTS = 250000
