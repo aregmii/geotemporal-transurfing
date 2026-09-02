@@ -1,0 +1,62 @@
+name: Refresh data
+
+# Pulls events from Wikidata, lead paragraphs from Wikipedia and licensed images from Commons,
+# rebuilds site/data, and commits the result. Cloudflare Pages deploys on push.
+on:
+  workflow_dispatch:
+    inputs:
+      all_images:
+        description: "Fetch images for every era, not only the last century"
+        type: boolean
+        default: false
+  schedule:
+    - cron: "0 6 * * 1"   # Mondays 06:00 UTC
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Restore pipeline caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            pipeline/wdqs_cache
+            pipeline/wiki_cache
+            pipeline/img_cache
+          key: atlas-caches-${{ github.run_id }}
+          restore-keys: atlas-caches-
+
+      - run: pip install -r pipeline/requirements.txt
+
+      - name: Run the pipeline
+        run: |
+          if [ "${{ github.event.inputs.all_images }}" = "true" ]; then
+            bash pipeline/refresh.sh --all
+          else
+            bash pipeline/refresh.sh
+          fi
+
+      - name: Commit refreshed data
+        run: |
+          git config user.name "atlas-refresh[bot]"
+          git config user.email "atlas-refresh@users.noreply.github.com"
+          git add site/data site/img
+          if git diff --cached --quiet; then
+            echo "no data changes"
+          else
+            git commit -m "data: scheduled refresh $(date -u +%Y-%m-%d)"
+            git push
+          fi

@@ -1,0 +1,9 @@
+# pipeline caches — large, regenerable
+pipeline/wdqs_cache/
+pipeline/wiki_cache/
+pipeline/img_cache/
+pipeline/missing_slugs.json
+# generated site data is committed (Cloudflare Pages deploys it as-is); raw Wikidata output is not
+pipeline/events_wikidata.json
+node_modules/
+.DS_Store

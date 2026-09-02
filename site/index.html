@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atlas of When</title>
+<meta name="description" content="A globe with a time slider: spin to a place, slide to a moment, see what happened there and what was happening elsewhere.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <span class="brand">Atlas of When</span>
+    <span class="now" id="now"></span>
+    <span class="spacer"></span>
+    <div class="modes" id="modes">
+      <button data-mode="century" aria-pressed="true">Last 100 years</button>
+      <button data-mode="all" aria-pressed="false">All of history</button>
+    </div>
+    <div class="filters" id="filters"></div>
+  </header>
+  <div id="stage">
+    <div id="globewrap">
+      <canvas id="c"></canvas>
+      <div class="note" id="note"></div>
+      <div class="credit">EARTH: NASA BLUE MARBLE<br>PHOTOS: WIKIMEDIA COMMONS, CREDITED PER PANEL</div>
+      <div id="tip"><div class="tt"></div><div class="ty"></div></div>
+      <div class="hint">DRAG TO SPIN · SCROLL TO ZOOM · SHIFT-DRAG TO TILT<br>← → MOVE THROUGH TIME</div>
+      <div class="count" id="count"></div>
+    </div>
+    <aside id="panel"></aside>
+  </div>
+  <div id="rail">
+    <div class="track" id="track" tabindex="0" role="slider" aria-label="Time window"></div>
+    <div class="railfoot">
+      <span id="railLeft">1926</span>
+      <span><b id="railNow"></b></span>
+      <span id="railRight">2026</span>
+    </div>
+  </div>
+</div>
+<script src="vendor/three.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

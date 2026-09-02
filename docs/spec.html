@@ -1,0 +1,979 @@
+<title>Atlas of When</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#EFF1EE; --surface:#F8F9F7; --surface-2:#E3E8E3; --sunken:#E8ECE8;
+  --ink:#151A17; --ink-2:#4A544D; --ink-3:#78847B;
+  --rule:#CCD4CD; --rule-soft:#DEE4DE;
+  --accent:#1E6A5E; --accent-soft:#D5E5E1;
+  --brass:#8E6320;
+  --c-conflict:#B0472A; --c-culture:#8C681A; --c-science:#28688F; --c-disaster:#7A415F;
+  --shadow:0 1px 2px rgba(20,30,25,.06), 0 8px 24px rgba(20,30,25,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1311; --surface:#151B18; --surface-2:#1E2622; --sunken:#111714;
+    --ink:#E7ECE8; --ink-2:#A8B3AC; --ink-3:#7A867E;
+    --rule:#2B3531; --rule-soft:#232C29;
+    --accent:#57B8A6; --accent-soft:#17342E;
+    --brass:#CE9E52;
+    --c-conflict:#E3805F; --c-culture:#D4AC48; --c-science:#6DB2DE; --c-disaster:#C486A6;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1311; --surface:#151B18; --surface-2:#1E2622; --sunken:#111714;
+  --ink:#E7ECE8; --ink-2:#A8B3AC; --ink-3:#7A867E;
+  --rule:#2B3531; --rule-soft:#232C29;
+  --accent:#57B8A6; --accent-soft:#17342E;
+  --brass:#CE9E52;
+  --c-conflict:#E3805F; --c-culture:#D4AC48; --c-science:#6DB2DE; --c-disaster:#C486A6;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:15.5px; line-height:1.62; margin:0;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1288px; margin:0 auto; padding:0 32px 96px}
+
+/* ---------- masthead ---------- */
+.masthead{padding:56px 0 28px; border-bottom:1px solid var(--rule)}
+.eyebrow{
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11.5px;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin:0 0 14px;
+}
+h1{
+  font-family:Fraunces,Georgia,serif; font-weight:700; font-size:clamp(38px,5.6vw,60px);
+  line-height:1.02; letter-spacing:-.018em; margin:0 0 14px; text-wrap:balance;
+}
+.deck{font-size:19px; line-height:1.5; color:var(--ink-2); max-width:60ch; margin:0 0 26px}
+.metabar{
+  display:flex; flex-wrap:wrap; gap:0 34px; padding-top:6px;
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:12px; color:var(--ink-3);
+}
+.metabar b{display:block; color:var(--ink); font-weight:500; letter-spacing:0}
+.metabar div{padding:8px 0}
+
+/* ---------- layout ---------- */
+.cols{display:grid; grid-template-columns:186px minmax(0,1fr); gap:52px; margin-top:44px}
+@media (max-width:900px){ .cols{grid-template-columns:1fr; gap:0} nav.toc{display:none} }
+nav.toc{position:sticky; top:24px; align-self:start; max-height:calc(100vh - 48px); overflow:auto}
+nav.toc p{
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--ink-3); margin:0 0 12px;
+}
+nav.toc ol{list-style:none; margin:0; padding:0; counter-reset:t}
+nav.toc li{counter-increment:t; margin-bottom:9px}
+nav.toc a{
+  display:grid; grid-template-columns:22px 1fr; gap:6px; align-items:baseline;
+  color:var(--ink-2); text-decoration:none; font-size:13px; line-height:1.35;
+}
+nav.toc a::before{
+  content:counter(t,decimal-leading-zero);
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:10.5px; color:var(--ink-3);
+}
+nav.toc a:hover{color:var(--accent)}
+
+main{min-width:0}
+main > section > p,
+main > section > ul,
+main > section > h2,
+main > section > h3,
+main > section > .h2num,
+main > section > .note,
+main > section > .reqs,
+main > section > .tw,
+main > section > .chiprow,
+main > section > .refs,
+main > section > .mono{max-width:72ch}
+section{padding-top:52px}
+h2{
+  font-family:Fraunces,Georgia,serif; font-weight:600; font-size:27px; line-height:1.2;
+  letter-spacing:-.012em; margin:0 0 6px; text-wrap:balance;
+}
+.h2num{
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px; letter-spacing:.14em;
+  color:var(--accent); text-transform:uppercase; display:block; margin-bottom:10px;
+}
+h3{
+  font-family:"IBM Plex Sans",sans-serif; font-weight:600; font-size:16px;
+  margin:32px 0 6px; letter-spacing:-.005em;
+}
+p{margin:0 0 15px}
+a{color:var(--accent)}
+code, .mono{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.88em}
+code{background:var(--surface-2); padding:1px 5px; border-radius:3px}
+strong{font-weight:600}
+ul{margin:0 0 15px; padding-left:20px}
+li{margin-bottom:7px}
+
+/* ---------- requirement blocks ---------- */
+.reqs{list-style:none; margin:0 0 18px; padding:0; border-top:1px solid var(--rule-soft)}
+.reqs li{
+  display:grid; grid-template-columns:88px minmax(0,1fr); gap:16px; margin:0;
+  padding:12px 0; border-bottom:1px solid var(--rule-soft);
+}
+.rid{
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11.5px; color:var(--accent);
+  padding-top:3px; letter-spacing:.02em;
+}
+.reqs li p{margin:0}
+.reqs li p + p{margin-top:5px; color:var(--ink-2); font-size:14px}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto; margin:0 0 18px; border:1px solid var(--rule); border-radius:6px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:13.5px}
+th,td{text-align:left; padding:9px 14px; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+thead th{
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:10.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink-3); font-weight:500; background:var(--surface-2);
+  border-bottom:1px solid var(--rule);
+}
+tbody tr:last-child td{border-bottom:none}
+td.num, th.num{font-variant-numeric:tabular-nums; white-space:nowrap}
+td .mono{color:var(--ink-2)}
+
+/* ---------- figures ---------- */
+figure{margin:30px 0 34px; width:100%; max-width:1000px}
+figure svg{
+  display:block; width:100%; height:auto; background:var(--surface);
+  border:1px solid var(--rule); border-radius:8px; box-shadow:var(--shadow);
+}
+figcaption{
+  margin-top:11px; font-size:13px; color:var(--ink-2); line-height:1.5; max-width:70ch;
+}
+figcaption b{
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink-3); font-weight:500; margin-right:8px;
+}
+
+/* svg tokens */
+.fig{color:var(--ink)}
+.f-panel{fill:var(--surface)}
+.f-sunk{fill:var(--sunken)}
+.f-band{fill:var(--surface-2)}
+.f-land{fill:var(--surface-2)}
+.s-rule{stroke:var(--rule); fill:none}
+.s-rule-soft{stroke:var(--rule-soft); fill:none}
+.t{fill:var(--ink); font-family:"IBM Plex Sans",sans-serif; font-size:12px}
+.t-s{fill:var(--ink-3); font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:10px; letter-spacing:.06em}
+.t-m{fill:var(--ink-2); font-family:"IBM Plex Sans",sans-serif; font-size:11.5px}
+.t-a{fill:var(--accent); font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:10px; letter-spacing:.06em}
+.t-h{fill:var(--ink); font-family:Fraunces,Georgia,serif; font-size:15px; font-weight:600}
+.mk-conflict{fill:var(--c-conflict)}
+.mk-culture{fill:var(--c-culture)}
+.mk-science{fill:var(--c-science)}
+.mk-disaster{fill:var(--c-disaster)}
+.acc{fill:var(--accent)}
+.acc-soft{fill:var(--accent-soft)}
+.s-acc{stroke:var(--accent); fill:none}
+.s-cur{stroke:currentColor; fill:none; opacity:.55}
+.dash{stroke-dasharray:4 3}
+
+/* ---------- callouts ---------- */
+.note{
+  border-left:2px solid var(--brass); padding:2px 0 2px 16px; margin:22px 0;
+  color:var(--ink-2); font-size:14.5px;
+}
+.note b{color:var(--ink); font-weight:600}
+.risk{border-left-color:var(--c-conflict)}
+
+.chiprow{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 20px}
+.chip{
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px; letter-spacing:.04em;
+  border:1px solid var(--rule); border-radius:20px; padding:3px 11px; color:var(--ink-2);
+  background:var(--surface);
+}
+.chip i{display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:6px; vertical-align:1px}
+
+.refs{list-style:none; padding:0; margin:0; font-size:13.5px}
+.refs li{
+  display:grid; grid-template-columns:26px minmax(0,1fr); gap:10px;
+  padding:9px 0; border-bottom:1px solid var(--rule-soft); margin:0;
+}
+.refs span{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px; color:var(--ink-3); padding-top:2px}
+.refs a{word-break:break-word}
+.refs em{display:block; color:var(--ink-3); font-style:normal; font-size:12.5px; margin-top:2px}
+
+hr.end{border:none; border-top:1px solid var(--rule); margin:56px 0 0}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Product requirements · MVP · v0.3</p>
+  <h1>Atlas of When</h1>
+  <p class="deck">A world map with a time control. Move the control to an era and the map fills with the events that happened then; click one and read what it was, and what was happening elsewhere while it did.</p>
+  <div class="metabar">
+    <div><b>Requested by</b>Amish R.</div>
+    <div><b>Revised</b>2 Sep 2026</div>
+    <div><b>Reader</b>Implementing engineer</div>
+    <div><b>Ships as</b>One published HTML page</div>
+    <div><b>Status</b>Ready for M0</div>
+  </div>
+  <p style="margin-top:22px; font-size:14px; color:var(--ink-2); max-width:64ch">
+    <strong>v0.3 changes.</strong> The working prototype now supersedes the wireframes for look and feel: it is a 3D globe with NASA's Blue Marble texture, category icons instead of dots, and a timeline that starts 4 million years ago. The wireframes in Section 05 are kept for panel structure only. Data target is now the 10,000 best-known events, pulled by the extraction script described in Section 08. Earlier v0.2 decisions (place-anchored events, no borders before 1900, the "elsewhere" list) stand.
+  </p>
+</header>
+
+<div class="cols">
+
+<nav class="toc" aria-label="Contents">
+  <p>Contents</p>
+  <ol>
+    <li><a href="#loop">The loop</a></li>
+    <li><a href="#question">What this MVP tests</a></li>
+    <li><a href="#settled">Settled decisions</a></li>
+    <li><a href="#time">Time model</a></li>
+    <li><a href="#screens">Screens (wireframes)</a></li>
+    <li><a href="#selection">Choosing events</a></li>
+    <li><a href="#place">Placing events</a></li>
+    <li><a href="#pipeline">Build pipeline</a></li>
+    <li><a href="#images">Images</a></li>
+    <li><a href="#borders">Borders</a></li>
+    <li><a href="#nongoals">Out of scope</a></li>
+    <li><a href="#accept">Acceptance</a></li>
+    <li><a href="#milestones">Milestones</a></li>
+    <li><a href="#open">Decisions &amp; what's open</a></li>
+    <li><a href="#refs">References</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- 1 -->
+<section id="loop">
+  <span class="h2num">Section 01</span>
+  <h2>Three moves make up the whole product</h2>
+  <p>A visitor lands on a world map already populated with events. They do three things, in this order, and nothing else:</p>
+  <ul>
+    <li><strong>Move the time control.</strong> The map's markers are replaced with events from the newly selected span of years.</li>
+    <li><strong>Look.</strong> Marker position says where, marker colour says what kind, marker size says how well known.</li>
+    <li><strong>Click a marker.</strong> A panel opens with a picture, a date, a place, a paragraph, a link to the source, and a short list of what was happening elsewhere in the world at the same time.</li>
+  </ul>
+  <p>Everything in this document exists to make those three moves feel good. A feature that does not serve one of them is out of scope for the MVP.</p>
+</section>
+
+<!-- 2 -->
+<section id="question">
+  <span class="h2num">Section 02</span>
+  <h2>The build answers one question: is this worth building properly?</h2>
+  <p>Amish's stated goal is to get the product and the feel right before committing to software. That changes what "done" means. This build is a working prototype used to decide whether the concept holds up, not a v1 of a product with users.</p>
+  <p>Practically, that means two things for the engineer. First, the data is baked in at build time — there is no server, no database, no incremental update path, and none of those are deficiencies to be fixed later in this scope. Second, the acceptance bar in <a href="#accept">Section 12</a> is mostly about responsiveness and coverage, because a laggy or sparse map cannot tell you whether the idea is good.</p>
+  <div class="note">
+    <b>Definition — build time vs. run time.</b> "Build time" is when a script on a developer machine queries Wikidata and writes a data file. "Run time" is when a person opens the page. In this design all queries happen at build time; at run time the page reads only data that shipped inside it.
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="settled">
+  <span class="h2num">Section 03</span>
+  <h2>Thirteen decisions are already made and should not be reopened</h2>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Decision</th><th>Choice</th><th>Consequence for the build</th></tr></thead>
+    <tbody>
+      <tr><td>Map rendering</td><td>3D globe, WebGL</td><td>Sphere with NASA Blue Marble texture (public domain), free rotation on all three axes, scroll zoom. Prototype uses three.js r128; markers are pooled sprites so 10,000 events stay fast.</td></tr>
+      <tr><td>Markers</td><td>Category icons, not dots</td><td>Crossed swords, temple, atom, hazard triangle — drawn once to a canvas texture, reused for sprites, filter chips and the panel.</td></tr>
+      <tr><td>Time floor</td><td>4 million years ago</td><td>Three prehistoric eras precede Ancient; years before 10,000 BCE display as "years ago".</td></tr>
+      <tr><td>Event source</td><td>Wikidata, queried at build time</td><td>SPARQL extraction script, output committed as a static file.</td></tr>
+      <tr><td>Time granularity</td><td>Era snapping, 11 eras</td><td>See <a href="#time">Section 04</a>. Eras have equal screen width and unequal year width.</td></tr>
+      <tr><td>Delivery</td><td>Published artifact with a URL</td><td>Single self-contained HTML file. No outbound network calls at run time.</td></tr>
+      <tr><td>Images</td><td>Core to the feel</td><td>Thumbnails embedded at build time as data URIs. See <a href="#images">Section 09</a>.</td></tr>
+      <tr><td>Categories</td><td>Four</td><td>Conflict; culture &amp; belief (religion lives here); science &amp; discovery (including human origins); disasters.</td></tr>
+      <tr><td>Data volume</td><td>Top 10,000 events</td><td>Ranked by sitelink count across event classes plus births and deaths of well-known people.</td></tr>
+      <tr><td>What qualifies</td><td>Events anchored to a place</td><td>Not "people" or "not people" — anything with a real location, including births and deaths. See <a href="#selection">Section 06</a>.</td></tr>
+      <tr><td>Era labels</td><td>Year range primary, name secondary</td><td>Segments read "1300–1600" with "Renaissance" smaller beneath.</td></tr>
+      <tr><td>Basemap</td><td>Land only before 1900</td><td>Political borders appear from era 7. See <a href="#borders">Section 10</a>.</td></tr>
+      <tr><td>Panel depth</td><td>One event plus a world context list</td><td>Three events from elsewhere on the globe in the same window.</td></tr>
+      <tr><td>Audience</td><td>Personal first, shareable later</td><td>No accounts, no onboarding flow. Desktop layout only; a phone-sized viewport may degrade.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="chiprow">
+    <span class="chip"><i style="background:var(--c-conflict)"></i>Conflict</span>
+    <span class="chip"><i style="background:var(--c-culture)"></i>Culture &amp; people</span>
+    <span class="chip"><i style="background:var(--c-science)"></i>Science &amp; exploration</span>
+    <span class="chip"><i style="background:var(--c-disaster)"></i>Disasters &amp; nature</span>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="time">
+  <span class="h2num">Section 04</span>
+  <h2>Era snapping resolves to a sliding window, not a single year</h2>
+  <p>Two things Amish asked for pull against each other. Era snapping means the control moves between named periods. But his own examples are year-precise: 1945 should surface the Second World War; the early 1980s should surface Michael Jackson. A control that only selects "the Modern era" as one 90-year block cannot do that.</p>
+  <p>The resolution: the control always selects a <strong>window</strong> — a start year and an end year. The rail is divided into era segments of <strong>equal pixel width</strong>. Each era declares its own <strong>window width in years</strong>, wide for antiquity and narrow for the recent past. Dragging inside an era slides the window across that era's range; dragging past an era boundary enters the next era and the window width changes.</p>
+
+  <figure class="fig">
+    <svg viewBox="0 0 1000 268" role="img" aria-label="The time rail: eight era segments of equal width, each with a different window width in years, with a five-year window sliding inside the Modern era.">
+      <rect x="0" y="0" width="1000" height="268" class="f-panel"/>
+
+      <text x="32" y="30" class="t-s">TIME RAIL — 8 ERAS, EQUAL SCREEN WIDTH</text>
+
+      <!-- rail -->
+      <rect x="32" y="44" width="936" height="44" rx="4" class="f-sunk"/>
+      <rect x="768" y="39" width="30" height="54" rx="3" class="acc-soft"/>
+      <g class="s-rule-soft" stroke-width="1">
+        <line x1="149" y1="44" x2="149" y2="88"/><line x1="266" y1="44" x2="266" y2="88"/>
+        <line x1="383" y1="44" x2="383" y2="88"/><line x1="500" y1="44" x2="500" y2="88"/>
+        <line x1="617" y1="44" x2="617" y2="88"/><line x1="734" y1="44" x2="734" y2="88"/>
+        <line x1="851" y1="44" x2="851" y2="88"/>
+      </g>
+      <rect x="32" y="44" width="936" height="44" rx="4" class="s-rule"/>
+      <rect x="768" y="39" width="30" height="54" rx="3" class="s-acc" stroke-width="1.5"/>
+
+      <g class="t" text-anchor="middle" font-size="11">
+        <text x="90" y="65">3000–500 BCE</text><text x="207" y="65">500 BCE–500</text>
+        <text x="324" y="65">500–1300</text><text x="441" y="65">1300–1600</text>
+        <text x="558" y="65">1600–1800</text><text x="675" y="65">1800–1900</text>
+        <text x="909" y="65">1990–now</text>
+      </g>
+      <g class="t-s" text-anchor="middle">
+        <text x="90" y="80">ANCIENT</text><text x="207" y="80">CLASSICAL</text>
+        <text x="324" y="80">POST-CLASSICAL</text><text x="441" y="80">RENAISSANCE</text>
+        <text x="558" y="80">EARLY MODERN</text><text x="675" y="80">INDUSTRIAL</text>
+        <text x="909" y="80">CONTEMPORARY</text>
+      </g>
+      <text x="792" y="34" class="t-a" text-anchor="middle">1900–1990 · MODERN</text>
+
+      <g class="t-a" text-anchor="middle">
+        <text x="90" y="110">250 y</text><text x="207" y="110">100 y</text>
+        <text x="324" y="110">100 y</text><text x="441" y="110">50 y</text>
+        <text x="558" y="110">25 y</text><text x="675" y="110">10 y</text>
+        <text x="792" y="110">5 y</text><text x="909" y="110">5 y</text>
+      </g>
+      <text x="32" y="110" class="t-s">WINDOW WIDTH</text>
+
+      <!-- bracket down from the Modern segment only -->
+      <g class="s-acc dash" stroke-width="1">
+        <path d="M 734 118 L 734 132 L 560 150 L 560 164"/>
+        <path d="M 851 118 L 851 132 L 960 150 L 960 164"/>
+      </g>
+
+      <!-- expanded modern era -->
+      <rect x="560" y="164" width="400" height="30" rx="3" class="f-sunk"/>
+      <rect x="560" y="164" width="400" height="30" rx="3" class="s-rule"/>
+      <g class="s-rule" stroke-width="1">
+        <line x1="604" y1="186" x2="604" y2="194"/><line x1="649" y1="186" x2="649" y2="194"/>
+        <line x1="693" y1="186" x2="693" y2="194"/><line x1="738" y1="186" x2="738" y2="194"/>
+        <line x1="782" y1="186" x2="782" y2="194"/><line x1="827" y1="186" x2="827" y2="194"/>
+        <line x1="871" y1="186" x2="871" y2="194"/><line x1="916" y1="186" x2="916" y2="194"/>
+      </g>
+      <rect x="738" y="164" width="44" height="30" rx="3" class="acc-soft"/>
+      <rect x="738" y="164" width="44" height="30" rx="3" class="s-acc" stroke-width="1.5"/>
+      <g class="t-s" text-anchor="middle">
+        <text x="570" y="210">1900</text><text x="760" y="210">1940</text><text x="950" y="210">1990</text>
+      </g>
+      <text x="560" y="158" class="t-s">INSIDE “MODERN” — THE WINDOW SLIDES IN 5-YEAR STEPS</text>
+
+      <!-- readout -->
+      <rect x="32" y="150" width="164" height="48" rx="5" class="f-band"/>
+      <rect x="32" y="150" width="164" height="48" rx="5" class="s-rule"/>
+      <text x="48" y="170" class="t-s">SHOWING</text>
+      <text x="48" y="189" class="t-h">1940 – 1945</text>
+
+      <text x="32" y="228" class="t-m">Arrow keys nudge the window one step. The era name and the year range stay visible at all times.</text>
+      <text x="32" y="250" class="t-m">Crossing a segment boundary changes the window width — the map's resolution in time changes with it.</text>
+    </svg>
+    <figcaption><b>Fig 1</b> Every era occupies the same width on screen, so 2,500 years of antiquity and 90 years of the twentieth century are equally reachable; the window width printed under each segment is what actually changes as the handle crosses a boundary. The year range is the segment's label and the era name sits under it in smaller type, because the names describe European history and the map is global.</figcaption>
+  </figure>
+
+  <h3>Era table</h3>
+  <div class="tw">
+  <table>
+    <thead><tr><th>#</th><th>Era</th><th class="num">Year range</th><th class="num">Window</th><th class="num">Steps</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>Origins</td><td class="num">4 Mya – 320 kya</td><td class="num">1 My</td><td class="num">4</td></tr>
+      <tr><td class="num">2</td><td>Homo sapiens</td><td class="num">320 – 12 kya</td><td class="num">100 ky</td><td class="num">4</td></tr>
+      <tr><td class="num">3</td><td>Neolithic</td><td class="num">10,000 – 3000 BCE</td><td class="num">1000 y</td><td class="num">7</td></tr>
+      <tr><td class="num">4</td><td>Ancient</td><td class="num">3000 – 500 BCE</td><td class="num">250 y</td><td class="num">10</td></tr>
+      <tr><td class="num">5</td><td>Classical</td><td class="num">500 BCE – 500 CE</td><td class="num">100 y</td><td class="num">10</td></tr>
+      <tr><td class="num">6</td><td>Post-Classical</td><td class="num">500 – 1300</td><td class="num">100 y</td><td class="num">8</td></tr>
+      <tr><td class="num">7</td><td>Renaissance</td><td class="num">1300 – 1600</td><td class="num">50 y</td><td class="num">6</td></tr>
+      <tr><td class="num">8</td><td>Early Modern</td><td class="num">1600 – 1800</td><td class="num">25 y</td><td class="num">8</td></tr>
+      <tr><td class="num">9</td><td>Industrial</td><td class="num">1800 – 1900</td><td class="num">10 y</td><td class="num">10</td></tr>
+      <tr><td class="num">10</td><td>Modern</td><td class="num">1900 – 1990</td><td class="num">5 y</td><td class="num">18</td></tr>
+      <tr><td class="num">11</td><td>Contemporary</td><td class="num">1990 – 2026</td><td class="num">5 y</td><td class="num">7</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="mono" style="color:var(--ink-3); font-size:12px">92 windows total. The prototype uses wider windows (48 in all) because its placeholder dataset is small; the widths above are the target once the 10,000-event set is in.</p>
+  <div class="note"><b>Prehistory is a different clock.</b> Before 10,000 BCE the interface says "years ago" rather than BCE, following archaeological convention, and the era labels use Mya and kya. Whether that switch reads as one timeline or two is an open question (Q8).</div>
+
+  <h3>Requirements</h3>
+  <ul class="reqs">
+    <li><span class="rid">REQ-T-1</span><div><p>The control selects a window <span class="mono">[startYear, endYear]</span>, never a single year.</p></div></li>
+    <li><span class="rid">REQ-T-2</span><div><p>Era segments are equal width in pixels regardless of the number of years they cover.</p></div></li>
+    <li><span class="rid">REQ-T-3</span><div><p>Dragging snaps to window boundaries; there is no intermediate state where the map shows a half-window.</p></div></li>
+    <li><span class="rid">REQ-T-4</span><div><p>Left and right arrow keys move the window one step. The control is reachable by keyboard tab order.</p><p>The rail is the primary control on the page; it must not be mouse-only.</p></div></li>
+    <li><span class="rid">REQ-T-5</span><div><p>The current era name and year range are always visible without hovering.</p></div></li>
+    <li><span class="rid">REQ-T-7</span><div><p>Segment labels show the year range in primary type with the era name smaller beneath it.</p><p>The eight era names are a European periodization. Subordinating them to the years keeps them useful for navigation without asserting that "Renaissance" describes what was happening in Asia or West Africa.</p></div></li>
+    <li><span class="rid">REQ-T-6</span><div><p>An event whose duration overlaps the window at all is included. A war spanning 1939–1945 appears in both the 1935–1940 and 1940–1945 windows.</p></div></li>
+  </ul>
+</section>
+
+<!-- 5 -->
+<section id="screens">
+  <span class="h2num">Section 05</span>
+  <h2>Two screens carry the product; there is no third</h2>
+  <p>The default view and the event detail panel are the entire interface. Both are wireframed below at proportions close to the intended desktop layout. S1 is drawn on a Modern window and S2 on a Classical one, so both basemap states appear.</p>
+
+  <figure class="fig">
+    <svg viewBox="0 0 1000 600" role="img" aria-label="Default view wireframe: header with category filters, world map with coloured event markers and one cluster, legend, and the era time rail across the bottom.">
+      <rect x="0" y="0" width="1000" height="600" rx="8" class="f-panel"/>
+
+      <!-- header -->
+      <line x1="0" y1="52" x2="1000" y2="52" class="s-rule"/>
+      <text x="24" y="33" class="t-h">Atlas of When</text>
+      <text x="168" y="33" class="t-s">1940 – 1945 · MODERN</text>
+      <g>
+        <rect x="560" y="17" width="92" height="21" rx="10" class="f-band"/><circle cx="574" cy="27.5" r="4" class="mk-conflict"/><text x="584" y="31" class="t-m" font-size="10">Conflict</text>
+        <rect x="660" y="17" width="82" height="21" rx="10" class="f-band"/><circle cx="674" cy="27.5" r="4" class="mk-culture"/><text x="684" y="31" class="t-m" font-size="10">Culture</text>
+        <rect x="750" y="17" width="86" height="21" rx="10" class="f-band"/><circle cx="764" cy="27.5" r="4" class="mk-science"/><text x="774" y="31" class="t-m" font-size="10">Science</text>
+        <rect x="844" y="17" width="132" height="21" rx="10" class="f-band"/><circle cx="858" cy="27.5" r="4" class="mk-disaster"/><text x="868" y="31" class="t-m" font-size="10">Disasters &amp; nature</text>
+      </g>
+
+      <!-- map -->
+      <rect x="16" y="66" width="968" height="428" rx="6" class="f-sunk"/>
+      <rect x="16" y="66" width="968" height="428" rx="6" class="s-rule"/>
+      <g class="f-land">
+        <polygon points="108,158 168,112 258,124 282,168 252,216 214,210 192,258 162,246 140,196 102,182"/>
+        <polygon points="318,96 376,90 388,124 348,140 316,124"/>
+        <polygon points="236,278 276,266 294,314 276,378 246,414 228,366 218,312"/>
+        <polygon points="470,126 536,114 560,148 524,176 484,170 462,146"/>
+        <polygon points="480,190 548,184 566,232 548,306 514,358 490,314 472,252"/>
+        <polygon points="566,110 712,104 800,138 778,186 712,202 668,174 606,184 570,156"/>
+        <polygon points="668,200 696,194 690,244 672,226"/>
+        <polygon points="736,226 782,220 804,244 770,256 740,246"/>
+        <polygon points="782,308 848,302 864,340 830,372 786,350"/>
+      </g>
+
+      <text x="34" y="86" class="t-s">COUNTRY OUTLINES — ERA 7 ONWARD</text>
+
+      <!-- markers -->
+      <circle cx="166" cy="176" r="7" class="mk-conflict"/>
+      <circle cx="200" cy="206" r="9" class="mk-culture"/>
+      <circle cx="262" cy="196" r="6" class="mk-science"/>
+      <circle cx="266" cy="330" r="6" class="mk-disaster"/>
+      <circle cx="516" cy="256" r="6" class="mk-disaster"/>
+      <circle cx="700" cy="158" r="8" class="mk-conflict"/>
+      <circle cx="768" cy="176" r="6" class="mk-science"/>
+      <circle cx="812" cy="334" r="6" class="mk-culture"/>
+      <circle cx="600" cy="216" r="6" class="mk-culture"/>
+
+      <!-- cluster -->
+      <circle cx="506" cy="146" r="18" class="acc-soft"/>
+      <circle cx="506" cy="146" r="18" class="s-acc" stroke-width="1.5"/>
+      <text x="506" y="150" class="t-a" text-anchor="middle" font-size="11">14</text>
+      <line x1="524" y1="140" x2="592" y2="118" class="s-cur"/>
+      <text x="598" y="121" class="t-s">CLUSTER — CLICK TO ZOOM AND SPLIT</text>
+
+      <!-- selected-marker hover label -->
+      <line x1="200" y1="215" x2="200" y2="228" class="s-cur"/>
+      <rect x="124" y="228" width="152" height="24" rx="4" class="f-panel"/>
+      <rect x="124" y="228" width="152" height="24" rx="4" class="s-rule"/>
+      <text x="134" y="244" class="t-m" font-size="10.5">Thriller released · 1982</text>
+
+      <!-- legend -->
+      <rect x="32" y="404" width="196" height="74" rx="5" class="f-panel"/>
+      <rect x="32" y="404" width="196" height="74" rx="5" class="s-rule"/>
+      <text x="44" y="422" class="t-s">MARKER SIZE</text>
+      <circle cx="52" cy="440" r="4" class="acc"/><text x="64" y="444" class="t-m" font-size="10.5">Known in a few places</text>
+      <circle cx="52" cy="461" r="9" class="acc"/><text x="70" y="465" class="t-m" font-size="10.5">Known nearly everywhere</text>
+
+      <text x="836" y="482" class="t-s">62 EVENTS IN VIEW</text>
+
+      <!-- rail -->
+      <rect x="16" y="506" width="968" height="42" rx="4" class="f-sunk"/>
+      <rect x="778" y="501" width="30" height="52" rx="3" class="acc-soft"/>
+      <rect x="16" y="506" width="968" height="42" rx="4" class="s-rule"/>
+      <g class="s-rule-soft" stroke-width="1">
+        <line x1="137" y1="506" x2="137" y2="548"/><line x1="258" y1="506" x2="258" y2="548"/>
+        <line x1="379" y1="506" x2="379" y2="548"/><line x1="500" y1="506" x2="500" y2="548"/>
+        <line x1="621" y1="506" x2="621" y2="548"/><line x1="742" y1="506" x2="742" y2="548"/>
+        <line x1="863" y1="506" x2="863" y2="548"/>
+      </g>
+      <rect x="778" y="501" width="30" height="52" rx="3" class="s-acc" stroke-width="1.5"/>
+      <g class="t" text-anchor="middle" font-size="10">
+        <text x="76" y="525">3000–500 BCE</text><text x="197" y="525">500 BCE–500</text>
+        <text x="318" y="525">500–1300</text><text x="439" y="525">1300–1600</text>
+        <text x="560" y="525">1600–1800</text><text x="681" y="525">1800–1900</text>
+        <text x="923" y="525">1990–now</text>
+      </g>
+      <g class="t-s" text-anchor="middle" font-size="8.5">
+        <text x="76" y="539">ANCIENT</text><text x="197" y="539">CLASSICAL</text>
+        <text x="318" y="539">POST-CLASSICAL</text><text x="439" y="539">RENAISSANCE</text>
+        <text x="560" y="539">EARLY MODERN</text><text x="681" y="539">INDUSTRIAL</text>
+        <text x="923" y="539">CONTEMPORARY</text>
+      </g>
+      <text x="793" y="496" class="t-a" text-anchor="middle" font-size="9.5">1900–1990 · MODERN</text>
+      <text x="16" y="574" class="t-s">DRAG THE HANDLE OR PRESS ← →</text>
+      <text x="984" y="574" class="t-s" text-anchor="end">SOURCES &amp; CREDITS</text>
+    </svg>
+    <figcaption><b>Fig 2 · Screen S1</b> The default view. The map owns the screen, the rail sits under it as the only persistent control, and the four category filters are the only chrome in the header.</figcaption>
+  </figure>
+
+  <figure class="fig">
+    <svg viewBox="0 0 1000 692" role="img" aria-label="Detail panel wireframe: the map narrows to the left, and a right-hand drawer shows an embedded image, title, date, place, description, source link, image credit, and a list of three events happening elsewhere in the world in the same window.">
+      <rect x="0" y="0" width="1000" height="692" rx="8" class="f-panel"/>
+      <line x1="0" y1="52" x2="1000" y2="52" class="s-rule"/>
+      <text x="24" y="33" class="t-h">Atlas of When</text>
+      <text x="168" y="33" class="t-s">500 – 400 BCE · CLASSICAL</text>
+
+      <!-- map narrowed, land only (pre-1900 era) -->
+      <rect x="16" y="66" width="640" height="514" rx="6" class="f-sunk"/>
+      <rect x="16" y="66" width="640" height="514" rx="6" class="s-rule"/>
+      <g class="f-land" opacity=".8">
+        <polygon points="72,168 132,122 222,134 246,178 216,226 178,220 156,268 126,256 104,206 66,192"/>
+        <polygon points="200,300 240,288 258,336 240,400 210,436 192,388 182,334"/>
+        <polygon points="404,136 470,124 494,158 458,186 418,180 396,156"/>
+        <polygon points="414,200 482,194 500,242 482,316 448,368 424,324 406,262"/>
+        <polygon points="500,120 636,114 648,160 612,196 546,188 504,160"/>
+      </g>
+      <text x="34" y="86" class="t-s">LAND ONLY — NO BORDERS BEFORE 1900</text>
+
+      <!-- context markers, ringed -->
+      <circle cx="452" cy="152" r="5" class="mk-conflict" opacity=".5"/>
+      <circle cx="452" cy="152" r="11" class="s-acc dash" stroke-width="1"/>
+      <circle cx="596" cy="150" r="5" class="mk-culture" opacity=".5"/>
+      <circle cx="596" cy="150" r="11" class="s-acc dash" stroke-width="1"/>
+      <circle cx="440" cy="264" r="5" class="mk-science" opacity=".5"/>
+      <circle cx="440" cy="264" r="11" class="s-acc dash" stroke-width="1"/>
+      <circle cx="222" cy="352" r="5" class="mk-disaster" opacity=".35"/>
+
+      <!-- selected -->
+      <circle cx="556" cy="176" r="15" class="acc-soft"/>
+      <circle cx="556" cy="176" r="15" class="s-acc" stroke-width="2"/>
+      <circle cx="556" cy="176" r="8" class="mk-culture"/>
+      <line x1="571" y1="176" x2="676" y2="176" class="s-acc dash" stroke-width="1"/>
+
+      <!-- drawer -->
+      <rect x="672" y="66" width="312" height="514" rx="6" class="f-panel"/>
+      <rect x="672" y="66" width="312" height="514" rx="6" class="s-rule"/>
+
+      <text x="962" y="86" class="t-s" text-anchor="end">CLOSE ✕</text>
+
+      <!-- image -->
+      <rect x="692" y="96" width="272" height="140" rx="4" class="f-sunk"/>
+      <rect x="692" y="96" width="272" height="140" rx="4" class="s-rule"/>
+      <line x1="692" y1="96" x2="964" y2="236" class="s-rule-soft" stroke-width="1"/>
+      <line x1="964" y1="96" x2="692" y2="236" class="s-rule-soft" stroke-width="1"/>
+      <rect x="754" y="155" width="148" height="22" rx="3" class="f-panel"/>
+      <text x="828" y="170" class="t-s" text-anchor="middle">EMBEDDED THUMBNAIL</text>
+      <text x="692" y="250" class="t-s">PHOTOGRAPH OF THE PLACE, LABELLED AS SUCH</text>
+
+      <rect x="692" y="262" width="66" height="18" rx="9" class="f-band"/>
+      <circle cx="703" cy="271" r="4" class="mk-culture"/>
+      <text x="712" y="275" class="t-m" font-size="9.5">Culture</text>
+
+      <text x="692" y="304" class="t-h" font-size="17">Birth of the Buddha</text>
+      <text x="692" y="324" class="t-s">C. 563 BCE · LUMBINI</text>
+      <text x="692" y="338" class="t-s">LOCATION IS APPROXIMATE</text>
+
+      <text x="692" y="362" class="t-s">DESCRIPTION — 40 TO 80 WORDS</text>
+      <g class="s-rule-soft" stroke-width="1">
+        <line x1="692" y1="376" x2="964" y2="376"/><line x1="692" y1="394" x2="964" y2="394"/>
+        <line x1="692" y1="412" x2="964" y2="412"/><line x1="692" y1="430" x2="900" y2="430"/>
+      </g>
+
+      <line x1="692" y1="446" x2="964" y2="446" class="s-rule"/>
+      <text x="692" y="464" class="t-a">READ ON WIKIPEDIA →</text>
+      <text x="692" y="480" class="t-s">IMAGE: AUTHOR · CC BY-SA 4.0 · SOURCE</text>
+
+      <!-- world context list -->
+      <line x1="692" y1="496" x2="964" y2="496" class="s-rule"/>
+      <text x="692" y="514" class="t-a">ELSEWHERE, 500–400 BCE</text>
+      <circle cx="698" cy="530" r="4" class="mk-conflict"/>
+      <text x="712" y="534" class="t-m" font-size="10.5">Battle of Marathon · Greece</text>
+      <circle cx="698" cy="548" r="4" class="mk-science"/>
+      <text x="712" y="552" class="t-m" font-size="10.5">Hanno's voyage · West Africa</text>
+      <circle cx="698" cy="566" r="4" class="mk-culture"/>
+      <text x="712" y="570" class="t-m" font-size="10.5">Confucius teaching · Lu, China</text>
+
+      <!-- annotations -->
+      <text x="24" y="612" class="t-s">PANEL IS THE ONLY MODAL SURFACE — MAP STAYS INTERACTIVE BEHIND IT</text>
+      <text x="24" y="634" class="t-s">ESC OR CLICKING THE MAP CLOSES IT; THE TIME WINDOW DOES NOT CHANGE</text>
+      <text x="24" y="656" class="t-s">THE THREE “ELSEWHERE” EVENTS ARE RINGED ON THE MAP WHILE THE PANEL IS OPEN</text>
+      <text x="24" y="678" class="t-s">EVERY PANEL CARRIES A SOURCE LINK AND, WHERE AN IMAGE IS SHOWN, A CREDIT LINE</text>
+    </svg>
+    <figcaption><b>Fig 3 · Screen S2</b> The detail panel, shown on a pre-1900 window so the borderless basemap is visible. Opening it narrows the map rather than covering it, and the three "elsewhere" events are ringed in place — which is what turns a fact about one spot into a picture of one moment across the whole world.</figcaption>
+  </figure>
+
+  <h3>Requirements</h3>
+  <ul class="reqs">
+    <li><span class="rid">REQ-D-1</span><div><p>The panel opens beside the map, not over it. The selected marker stays visible and is ringed.</p></div></li>
+    <li><span class="rid">REQ-D-2</span><div><p>Panel content, in order: image, category chip, title, date, place name, description, source link, image credit, Wikidata item ID.</p></div></li>
+    <li><span class="rid">REQ-D-3</span><div><p>Escape closes the panel. Closing does not change the time window or the map viewport.</p></div></li>
+    <li><span class="rid">REQ-D-4</span><div><p>An event with no image shows the category glyph at the same frame size, so panel height does not jump between events.</p></div></li>
+    <li><span class="rid">REQ-D-5</span><div><p>Below the source link, list three events from the same window on other continents. Each row is a coloured dot, a title, and a place.</p><p>Clicking a row loads that event into the panel and pans the map to it. The time window does not change — that is the whole point of the list.</p></div></li>
+    <li><span class="rid">REQ-D-6</span><div><p>While the panel is open, ring those three events' markers on the map so the reader can see where else they are being pointed.</p></div></li>
+    <li><span class="rid">REQ-M-1</span><div><p>Markers within 24 screen pixels of each other collapse into a numbered cluster. Clicking a cluster zooms until its members separate.</p></div></li>
+    <li><span class="rid">REQ-M-2</span><div><p>Marker radius encodes reach, on four steps, from the ranking signal in <a href="#selection">Section 06</a>.</p></div></li>
+    <li><span class="rid">REQ-M-3</span><div><p>Hovering a marker shows title and year in a label; it does not open the panel.</p></div></li>
+    <li><span class="rid">REQ-M-4</span><div><p>Category filters toggle marker visibility without refetching or recomputing the window.</p></div></li>
+  </ul>
+</section>
+
+<!-- 6 -->
+<section id="selection">
+  <span class="h2num">Section 06</span>
+  <h2>An event qualifies if it happened somewhere, and ranks by how many languages cover it</h2>
+
+  <h3>The place-anchor rule</h3>
+  <p>The first cut is not "people or not people". It is whether the thing happened at a location a reader can be shown. The Buddha's birth at Lumbini, the crucifixion at Jerusalem, the Salt March at Dandi, the first performance of a symphony at a named hall — all anchor to a place, and all belong on this map. A recording contract, a chart position, or an award has no place worth pointing at, and does not.</p>
+  <p>This rule does the work the earlier person-based framing was groping for. Modern celebrity milestones fall out of the dataset by themselves: they rarely have a meaningful location, and they rarely have a freely licensed photograph. The founders and turning points do not fall out, because they are attached to real ground.</p>
+
+  <h3>Ranking</h3>
+  <p>Wikidata contains millions of dated items. Some windows would return tens of thousands of rows; showing them all produces an unreadable map, and picking by hand does not scale to 77 windows. The build needs a ranking signal that is cheap, already in the data, and defensible.</p>
+  <p>The target is the <strong>10,000 best-known events</strong>. The proposed signal is <strong>sitelink count</strong> — how many language editions of Wikipedia have an article about the item. An event covered in 60 languages is, by any reasonable reading, better known than one covered in two. The Wikidata Query Service exposes this per item; the engineer should confirm the exact predicate before writing the query (see <a href="#refs">reference 2</a>).</p>
+
+  <div class="note">
+    <b>Why not a hand-curated list.</b> Curation gives better quality per event and cannot cover 77 windows across four categories within this scope. The recommendation is to rank automatically, then keep a small manual override file — a list of item IDs to force in or force out — so obvious misses can be corrected without touching the pipeline.
+  </div>
+
+  <h3>Requirements</h3>
+  <ul class="reqs">
+    <li><span class="rid">REQ-E-1</span><div><p>Rank candidate events within a window by sitelink count, descending.</p></div></li>
+    <li><span class="rid">REQ-E-2</span><div><p>Cap each window at 60 events after ranking.</p><p>60 is the density at which the wireframe in Fig 2 stays readable at 1440px wide. Treat it as tunable, not fixed.</p></div></li>
+    <li><span class="rid">REQ-E-3</span><div><p>Before applying the global cap, reserve up to 5 slots per macro-region (Africa, Americas, Asia, Europe, Oceania) so a window is never entirely European.</p><p>Fill the remaining slots by global rank.</p></div></li>
+    <li><span class="rid">REQ-E-4</span><div><p>Cap any single category at 40% of a window, so a war-heavy period still shows culture and science.</p></div></li>
+    <li><span class="rid">REQ-E-5</span><div><p>Read force-include and force-exclude item IDs from a checked-in overrides file applied after ranking.</p></div></li>
+    <li><span class="rid">REQ-E-6</span><div><p>Drop any event lacking a resolvable date, a resolvable position, or a description of at least 40 words.</p></div></li>
+    <li><span class="rid">REQ-E-7</span><div><p>Include an event only when it anchors to a place a reader can be shown, per the rule above. A person's birth or death is in scope; a person is not.</p><p>In practice this is enforced by the position chain in <a href="#place">Section 07</a> plus REQ-E-6 — an item with no resolvable location is already excluded. No separate person filter is needed.</p></div></li>
+    <li><span class="rid">REQ-E-8</span><div><p>For every event, pre-compute three <span class="mono">contextEventIds</span>: the highest-ranked events in the same window that sit on other continents.</p><p>These fill the "elsewhere in the world" list in the panel (REQ-D-5). Computed at build time; the page does no searching.</p></div></li>
+  </ul>
+
+  <div class="note risk">
+    <b>Known limitation — coverage is uneven.</b> Wikidata's density of dated, positioned items is far higher for Europe and North America and for the last two centuries than for anywhere or anywhen else. REQ-E-3 softens this but cannot fix it. Where a macro-region returns fewer than 3 events for a window, the map should say so in a small note rather than leave an unexplained empty continent.
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="place">
+  <span class="h2num">Section 07</span>
+  <h2>Half the interesting events have no coordinates of their own</h2>
+  <p>Battles and earthquakes carry a coordinate. Events about people usually do not carry one directly — but they carry a route to one: the Buddha's birth points at Lumbini, a first performance points at a hall. The extractor therefore needs a resolution chain that tries progressively weaker sources of position, records which one it used, and drops what never resolves. That last step is also what enforces the place-anchor rule from Section 06.</p>
+
+  <figure class="fig">
+    <svg viewBox="0 0 1000 340" role="img" aria-label="Position resolution chain: four fallback checks from the event's own coordinate down to a person's associated place, each producing a confidence level, with unresolvable events excluded.">
+      <rect x="0" y="0" width="1000" height="340" class="f-panel"/>
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+
+      <text x="32" y="34" class="t-s">CHECKS — TRIED IN ORDER</text>
+      <text x="620" y="34" class="t-s">RESULT</text>
+
+      <g class="s-rule">
+        <rect x="32" y="48" width="330" height="44" rx="5" class="f-band"/>
+        <rect x="32" y="118" width="330" height="44" rx="5" class="f-band"/>
+        <rect x="32" y="188" width="330" height="44" rx="5" class="f-band"/>
+        <rect x="32" y="258" width="330" height="44" rx="5" class="f-band"/>
+      </g>
+      <g class="t" font-size="12.5">
+        <text x="48" y="69">Event has its own coordinate</text>
+        <text x="48" y="139">Event names a location item</text>
+        <text x="48" y="209">Subject is a person or a work</text>
+        <text x="48" y="279">Nothing resolves</text>
+      </g>
+      <g class="t-s">
+        <text x="48" y="84">BATTLES, ERUPTIONS, SUMMITS</text>
+        <text x="48" y="154">RESOLVE THAT ITEM’S COORDINATE</text>
+        <text x="48" y="224">USE VENUE, BIRTHPLACE, OR PLACE OF DEATH</text>
+        <text x="48" y="294">EVENT IS DROPPED FROM THE DATASET</text>
+      </g>
+
+      <g class="s-cur" stroke-width="1.2" marker-end="url(#ar)">
+        <path d="M 197 92 L 197 118"/>
+        <path d="M 197 162 L 197 188"/>
+        <path d="M 197 232 L 197 258"/>
+        <path d="M 362 70 L 616 70"/>
+        <path d="M 362 140 L 616 140"/>
+        <path d="M 362 210 L 616 210"/>
+        <path d="M 362 280 L 616 280"/>
+      </g>
+      <g class="t-s" text-anchor="middle">
+        <text x="216" y="110">NO</text><text x="216" y="180">NO</text><text x="216" y="250">NO</text>
+      </g>
+
+      <g>
+        <rect x="620" y="52" width="348" height="36" rx="5" class="acc-soft"/>
+        <circle cx="642" cy="70" r="7" class="acc"/>
+        <text x="660" y="75" class="t" font-size="12.5">Exact — solid marker</text>
+
+        <rect x="620" y="122" width="348" height="36" rx="5" class="f-band"/>
+        <circle cx="642" cy="140" r="7" class="acc" opacity=".65"/>
+        <text x="660" y="145" class="t" font-size="12.5">Place-level — solid marker</text>
+
+        <rect x="620" y="192" width="348" height="36" rx="5" class="f-band"/>
+        <circle cx="642" cy="210" r="7" class="s-acc" stroke-width="2"/>
+        <text x="660" y="215" class="t" font-size="12.5">Associated place — hollow marker</text>
+
+        <rect x="620" y="262" width="348" height="36" rx="5" class="f-sunk"/>
+        <line x1="636" y1="274" x2="648" y2="286" class="s-cur" stroke-width="1.5"/>
+        <line x1="648" y1="274" x2="636" y2="286" class="s-cur" stroke-width="1.5"/>
+        <text x="660" y="285" class="t-m" font-size="12.5">Excluded</text>
+      </g>
+      <text x="620" y="322" class="t-s">HOLLOW MARKERS ALSO CARRY “LOCATION IS APPROXIMATE” IN THE PANEL</text>
+    </svg>
+    <figcaption><b>Fig 4</b> The chain trades precision for coverage in three steps, and the marker's fill is what tells a reader which trade was made — a hollow pin over a city means the city, not the event's own coordinate. The fourth row is where the place-anchor rule is actually enforced: an event that reaches it leaves the dataset.</figcaption>
+  </figure>
+
+  <ul class="reqs">
+    <li><span class="rid">REQ-P-1</span><div><p>Store a <span class="mono">positionConfidence</span> field of <span class="mono">exact</span>, <span class="mono">place</span>, or <span class="mono">associated</span> on every event.</p></div></li>
+    <li><span class="rid">REQ-P-2</span><div><p>Render <span class="mono">associated</span> markers hollow and state "location is approximate" in the panel.</p></div></li>
+    <li><span class="rid">REQ-P-3</span><div><p>Jitter markers that resolve to the identical coordinate by up to 8 pixels so they do not stack invisibly.</p></div></li>
+  </ul>
+</section>
+
+<!-- 8 -->
+<section id="pipeline">
+  <span class="h2num">Section 08</span>
+  <h2>Everything happens in a build script; the page itself does no work</h2>
+  <p>The published page must run with no outbound network calls, because artifacts are served under a content policy that blocks arbitrary hosts. That constraint decides the architecture: a script produces one HTML file, and the file is the product.</p>
+
+  <figure class="fig">
+    <svg viewBox="0 0 1000 300" role="img" aria-label="Build pipeline: the Wikidata query service and Commons API feed an extraction script, which ranks, fetches thumbnails, encodes them, and emits a single HTML file that is published as an artifact.">
+      <rect x="0" y="0" width="1000" height="300" class="f-panel"/>
+      <defs>
+        <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+
+      <text x="32" y="30" class="t-s">EXTERNAL — READ ONCE AT BUILD TIME</text>
+      <rect x="32" y="42" width="176" height="52" rx="5" class="f-sunk"/>
+      <rect x="32" y="42" width="176" height="52" rx="5" class="s-rule"/>
+      <text x="46" y="64" class="t" font-size="12.5">Wikidata Query Service</text>
+      <text x="46" y="81" class="t-s">SPARQL · 77 QUERIES</text>
+
+      <rect x="32" y="112" width="176" height="52" rx="5" class="f-sunk"/>
+      <rect x="32" y="112" width="176" height="52" rx="5" class="s-rule"/>
+      <text x="46" y="134" class="t" font-size="12.5">Commons API</text>
+      <text x="46" y="151" class="t-s">IMAGEINFO · EXTMETADATA</text>
+
+      <text x="256" y="30" class="t-s">BUILD SCRIPT — ONE REPOSITORY</text>
+      <rect x="256" y="42" width="452" height="196" rx="6" class="f-band"/>
+      <rect x="256" y="42" width="452" height="196" rx="6" class="s-rule dash"/>
+
+      <g class="s-rule">
+        <rect x="276" y="62" width="184" height="46" rx="4" class="f-panel"/>
+        <rect x="276" y="126" width="184" height="46" rx="4" class="f-panel"/>
+        <rect x="504" y="62" width="184" height="46" rx="4" class="f-panel"/>
+        <rect x="504" y="126" width="184" height="46" rx="4" class="f-panel"/>
+        <rect x="276" y="184" width="412" height="40" rx="4" class="f-panel"/>
+      </g>
+      <g class="t" font-size="12.5">
+        <text x="290" y="82">Extract</text>
+        <text x="290" y="146">Rank &amp; quota</text>
+        <text x="518" y="82">Fetch thumbnails</text>
+        <text x="518" y="146">Encode to WebP</text>
+        <text x="290" y="205">Bundle — inline data, CSS, JS, images</text>
+      </g>
+      <g class="t-s">
+        <text x="290" y="98">RAW EVENTS PER WINDOW</text>
+        <text x="290" y="162">≤ 60 PER WINDOW</text>
+        <text x="518" y="98">320 PX WIDE, WITH CREDIT</text>
+        <text x="518" y="162">BASE64 DATA URI</text>
+        <text x="290" y="219">EMITS ONE .HTML FILE</text>
+      </g>
+
+      <text x="756" y="30" class="t-s">OUTPUT</text>
+      <rect x="756" y="42" width="212" height="86" rx="5" class="acc-soft"/>
+      <rect x="756" y="42" width="212" height="86" rx="5" class="s-acc"/>
+      <text x="772" y="66" class="t" font-size="12.5">atlas.html</text>
+      <text x="772" y="83" class="t-s">SELF-CONTAINED · ≤ 8 MB</text>
+      <text x="772" y="103" class="t-s">NO RUN-TIME REQUESTS</text>
+      <text x="772" y="119" class="t-s">PUBLISHED AS AN ARTIFACT</text>
+
+      <g class="s-cur" stroke-width="1.2" marker-end="url(#ar2)">
+        <path d="M 208 68 L 274 78"/>
+        <path d="M 208 138 L 502 100" class="dash"/>
+        <path d="M 368 108 L 368 124"/>
+        <path d="M 460 146 L 502 100"/>
+        <path d="M 596 108 L 596 124"/>
+        <path d="M 596 172 L 500 190"/>
+        <path d="M 368 172 L 420 182"/>
+        <path d="M 688 204 L 754 130"/>
+      </g>
+      <g class="t-s">
+        <text x="214" y="60">events</text>
+        <text x="230" y="122">image titles → license + url</text>
+        <text x="700" y="176">assets</text>
+      </g>
+      <text x="32" y="272" class="t-s">RE-RUNNING THE SCRIPT AND REPUBLISHING TO THE SAME URL IS THE ONLY UPDATE MECHANISM</text>
+    </svg>
+    <figcaption><b>Fig 5</b> Both external services are read once, on a developer machine; the arrow that would normally run from the browser back to an API does not exist here, which is what makes the single-file delivery possible.</figcaption>
+  </figure>
+
+  <h3>The extraction script exists</h3>
+  <p><span class="mono">extract_events.py</span> queries one Wikidata class at a time (wars, battles, treaties, earthquakes, eruptions, pandemics, expeditions, councils, and so on) plus well-known people's births and deaths, ranks by sitelinks, dedupes, and writes the prototype's row format. <span class="mono">fetch_summaries.py</span> then replaces Wikidata's one-line descriptions with the lead paragraph of the English Wikipedia article and records the article's lead image URL for the image pipeline. Both cache to disk and are safe to re-run. The class and property identifiers inside were written without access to wikidata.org and must be confirmed on first run.</p>
+  <h3>Query and rate notes for the engineer</h3>
+  <ul>
+    <li>Endpoint: <span class="mono">https://query.wikidata.org/sparql</span>. Individual queries are cut off at a 60-second hard limit, and a client identified by IP and user agent gets 60 seconds of query time per minute, bursting to 120 (references 1 and 3).</li>
+    <li>Send a descriptive <span class="mono">User-Agent</span> with contact details; generic agents are throttled (reference 1).</li>
+    <li>77 windows × 4 categories is 308 queries. Run them sequentially with a delay rather than in parallel, and cache raw responses to disk so a re-run of the ranking step does not re-query.</li>
+    <li>Ask for JSON explicitly via the <span class="mono">Accept</span> header; the default response format is XML (reference 1).</li>
+  </ul>
+
+  <div class="note">
+    <b>Unverified in this document.</b> The property identifiers for coordinate location, point in time, start time, end time and instance-of, and the predicate that exposes sitelink count, are stated from memory and were not confirmed against wikidata.org, which could not be fetched while writing this. Confirm each on its property page before writing the query — reference 2.
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="images">
+  <span class="h2num">Section 09</span>
+  <h2>Images ship inside the file, and photograph the place when they cannot photograph the moment</h2>
+  <p>Images were called core to the feel, so they are in scope. Two facts shape how.</p>
+  <p>First, delivery. A published artifact cannot load images from an external host at run time, so every thumbnail is downloaded during the build, re-encoded, and written into the HTML as a base64 data URI. At 320 pixels wide and WebP quality 70, a photograph lands near 10 KB; base64 adds roughly a third. Budgeting 300 images gives about 4 MB of image payload, which sits inside the 16 MB artifact limit with room for the basemap and code.</p>
+  <p>Second, licensing. Commons files are reused under their individual licenses, and reuse outside Wikimedia generally requires naming the author, the license, and the source (reference 4). The build must capture that metadata alongside the image, not afterwards — the <span class="mono">imageinfo</span> endpoint returns it in the <span class="mono">extmetadata</span> block in the same call that returns the thumbnail URL (references 5 and 6).</p>
+
+  <h3>The globe's own image</h3>
+  <p>The Earth texture is NASA's Blue Marble, public domain, downscaled to 2048 × 1024 and embedded as a data URI at roughly 300 KB. A credit line stays on screen.</p>
+  <h3>Where event images come from</h3>
+  <p>The place-anchor rule makes this tractable. Freely licensed photographs of twentieth-century people are scarce — album covers and press photos are copyrighted and are not on Commons under a reusable license — but freely licensed photographs of <em>places</em> are abundant, because volunteers photograph sites and monuments. Since every event in this dataset is attached to a place by construction, every event has a candidate image.</p>
+  <p>The image chain runs in the same order as the position chain: the event's own image, then the image of the place it resolved to. A birth at Lumbini shows Lumbini. A battle shows the battlefield or its monument. This is honest — the caption says what the photograph is of — and it keeps the map visually populated across all four categories.</p>
+
+  <ul class="reqs">
+    <li><span class="rid">REQ-I-0</span><div><p>Try the event's own image first, then the image of the place it resolved to. Fall back to the category glyph only when both are missing.</p><p>Label a place image in the panel as the place, never as the event.</p></div></li>
+    <li><span class="rid">REQ-I-1</span><div><p>Embed every thumbnail as a data URI. The page makes no image requests at run time.</p></div></li>
+    <li><span class="rid">REQ-I-2</span><div><p>Store author, license short name, license URL and file page URL with each image, and render them as a credit line in the panel.</p></div></li>
+    <li><span class="rid">REQ-I-3</span><div><p>Skip any file whose license metadata cannot be read. An image without a credit does not ship.</p></div></li>
+    <li><span class="rid">REQ-I-4</span><div><p>Keep total image payload under 5 MB and total page weight under 8 MB.</p></div></li>
+    <li><span class="rid">REQ-I-5</span><div><p>Include a credits view listing every image with its author, license and link.</p></div></li>
+  </ul>
+</section>
+
+<!-- 10 -->
+<section id="borders">
+  <span class="h2num">Section 10</span>
+  <h2>Drawing modern borders under ancient events would be the map's most visible error</h2>
+  <p>The basemap is Natural Earth country vectors, redistributed as TopoJSON and available at three resolutions under an ISC license over public-domain source data (reference 7). Those are <em>today's</em> borders. Placing a 1200 CE event inside the outline of a state founded in 1947 is a claim the product should not make.</p>
+  <p>Two options:</p>
+  <ul>
+    <li><strong>Modern borders throughout, labelled.</strong> Cheapest. One line of disclosure. The map keeps saying something false all the way back to 3000 BCE.</li>
+    <li><strong>Borders only where they apply.</strong> Render the land-only file for eras before 1900 and switch to the country file for the Industrial era onward. The pre-modern map becomes coastlines and rivers, which is both more honest and visually distinct as you travel back.</li>
+  </ul>
+  <p>My recommendation is the second. It costs one extra basemap file and a conditional, and it converts a factual problem into a feature the user can see happening as they drag.</p>
+  <p><strong>Decided: the second.</strong> Build it that way.</p>
+  <ul class="reqs">
+    <li><span class="rid">REQ-B-1</span><div><p>Load land-only geometry for eras 1 through 6 and country geometry for eras 7 and 8.</p><p>Cross-fade the border layer at the boundary rather than snapping it, so the change reads as part of the journey rather than as a glitch.</p></div></li>
+    <li><span class="rid">REQ-B-2</span><div><p>Use the 110m resolution file. Higher resolutions cost payload the MVP does not need.</p></div></li>
+  </ul>
+</section>
+
+<!-- 11 -->
+<section id="nongoals">
+  <span class="h2num">Section 11</span>
+  <h2>What this build deliberately does not do</h2>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Not in scope</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Zoomable satellite tiles</td><td>One embedded 2048-pixel texture is the whole basemap. Street-level or tile-based imagery cannot be loaded at run time under the artifact content policy.</td></tr>
+      <tr><td>Historically accurate borders per era</td><td>A research project in its own right. Section 10 sidesteps it rather than solving it.</td></tr>
+      <tr><td>Search, filtering by keyword, timelines per country</td><td>Adds surface without testing the core loop.</td></tr>
+      <tr><td>Accounts, saved views, annotations</td><td>Personal build with no backend.</td></tr>
+      <tr><td>Live or updating data</td><td>Static by design. Updates mean re-running the build.</td></tr>
+      <tr><td>Phone layout</td><td>Desktop only for the MVP. Revisit when sharing becomes a goal.</td></tr>
+      <tr><td>Full article text in the panel</td><td>A paragraph plus a link is enough to test whether people want to dive in.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- 12 -->
+<section id="accept">
+  <span class="h2num">Section 12</span>
+  <h2>Acceptance is measured on responsiveness, coverage and attribution</h2>
+  <ul class="reqs">
+    <li><span class="rid">ACC-1</span><div><p>Moving the window one step repaints the globe in under 100 ms with 10,000 events loaded and up to 400 markers bound.</p></div></li>
+    <li><span class="rid">ACC-0</span><div><p>The globe drags at 60 frames per second on a 2020-or-later laptop with the full dataset loaded.</p></div></li>
+    <li><span class="rid">ACC-2</span><div><p>The page reaches first paint in under 3 seconds on a 10 Mbit/s connection.</p></div></li>
+    <li><span class="rid">ACC-3</span><div><p>Every one of the 77 windows returns at least 12 events. Any window that cannot is listed in the build report.</p></div></li>
+    <li><span class="rid">ACC-4</span><div><p>Every populated macro-region shows at least 3 events per window, or the map shows a sparse-coverage note for that region.</p></div></li>
+    <li><span class="rid">ACC-5</span><div><p>Every displayed image carries author, license and source. A spot check of 20 images finds no missing credit.</p></div></li>
+    <li><span class="rid">ACC-6</span><div><p>Every event panel has a working source link.</p></div></li>
+    <li><span class="rid">ACC-7</span><div><p>The rail is fully operable by keyboard, and the page renders correctly in both light and dark themes.</p></div></li>
+  </ul>
+</section>
+
+<!-- 13 -->
+<section id="milestones">
+  <span class="h2num">Section 13</span>
+  <h2>Four milestones, each independently reviewable</h2>
+  <div class="tw">
+  <table>
+    <thead><tr><th>#</th><th>Milestone</th><th>Deliverable</th><th>Reviewable by</th></tr></thead>
+    <tbody>
+      <tr><td class="num">M0</td><td>Data spike</td><td>Ranked events as CSV for three windows — 1940–1945, 500–400 BCE, and 1000–1100 — plus a per-window count for all 77</td><td>Reading the CSV — are these the right events? And does antiquity survive (Q7)?</td></tr>
+      <tr><td class="num">M1</td><td>Feel prototype</td><td>Map plus rail, all 77 windows, markers only, no images, no panel. Both basemap states.</td><td>Dragging the rail — does moving through time feel good?</td></tr>
+      <tr><td class="num">M2</td><td>Depth</td><td>Detail panel, descriptions, source links, clustering, the "elsewhere" list</td><td>Clicking through 20 events, and following an "elsewhere" row across the world</td></tr>
+      <tr><td class="num">M3</td><td>Images and publish</td><td>Embedded thumbnails, credits view, published URL</td><td>Full acceptance list</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>M1 is the decision point. If dragging the rail is not satisfying with plain markers, images and panels will not rescue it, and the concept should be reconsidered before M2 starts.</p>
+</section>
+
+<!-- 14 -->
+<section id="open">
+  <span class="h2num">Section 14</span>
+  <h2>Six questions answered, one still open</h2>
+  <p>Recorded so the engineer knows what was considered and rejected, not only what was chosen.</p>
+  <div class="tw">
+  <table>
+    <thead><tr><th>#</th><th>Question</th><th>Answer</th></tr></thead>
+    <tbody>
+      <tr><td class="num">Q1</td><td>Is "Atlas of When" the name?</td><td><strong>Placeholder.</strong> Hold it in one constant; renaming through M3 stays a one-line change.</td></tr>
+      <tr><td class="num">Q2</td><td>Free photographs of modern people barely exist. What gives?</td><td><strong>Neither dropping people nor dropping images.</strong> Anchor every event to a place, then photograph the place. Celebrity milestones fall out on their own; founders and turning points stay. See <a href="#selection">Section 06</a>.</td></tr>
+      <tr><td class="num">Q3</td><td>Which basemap before 1900?</td><td><strong>Land only.</strong> Country outlines from era 7 onward, cross-faded at the boundary.</td></tr>
+      <tr><td class="num">Q4</td><td>Keep the Western era names?</td><td><strong>Both, ranked.</strong> Year range as the label, era name smaller beneath.</td></tr>
+      <tr><td class="num">Q5</td><td>Does the dive end at one event?</td><td><strong>No — "what else was happening then".</strong> Three events from elsewhere on the globe in the same window, ringed on the map.</td></tr>
+      <tr><td class="num">Q6</td><td>How far back?</td><td><strong>3000 BCE, widest span.</strong> The ancient eras are wanted for exactly the events that make the map worth having.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Still open</h3>
+  <ul class="reqs">
+    <li><span class="rid">Q8</span><div><p>Does switching from "BCE" to "years ago" at 10,000 BCE read as one timeline or two?</p><p>It follows the convention historians and archaeologists use, and the alternative — "9,500 BCE" for Göbekli Tepe but "68,000 BCE" for the exodus from Africa — is unfamiliar to everyone. Amish to judge on the prototype.</p></div></li>
+    <li><span class="rid">Q7</span><div><p>Do eras 1 and 2 return enough events to be worth entering?</p><p>Deferred to evidence rather than opinion. M0 counts what Wikidata actually returns per ancient window; if a window comes back with four events, the fix is a curated seed list for antiquity, not a shorter slider — the ancient span is wanted.</p></div></li>
+  </ul>
+</section>
+
+<!-- 15 -->
+<section id="refs">
+  <span class="h2num">Section 15</span>
+  <h2>References</h2>
+  <p style="color:var(--ink-2); font-size:14px">Wikimedia domains could not be fetched directly from the environment this was written in. Claims drawn from them are cited to a secondary source that quotes them, and marked so you can confirm at the primary page.</p>
+  <ol class="refs">
+    <li><span>1</span><div><a href="https://www.browserless.io/skills/wikidata.org/sparql-query">Wikidata SPARQL query reference — Browserless</a><em>Endpoint URL, 60-second query timeout, User-Agent guidance, and the XML-by-default response format.</em></div></li>
+    <li><span>2</span><div><a href="https://www.wikidata.org/wiki/Wikidata:SPARQL_query_service/queries/examples">Wikidata: SPARQL query service — example queries</a><em>Primary source for property identifiers and query patterns. Not fetched; confirm the property IDs here before writing the extractor.</em></div></li>
+    <li><span>3</span><div><a href="https://lists.wikimedia.org/hyperkitty/list/wikidata@lists.wikimedia.org/thread/PNQ4FPLNUR77WPWQFF7GSSSLWO3NNOIA/">Wikidata Query Service and SPARQL endpoint usage limits — wikidata mailing list, 9 Aug 2017</a><em>60 seconds of query time per minute per IP and user agent, bursting to 120; 30 errors per minute, bursting to 60.</em></div></li>
+    <li><span>4</span><div><a href="https://commons.wikimedia.org/wiki/Commons:Reusing_content_outside_Wikimedia">Commons: Reusing content outside Wikimedia</a><em>Primary source for attribution requirements. Not fetched; secondary confirmation of the author / license / source / modifications credit line is at reference 8.</em></div></li>
+    <li><span>5</span><div><a href="https://wiki.creativecommons.org/wiki/Special:ApiHelp/query%2Bimageinfo">MediaWiki API help — query+imageinfo</a><em>The extmetadata property returns combined formatted metadata; iiurlwidth produces a scaled thumbnail and caps at 50 scaled images per request.</em></div></li>
+    <li><span>6</span><div><a href="https://www.haykranen.nl/2025/06/27/this-is-how-you-easily-get-licensing-and-credit-details-for-free-images-on-wikimedia-commons/">Hay Kranen — getting licensing and credit details for Commons images</a><em>Recommends the Action API imageinfo/extmetadata route over Structured Data on Commons for license and attribution fields.</em></div></li>
+    <li><span>7</span><div><a href="https://github.com/topojson/world-atlas">topojson/world-atlas</a><em>Natural Earth 4.1.0 as TopoJSON: countries and land files at 110m, 50m and 10m, ISC licensed. File sizes are not stated in the README — measure them.</em></div></li>
+    <li><span>8</span><div><a href="https://imagesourcecontrol.com/blog/how-to-credit-images-from-wikimedia-commons/">How to credit images from Wikimedia Commons</a><em>Credit line must carry author, license, source, and a note of modifications.</em></div></li>
+    <li><span>9</span><div><a href="https://www.naturalearthdata.com/downloads/110m-cultural-vectors/">Natural Earth — 1:110m cultural vectors</a><em>Upstream source of the country and land geometry.</em></div></li>
+  </ol>
+</section>
+
+<hr class="end">
+
+</main>
+</div>
+</div>
