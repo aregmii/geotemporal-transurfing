@@ -7,3 +7,5 @@ pipeline/missing_slugs.json
 pipeline/events_wikidata.json
 node_modules/
 .DS_Store
+.playground-img/
+playground.html

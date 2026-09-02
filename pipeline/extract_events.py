@@ -1,5 +1,5 @@
 """
-Atlas of When — Wikidata extraction script (v0.4). Adds political, attack and sport classes and a country-level location fallback.
+Atlas of When — Wikidata extraction script (v0.5). Science and discovery at depth: exact dates, discoverer, and the discoverer's workplace as a location fallback; spacecraft launches; well-known scientific publications.
 
 Run:   python3 extract_events.py --out events_wikidata.json
 Needs: Python 3.9+, `pip install requests`
@@ -12,7 +12,8 @@ What it does
      place and/or death place, and turns each into a place-anchored "born at" / "died at" event.
   3. Merges, dedupes, keeps the top MAX_EVENTS by sitelinks, and writes a JSON array in the
      exact row shape the prototype consumes:
-       [title, lat, lon, start_year, end_year, category, weight, place, description, wikipedia_slug]
+       [title, lat, lon, start_year, end_year, category, weight, place, description, wikipedia_slug,
+        confidence, sitelinks, source, exact_date (YYYY-MM-DD or null), discoverer_or_author (or null)]
 
 Honesty notes
   - The property and class identifiers below were written from memory in a session that could
@@ -115,14 +116,54 @@ SELECT ?item ?itemLabel ?itemDescription ?when ?start ?end ?coord ?placeLabel ?p
 }
 """
 
+# Discoveries and inventions: anything with a "time of discovery or invention" (P575).
+# Location, in order of trust: the item's own coordinate, its location (P276), its location of discovery (P189),
+# then where the discoverer worked (P937 work location, or the headquarters P159 of their employer P108).
 DISCOVERY_QUERY = """
-SELECT ?item ?itemLabel ?itemDescription ?when ?coord ?placeLabel ?placeCoord ?article ?sitelinks WHERE {
+SELECT ?item ?itemLabel ?itemDescription ?when ?coord ?placeLabel ?placeCoord ?siteLabel ?siteCoord
+       ?who ?whoLabel ?workLabel ?workCoord ?orgLabel ?orgCoord ?article ?sitelinks WHERE {
   ?item wdt:P575 ?when . hint:Prior hint:rangeSafe true .
+  FILTER(?when >= "%(date_from)s"^^xsd:dateTime && ?when < "%(date_to)s"^^xsd:dateTime)
   ?item wikibase:sitelinks ?sitelinks .
   FILTER(?sitelinks >= %(min_sitelinks)d)
   OPTIONAL { ?item wdt:P625 ?coord . }
   OPTIONAL { ?item wdt:P276 ?place . ?place wdt:P625 ?placeCoord . }
-  OPTIONAL { ?item wdt:P189 ?site . ?site wdt:P625 ?placeCoord . }
+  OPTIONAL { ?item wdt:P189 ?site . ?site wdt:P625 ?siteCoord . }
+  OPTIONAL { ?item wdt:P61 ?who .
+             OPTIONAL { ?who wdt:P937 ?work . ?work wdt:P625 ?workCoord . }
+             OPTIONAL { ?who wdt:P108 ?org . ?org wdt:P159 ?hq . ?hq wdt:P625 ?orgCoord . } }
+  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}
+"""
+DISCOVERY_DATE_SLICES = [(-4000, 1700), (1700, 1850), (1850, 1900), (1900, 1930), (1930, 1960), (1960, 1990), (1990, 2030)]
+DISCOVERY_MIN_SITELINKS = 12
+
+# Spacecraft launches: anything with a launch date (P619). Located by launch site (P?) is unreliable, so: own coordinate,
+# then the operator's headquarters, then the country.
+LAUNCH_QUERY = """
+SELECT ?item ?itemLabel ?itemDescription ?when ?coord ?orgLabel ?orgCoord ?countryCoord ?article ?sitelinks WHERE {
+  ?item wdt:P619 ?when . hint:Prior hint:rangeSafe true .
+  ?item wikibase:sitelinks ?sitelinks .
+  FILTER(?sitelinks >= %(min_sitelinks)d)
+  OPTIONAL { ?item wdt:P625 ?coord . }
+  OPTIONAL { ?item wdt:P137 ?org . ?org wdt:P159 ?hq . ?hq wdt:P625 ?orgCoord . }
+  OPTIONAL { ?item wdt:P17 ?country . ?country wdt:P625 ?countryCoord . }
+  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}
+"""
+
+# Well-known scientific publications (Q591041, UNVERIFIED): located where the author worked.
+PUBLICATION_QUERY = """
+SELECT ?item ?itemLabel ?itemDescription ?when ?who ?whoLabel ?workLabel ?workCoord ?orgLabel ?orgCoord ?article ?sitelinks WHERE {
+  ?item wdt:P31 wd:Q591041 .
+  ?item wikibase:sitelinks ?sitelinks .
+  FILTER(?sitelinks >= %(min_sitelinks)d)
+  ?item wdt:P577 ?when .
+  OPTIONAL { ?item wdt:P50 ?who .
+             OPTIONAL { ?who wdt:P937 ?work . ?work wdt:P625 ?workCoord . }
+             OPTIONAL { ?who wdt:P108 ?org . ?org wdt:P159 ?hq . ?hq wdt:P625 ?orgCoord . } }
   OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
 }
@@ -218,6 +259,14 @@ def year_of(iso_date_string):
     return year
 
 
+def date_of(iso_date_string):
+    # "1945-08-06T00:00:00Z" -> "1945-08-06"; keeps only the part Wikidata actually asserted is unknown to us,
+    # so a bare "-0563-01-01" (year-only precision) still comes back as -0563-01-01. Returns None if missing.
+    if iso_date_string is None:
+        return None
+    return iso_date_string.split("T")[0]
+
+
 def parse_point(wkt_point):
     # "Point(31.1342 29.9792)" -> (lat, lon)
     if wkt_point is None:
@@ -301,30 +350,84 @@ def collect_events():
     return rows
 
 
+def first_point(binding, keys):
+    for key in keys:
+        point = parse_point(value_of(binding, key))
+        if point is not None:
+            return point, key
+    return None, None
+
+
 def collect_discoveries():
-    # Anything with a "time of discovery or invention" and a place: elements, fossils, sites, comets.
     rows = []
-    print("discoveries: property P575", file=sys.stderr)
-    sparql = DISCOVERY_QUERY % {"min_sitelinks": 40}
-    payload = run_query("discoveries_P575", sparql)
+    for date_slice in DISCOVERY_DATE_SLICES:
+        print("discoveries: P575 " + str(date_slice[0]) + " to " + str(date_slice[1]), file=sys.stderr)
+        sparql = DISCOVERY_QUERY % {"min_sitelinks": DISCOVERY_MIN_SITELINKS,
+                                    "date_from": iso_date(date_slice[0]), "date_to": iso_date(date_slice[1])}
+        payload = run_query("discoveries_P575_" + str(date_slice[0]) + "_" + str(date_slice[1]), sparql)
+        for binding in payload["results"]["bindings"]:
+            when_year = year_of(value_of(binding, "when"))
+            if when_year is None:
+                continue
+            point, key = first_point(binding, ["coord", "placeCoord", "siteCoord", "workCoord", "orgCoord"])
+            if point is None:
+                continue
+            confidence = {"coord": "exact", "placeCoord": "place", "siteCoord": "place", "workCoord": "workplace", "orgCoord": "workplace"}[key]
+            place = value_of(binding, "placeLabel") or value_of(binding, "siteLabel") or value_of(binding, "workLabel") or value_of(binding, "orgLabel") or ""
+            rows.append({
+                "qid": value_of(binding, "item").rsplit("/", 1)[-1],
+                "title": value_of(binding, "itemLabel"), "lat": point[0], "lon": point[1],
+                "start": when_year, "end": when_year, "category": "sci",
+                "sitelinks": int(value_of(binding, "sitelinks")), "place": place,
+                "description": value_of(binding, "itemDescription") or "", "slug": slug_of(value_of(binding, "article")),
+                "confidence": confidence, "source": "discovery",
+                "date": date_of(value_of(binding, "when")), "who": value_of(binding, "whoLabel"),
+            })
+    return rows
+
+
+def collect_launches():
+    rows = []
+    print("launches: P619", file=sys.stderr)
+    payload = run_query("launches_P619", LAUNCH_QUERY % {"min_sitelinks": 20})
     for binding in payload["results"]["bindings"]:
         when_year = year_of(value_of(binding, "when"))
         if when_year is None:
             continue
-        point = parse_point(value_of(binding, "coord"))
-        confidence = "exact"
-        if point is None:
-            point = parse_point(value_of(binding, "placeCoord"))
-            confidence = "place"
+        point, key = first_point(binding, ["coord", "orgCoord", "countryCoord"])
         if point is None:
             continue
         rows.append({
             "qid": value_of(binding, "item").rsplit("/", 1)[-1],
-            "title": value_of(binding, "itemLabel"), "lat": point[0], "lon": point[1],
+            "title": "Launch of " + (value_of(binding, "itemLabel") or ""), "lat": point[0], "lon": point[1],
             "start": when_year, "end": when_year, "category": "sci",
-            "sitelinks": int(value_of(binding, "sitelinks")), "place": value_of(binding, "placeLabel") or "",
+            "sitelinks": int(value_of(binding, "sitelinks")), "place": value_of(binding, "orgLabel") or "",
             "description": value_of(binding, "itemDescription") or "", "slug": slug_of(value_of(binding, "article")),
-            "confidence": confidence, "source": "discovery",
+            "confidence": {"coord": "exact", "orgCoord": "workplace", "countryCoord": "country"}[key], "source": "launch",
+            "date": date_of(value_of(binding, "when")), "who": None,
+        })
+    return rows
+
+
+def collect_publications():
+    rows = []
+    print("publications: Q591041 (unverified class id)", file=sys.stderr)
+    payload = run_query("publications_Q591041", PUBLICATION_QUERY % {"min_sitelinks": 25})
+    for binding in payload["results"]["bindings"]:
+        when_year = year_of(value_of(binding, "when"))
+        if when_year is None:
+            continue
+        point, key = first_point(binding, ["workCoord", "orgCoord"])
+        if point is None:
+            continue
+        rows.append({
+            "qid": value_of(binding, "item").rsplit("/", 1)[-1],
+            "title": (value_of(binding, "itemLabel") or "") + " published", "lat": point[0], "lon": point[1],
+            "start": when_year, "end": when_year, "category": "sci",
+            "sitelinks": int(value_of(binding, "sitelinks")), "place": value_of(binding, "workLabel") or value_of(binding, "orgLabel") or "",
+            "description": value_of(binding, "itemDescription") or "", "slug": slug_of(value_of(binding, "article")),
+            "confidence": "workplace", "source": "publication",
+            "date": date_of(value_of(binding, "when")), "who": value_of(binding, "whoLabel"),
         })
     return rows
 
@@ -353,6 +456,7 @@ def collect_people():
                     "start": born_year, "end": born_year, "category": "cul",
                     "sitelinks": sitelinks, "place": value_of(binding, "birthPlaceLabel") or "",
                     "description": description, "slug": slug, "confidence": "associated", "source": "person",
+                    "date": date_of(value_of(binding, "born")), "who": None,
                 })
             died_year = year_of(value_of(binding, "died"))
             death_point = parse_point(value_of(binding, "deathCoord"))
@@ -363,6 +467,7 @@ def collect_people():
                     "start": died_year, "end": died_year, "category": "cul",
                     "sitelinks": sitelinks, "place": value_of(binding, "deathPlaceLabel") or "",
                     "description": description, "slug": slug, "confidence": "associated", "source": "person",
+                    "date": date_of(value_of(binding, "died")), "who": None,
                 })
     return rows
 
@@ -377,7 +482,7 @@ def main():
     parser.add_argument("--max", type=int, default=MAX_EVENTS)
     arguments = parser.parse_args()
 
-    all_rows = collect_events() + collect_discoveries() + collect_people()
+    all_rows = collect_events() + collect_discoveries() + collect_launches() + collect_publications() + collect_people()
 
     # Dedupe on (qid, title) — the same item can appear under several classes.
     seen = {}
@@ -399,6 +504,7 @@ def main():
             row["start"], row["end"], row["category"], weight_of(row["sitelinks"]),
             row["place"], row["description"], row["slug"] or row["qid"],
             row["confidence"], row["sitelinks"], row.get("source", "event"),
+            row.get("date"), row.get("who"),
         ])
 
     with open(arguments.out, "w", encoding="utf-8") as output_file:

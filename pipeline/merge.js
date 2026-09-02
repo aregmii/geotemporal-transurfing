@@ -81,6 +81,8 @@ for (const file of wikidataFiles) {
     if (!copy[8] || copy[8].length < 12) copy[8] = 'No description yet — run fetch_summaries.py to pull the Wikipedia lead paragraph.';
     if (!copy[7]) copy[7] = '';
     const trimmed = copy.slice(0, 10); trimmed._sitelinks = copy._sitelinks;
+    trimmed[10] = typeof copy[13] === 'string' ? copy[13] : null;   // exact date YYYY-MM-DD when Wikidata has one
+    trimmed[11] = typeof copy[14] === 'string' ? copy[14] : null;   // discoverer / author
     out.push(trimmed);
     wikidataKept++;
   }

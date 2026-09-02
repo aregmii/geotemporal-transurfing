@@ -1,8 +1,8 @@
 window.__atlasStart = function(){
 "use strict";
 
-var EARTH_SRC = "assets/earth.jpg";
-var IMG_DIR = "img/";
+var EARTH_SRC = window.__ATLAS.earth || "assets/earth.jpg";
+var IMG_DIR = window.__ATLAS.imgDir != null ? window.__ATLAS.imgDir : "img/";
 var BORDERS = window.__ATLAS.borders;
 var RAW = window.__ATLAS.events;
 var IMAGES = window.__ATLAS.images;
@@ -16,7 +16,8 @@ var CATS = {
 };
 
 var EVENTS = RAW.map(function(r, i){
-  return { id:i, title:r[0], lat:r[1], lon:r[2], start:r[3], end:r[4], cat:r[5], w:r[6], place:r[7], desc:r[8], slug:r[9] };
+  return { id:i, title:r[0], lat:r[1], lon:r[2], start:r[3], end:r[4], cat:r[5], w:r[6], place:r[7], desc:r[8], slug:r[9],
+           date:(typeof r[10] === 'string' && /^-?\d{1,6}-\d{2}-\d{2}$/.test(r[10]) && !/-01-01$/.test(r[10])) ? r[10] : null, who:r[11] || null };
 });
 
 // Two rails. "century" = calendar decades with 5-year windows; "all" = eleven eras from the first stone tools.
@@ -76,6 +77,21 @@ function ago(y){
   if (n >= 1000000) return (Math.round(n / 100000) / 10) + ' million years ago';
   if (n >= 100000)  return Math.round(n / 10000) * 10 + ',000 years ago';
   return Math.round(n / 1000) + ',000 years ago';
+}
+var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function dayLabel(iso){
+  // "1969-07-16" -> "16 Jul 1969"; BCE dates keep the year label logic
+  var m = iso.match(/^(-?\d+)-(\d{2})-(\d{2})$/); if (!m) return iso;
+  var y = parseInt(m[1], 10); if (y <= 0) y = y - 1;   // Wikidata astronomical year -> historical, matching row years
+  return parseInt(m[3], 10) + ' ' + MONTHS[parseInt(m[2], 10) - 1] + ' ' + yearLabel(y);
+}
+function dayNumber(iso){
+  var m = iso.match(/^(-?\d+)-(\d{2})-(\d{2})$/); if (!m) return null;
+  return parseInt(m[1], 10) * 365.25 + (parseInt(m[2], 10) - 1) * 30.44 + parseInt(m[3], 10);
+}
+function whenLabel(e){
+  if (e.date) return dayLabel(e.date);
+  return e.start === e.end ? yearLabel(e.start) : rangeLabel(e.start, e.end);
 }
 function yearLabel(y){
   if (y < -10000) return ago(y);
@@ -384,11 +400,16 @@ function pick(mx, my){
   return best;
 }
 function contextFor(e){
-  var here = e.normal;
-  return visibleEvents()
-    .filter(function(o){ return o.id !== e.id && here.angleTo(o.normal) > 0.45; })
-    .sort(function(a, b){ return b.w - a.w; })
-    .slice(0, 3);
+  var here = e.normal, d0 = e.date ? dayNumber(e.date) : null;
+  var pool = visibleEvents().filter(function(o){ return o.id !== e.id && here.angleTo(o.normal) > 0.45; });
+  if (d0 != null){
+    var dated = pool.filter(function(o){ return o.date; }).map(function(o){ return { e:o, gap:Math.abs(dayNumber(o.date) - d0) }; });
+    dated.sort(function(a, b){ return (a.gap - b.gap) || (b.e.w - a.e.w); });
+    var near = dated.filter(function(x){ return x.gap <= 92; }).slice(0, 3).map(function(x){ x.e._gap = Math.round(x.gap); return x.e; });
+    if (near.length) return near;
+  }
+  pool.forEach(function(o){ o._gap = null; });
+  return pool.sort(function(a, b){ return b.w - a.w; }).slice(0, 3);
 }
 
 // ---------- panel ----------
@@ -396,7 +417,7 @@ function openPanel(e){
   selected = e;
   var p = document.getElementById('panel');
   var ctxEls = contextFor(e);
-  var when = (e.start === e.end) ? yearLabel(e.start) : rangeLabel(e.start, e.end);
+  var when = whenLabel(e);
   var html = '<button class="pclose" id="pclose" aria-label="Close">✕</button>';
   html += '<div class="pcat"><img src="' + ICON_URL[e.cat] + '" alt="">' + CATS[e.cat].label + '</div>';
   var im = IMAGES[e.slug];
@@ -407,14 +428,16 @@ function openPanel(e){
     html += '<div class="imgslot"><img src="' + ICON_URL[e.cat] + '" alt="" style="width:44px;height:44px;opacity:.7"></div>';
   }
   html += '<h2>' + e.title + '</h2>';
-  html += '<div class="pmeta">' + when + '<br>' + e.place + '</div>';
+  html += '<div class="pmeta">' + when + (e.who ? '<br>BY ' + e.who : '') + '<br>' + e.place + '</div>';
   html += '<p class="pdesc">' + e.desc + '</p>';
   html += '<a class="plink" target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/' + e.slug + '">Read more →</a>';
   if (ctxEls.length){
-    html += '<div class="elsewhere"><p>Elsewhere, ' + rangeLabel(WINDOWS[wi].start, WINDOWS[wi].end) + '</p>';
+    var byDate = ctxEls[0]._gap != null;
+    html += '<div class="elsewhere"><p>' + (byDate ? 'Elsewhere, within weeks of ' + dayLabel(e.date) : 'Elsewhere, ' + rangeLabel(WINDOWS[wi].start, WINDOWS[wi].end)) + '</p>';
     ctxEls.forEach(function(o){
+      var gapText = o._gap != null ? (o._gap === 0 ? 'same day' : o._gap === 1 ? '1 day apart' : o._gap + ' days apart') : '';
       html += '<button class="ew" data-id="' + o.id + '"><img src="' + ICON_URL[o.cat] + '" alt="">' +
-              '<span><b>' + o.title + '</b><span>' + o.place + '</span></span></button>';
+              '<span><b>' + o.title + '</b><span>' + (gapText ? gapText + ' · ' : '') + o.place + '</span></span></button>';
     });
     html += '</div>';
   }
@@ -484,7 +507,7 @@ canvas.addEventListener('pointermove', function(ev){
     if (hit){
       tip.querySelector('.tt').textContent = hit.title;
       tip.querySelector('.ty').textContent =
-        (hit.start === hit.end ? yearLabel(hit.start) : rangeLabel(hit.start, hit.end)) + ' · ' + hit.place.toUpperCase();
+        whenLabel(hit) + ' · ' + hit.place.toUpperCase();
       tip.style.left = hit._sx + 'px'; tip.style.top = hit._sy + 'px';
       tip.classList.add('on'); canvas.style.cursor = 'pointer';
     } else { tip.classList.remove('on'); canvas.style.cursor = ''; }
@@ -629,6 +652,7 @@ bindWindow(); syncHeader(); placeHandle(); resize(); tick(); readHash(); setTime
 };
 // Load data files, then start the app.
 (function(){
+  if (window.__ATLAS){ window.__atlasStart(); return; }   // playground build: data already inlined
   function get(url){ return fetch(url).then(function(r){ if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); }); }
   Promise.all([ get('data/events.json'), get('data/images.json'), get('assets/countries-110m.json') ])
     .then(function(res){ window.__ATLAS = { events:res[0], images:res[1], borders:res[2] }; window.__atlasStart(); })

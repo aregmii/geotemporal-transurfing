@@ -52,6 +52,8 @@ One event is one row in `site/data/events.json`:
 | 7 | place | label of the resolved location |
 | 8 | description | Wikipedia lead paragraph, trimmed to 80 words; curated rows carry their own text |
 | 9 | slug | English Wikipedia article name; also the key into `images.json` |
+| 10 | date | exact date `YYYY-MM-DD` when Wikidata records one (day precision), else `null` |
+| 11 | who | discoverer, inventor or author, when known |
 
 `site/data/images.json` maps slug → `{ file, author, license, licenseUrl, source, filePage }`. Only files under Creative Commons, CC0, public-domain or GFDL terms are kept; the app shows the credit in every panel.
 
@@ -87,7 +89,7 @@ docs/
 ## Known gaps
 
 - Wikidata's coverage is strongest for Europe, North America, and the last two centuries. Prehistory and the ancient eras rely mostly on the curated rows.
-- The Wikidata class list in `extract_events.py` is conflict-heavy. Assassinations, attacks, elections and independence declarations are not yet queried. Three class identifiers (Olympic Games, ecumenical councils, premieres) return nothing and need checking against wikidata.org.
+- Three class identifiers (Olympic Games, ecumenical councils, premieres) return nothing and need checking against wikidata.org; the v0.4/v0.5 additions (assassinations, attacks, elections, sport finals, scientific publications) are also unverified until a run shows rows.
 - The Wikidata class and property identifiers were written without live access to wikidata.org and have only been validated by what they returned.
 - No clustering yet: dense windows show the top N markers and hide the rest until you zoom.
 - Desktop only. A phone-sized viewport works but is not designed for.
