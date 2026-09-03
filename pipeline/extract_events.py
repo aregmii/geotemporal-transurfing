@@ -46,8 +46,8 @@ PERSON_MIN_SITELINKS = 150
 EVENT_MIN_SITELINKS = 25
 # v0.6 wide pull — "everything with a date". Lower these for more rows; each query is capped at SLICE_LIMIT rows
 # and a slice that hits the cap or times out is split in half and retried (down to SLICE_MIN_DAYS).
-DATED_MIN_SITELINKS = 25        # items with a day-precision point in time (P585)
-PERSON_DEEP_MIN_SITELINKS = 60  # people with a day-precision birth or death
+DATED_MIN_SITELINKS = 12        # items with a day-precision point in time (P585) or start time (P580); 25 gave only ~5 rows a year
+PERSON_DEEP_MIN_SITELINKS = 40  # people with a day-precision birth or death
 SLICE_LIMIT = 4000
 SLICE_MIN_DAYS = 14
 
@@ -199,9 +199,17 @@ SELECT ?item ?itemLabel ?itemDescription ?born ?died ?birthPlaceLabel ?birthCoor
 # exact by construction. Location: own coordinate, else the location's (P276), else the country's (P17).
 DATED_QUERY = """
 SELECT ?item ?itemLabel ?itemDescription ?when ?coord ?placeLabel ?placeCoord ?countryCoord ?classLabel ?article ?sitelinks WHERE {
-  ?item p:P585 ?st . ?st psv:P585 ?tv . ?tv wikibase:timePrecision 11 . ?tv wikibase:timeValue ?when .
-  hint:Prior hint:rangeSafe true .
-  FILTER(?when >= "%(date_from)s"^^xsd:dateTime && ?when < "%(date_to)s"^^xsd:dateTime)
+  # a point in time (P585) or, for wars, battles, expeditions and the like, a start time (P580).
+  # The range scan runs on the truthy wdt: value (the index WDQS can range-scan quickly); the statement value is then
+  # checked for day precision (11), which the truthy value cannot tell us.
+  { ?item wdt:P585 ?when . hint:Prior hint:rangeSafe true .
+    FILTER(?when >= "%(date_from)s"^^xsd:dateTime && ?when < "%(date_to)s"^^xsd:dateTime)
+    ?item p:P585/psv:P585 ?tv . ?tv wikibase:timeValue ?when ; wikibase:timePrecision 11 . }
+  UNION
+  { ?item wdt:P580 ?when . hint:Prior hint:rangeSafe true .
+    FILTER(?when >= "%(date_from)s"^^xsd:dateTime && ?when < "%(date_to)s"^^xsd:dateTime)
+    FILTER NOT EXISTS { ?item wdt:P585 [] }
+    ?item p:P580/psv:P580 ?tv . ?tv wikibase:timeValue ?when ; wikibase:timePrecision 11 . }
   ?item wikibase:sitelinks ?sitelinks . FILTER(?sitelinks >= %(min_sitelinks)d)
   FILTER NOT EXISTS { ?item wdt:P31 wd:Q5 }
   OPTIONAL { ?item wdt:P625 ?coord . }
@@ -217,12 +225,12 @@ LIMIT %(limit)d
 # v0.6: people with a day-precision birth (this slice) — death handled by the same row when it is day-precise.
 PERSON_DEEP_QUERY = """
 SELECT ?item ?itemLabel ?itemDescription ?born ?died ?birthPlaceLabel ?birthCoord ?deathPlaceLabel ?deathCoord ?occLabel ?article ?sitelinks WHERE {
-  ?item p:P569 ?bs . ?bs psv:P569 ?bv . ?bv wikibase:timePrecision 11 . ?bv wikibase:timeValue ?born .
-  hint:Prior hint:rangeSafe true .
+  ?item wdt:P569 ?born . hint:Prior hint:rangeSafe true .
   FILTER(?born >= "%(date_from)s"^^xsd:dateTime && ?born < "%(date_to)s"^^xsd:dateTime)
   ?item wikibase:sitelinks ?sitelinks . FILTER(?sitelinks >= %(min_sitelinks)d)
+  ?item p:P569/psv:P569 ?bv . ?bv wikibase:timeValue ?born ; wikibase:timePrecision 11 .
   OPTIONAL { ?item wdt:P19 ?birthPlace . ?birthPlace wdt:P625 ?birthCoord . }
-  OPTIONAL { ?item p:P570 ?ds . ?ds psv:P570 ?dv . ?dv wikibase:timePrecision 11 . ?dv wikibase:timeValue ?died . }
+  OPTIONAL { ?item wdt:P570 ?died . ?item p:P570/psv:P570 ?dv . ?dv wikibase:timeValue ?died ; wikibase:timePrecision 11 . }
   OPTIONAL { ?item wdt:P20 ?deathPlace . ?deathPlace wdt:P625 ?deathCoord . }
   OPTIONAL { ?item wdt:P106 ?occ . }
   ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> .
@@ -607,7 +615,7 @@ def collect_dated():
     best = {}
     for day_from, day_to, days in wide_slices():
         print("dated: " + str(day_from.year) + " to " + str(day_to.year), file=sys.stderr)
-        for binding in run_sliced(DATED_QUERY, "dated", {"min_sitelinks": DATED_MIN_SITELINKS}, day_from, day_to, days):
+        for binding in run_sliced(DATED_QUERY, "dated3", {"min_sitelinks": DATED_MIN_SITELINKS}, day_from, day_to, days):
             qid = value_of(binding, "item").rsplit("/", 1)[-1]
             point, point_key = first_point(binding, ["coord", "placeCoord", "countryCoord"])
             if point is None:
@@ -641,7 +649,7 @@ def collect_people_deep():
     seen = set()
     for day_from, day_to, days in wide_slices():
         print("people (deep): born " + str(day_from.year) + " to " + str(day_to.year), file=sys.stderr)
-        for binding in run_sliced(PERSON_DEEP_QUERY, "peopledeep", {"min_sitelinks": PERSON_DEEP_MIN_SITELINKS}, day_from, day_to, days):
+        for binding in run_sliced(PERSON_DEEP_QUERY, "peopledeep3", {"min_sitelinks": PERSON_DEEP_MIN_SITELINKS}, day_from, day_to, days):
             qid = value_of(binding, "item").rsplit("/", 1)[-1]
             if qid in seen:
                 continue

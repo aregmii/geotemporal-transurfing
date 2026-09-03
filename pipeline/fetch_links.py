@@ -28,7 +28,7 @@ USER_AGENT = "GeotemporalTransfusion/0.1 (personal history-map prototype; contac
 WDQS = "https://query.wikidata.org/sparql"
 CACHE_DIR = "links_cache"
 RELATIONS = ["P1542", "P828", "P1536", "P1478", "P1479", "P155", "P156", "P361", "P527"]
-BATCH = 150
+BATCH = 60
 
 
 def article_url(slug):
@@ -55,6 +55,10 @@ SELECT ?a ?rel ?b WHERE {
     rows = []
     try:
         response = requests.get(WDQS, params={"query": sparql}, headers={"User-Agent": USER_AGENT, "Accept": "application/sparql-results+json"}, timeout=95)
+        if response.status_code == 429:
+            print("  rate limited; sleeping 60 s", file=sys.stderr)
+            time.sleep(60)
+            response = requests.get(WDQS, params={"query": sparql}, headers={"User-Agent": USER_AGENT, "Accept": "application/sparql-results+json"}, timeout=95)
         if response.status_code == 200:
             for binding in response.json()["results"]["bindings"]:
                 a = urllib.parse.unquote(binding["a"]["value"].rsplit("/", 1)[-1])
@@ -64,11 +68,16 @@ SELECT ?a ?rel ?b WHERE {
             os.makedirs(CACHE_DIR, exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(rows, f)
+        elif len(slugs) > 8:
+            print("  HTTP " + str(response.status_code) + " for a batch of " + str(len(slugs)) + " — splitting", file=sys.stderr)
+            time.sleep(3)
+            half = len(slugs) // 2
+            return query_batch(slugs[:half]) + query_batch(slugs[half:])
         else:
             print("  HTTP " + str(response.status_code) + " for a batch — skipping", file=sys.stderr)
     except requests.RequestException as error:
         print("  batch failed: " + type(error).__name__, file=sys.stderr)
-    time.sleep(1.5)
+    time.sleep(2.0)
     return rows
 
 
