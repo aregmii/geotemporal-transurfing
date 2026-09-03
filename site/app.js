@@ -791,17 +791,38 @@ function pick(mx, my){
   });
   return best;
 }
+function spanYears(e){ return e.t1 - e.t0; }
 function contextFor(e){
-  var here = e.normal, d0 = e.date ? dayNumber(e.date) : null;
-  var pool = visibleEvents().filter(function(o){ return o.id !== e.id && here.angleTo(o.normal) > 0.45; });
-  if (d0 != null){
-    var dated = pool.filter(function(o){ return o.date; }).map(function(o){ return { e:o, gap:Math.abs(dayNumber(o.date) - d0) }; });
-    dated.sort(function(a, b){ return (a.gap - b.gap) || (b.e.w - a.e.w); });
-    var near = dated.filter(function(x){ return x.gap <= 92; }).slice(0, 4).map(function(x){ x.e._gap = Math.round(x.gap); return x.e; });
-    if (near.length) return near;
+  // "Concurrent events elsewhere" compares like with like:
+  //  - a moment (a day or a few) is paired with other dated moments within a month, same day first;
+  //  - something that ran for months or years (a war, a pandemic) is paired with other long-running things that
+  //    overlapped it in time, ranked by how long they overlapped;
+  //  - the same kind of event (a death with a death, a war with a war) ranks higher.
+  // Nothing is padded with unrelated events: if there is no real neighbour, the section stays empty.
+  var here = e.normal, LONG = 45 / 365;
+  var w = WINDOWS[wi];
+  var pool = EVENTS.filter(function(o){ return o.id !== e.id && o.slug !== e.slug && inWindow(o, w) && here.angleTo(o.normal) > 0.45; });
+  var mine = kindOf(e), out = [];
+  if (spanYears(e) >= LONG){
+    pool.forEach(function(o){
+      if (spanYears(o) < LONG) return;
+      var overlap = Math.min(e.t1, o.t1) - Math.max(e.t0, o.t0);
+      if (overlap <= 0) return;
+      o._gap = null; o._overlap = overlap;
+      out.push({ e:o, score: overlap / Math.max(spanYears(e), spanYears(o)) * 3 + o.w * 0.5 + (kindOf(o) === mine ? 1.5 : 0) });
+    });
+  } else if (e.date){
+    var d0 = dayNumber(e.date);
+    pool.forEach(function(o){
+      if (!o.date || spanYears(o) >= LONG) return;
+      var gap = Math.abs(dayNumber(o.date) - d0);
+      if (gap > 31) return;
+      o._gap = Math.round(gap); o._overlap = null;
+      out.push({ e:o, score: (31 - gap) / 31 * 3 + o.w * 0.5 + (kindOf(o) === mine ? 1.5 : 0) });
+    });
   }
-  pool.forEach(function(o){ o._gap = null; });
-  return pool.sort(function(a, b){ return b.w - a.w; }).slice(0, 4);
+  out.sort(function(a, b){ return b.score - a.score; });
+  return out.slice(0, 4).map(function(x){ return x.e; });
 }
 
 // ---------- panel ----------
@@ -843,10 +864,12 @@ function openPanel(e){
   html += '<a class="plink" target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/' + e.slug + '">Read more →</a>';
   // concurrent events elsewhere: small moving pictures of what else was going on, ranked by days apart
   if (ctxEls.length){
-    html += '<div class="concurrent"><p>Concurrent events elsewhere</p><div class="crow">';
+    html += '<div class="concurrent"><p>' + (spanYears(e) >= 45 / 365 ? 'Running at the same time elsewhere' : 'Concurrent events elsewhere') + '</p><div class="crow">';
     ctxEls.forEach(function(o){
       var thumb = IMAGES[o.slug] ? '<img class="kb" src="' + IMG_DIR + IMAGES[o.slug].file + '" alt="">' : '<img class="ic" src="' + ICON_URL[o.cat] + '" alt="">';
-      var gapText = o._gap != null ? (o._gap === 0 ? 'same day' : o._gap === 1 ? '1 day apart' : o._gap + ' days apart') : (o.date ? dayLabel(o.date) : yearLabel(o.start));
+      var gapText = o._gap != null ? (o._gap === 0 ? 'same day' : o._gap === 1 ? '1 day apart' : o._gap + ' days apart')
+                  : o._overlap != null ? 'overlapped ' + (o._overlap >= 1 ? Math.round(o._overlap) + ' year' + (Math.round(o._overlap) === 1 ? '' : 's') : Math.max(1, Math.round(o._overlap * 12)) + ' months') + ' · ' + whenLabel(o)
+                  : (o.date ? dayLabel(o.date) : yearLabel(o.start));
       html += '<button class="nb" data-id="' + o.id + '">' + thumb + '<b>' + o.title + '</b><span>' + o.place + ' · ' + gapText + '</span></button>';
     });
     html += '</div></div>';
@@ -1265,7 +1288,7 @@ function readHash(){
   else if (h.y){ var y = +h.y; var i = WINDOWS.findIndex(function(w){ return Math.abs(w.start - y) < 0.02; }); if (i < 0) i = WINDOWS.findIndex(function(w){ return w.start <= y && w.end > y; }); if (i >= 0 && i !== wi){ wi = i; bindWindow(); syncHeader(); placeHandle(); resetTicker(); } }
   if (h.e){
     var w = WINDOWS[wi];
-    var matches = EVENTS.filter(function(x){ return x.slug === h.e; });
+    var matches = EVENTS.filter(function(x){ if (x.slug === h.e) return true; try { return decodeURIComponent(x.slug) === h.e; } catch (err){ return false; } });
     var e = matches.find(function(x){ return inWindow(x, w); }) || matches[0];
     if (e){
       if (!inWindow(e, w)){ var i = WINDOWS.findIndex(function(win){ return inWindow(e, win); }); if (i >= 0) wi = i; }
