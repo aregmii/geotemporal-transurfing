@@ -150,3 +150,19 @@ canvas.drag{cursor:grabbing}
 .vctl button{width:30px; height:30px; border-radius:50%; border:1px solid var(--rule); background:var(--panel-2); color:var(--ink); font-size:12px; cursor:pointer}
 .vctl button[aria-pressed="true"]{background:var(--ink); color:var(--bg)}
 @media (max-width:760px){ .vctl{display:none} }
+
+/* the moment: clip in the middle, simultaneous events elsewhere on either side */
+#panel.wide{flex-basis:520px}
+.moment{display:grid; grid-template-columns:1fr; gap:10px; margin:0 0 6px}
+.moment.has-sides{grid-template-columns:96px 1fr 96px}
+.moment .centre img,.moment .centre video{display:block; width:100%; max-height:260px; object-fit:cover; border-radius:6px; background:var(--panel-2)}
+.moment .centre audio{width:100%; margin-top:6px}
+.moment .side{display:flex; flex-direction:column; gap:8px; justify-content:center}
+.nb{display:block; width:100%; padding:0; background:none; border:1px solid var(--rule-soft); border-radius:6px; overflow:hidden; text-align:left; cursor:pointer; color:inherit; font:inherit}
+.nb img{display:block; width:100%; height:58px; object-fit:cover; background:var(--panel-2)}
+.nb img.ic{object-fit:contain; padding:14px; opacity:.7}
+.nb b{display:block; font-size:10.5px; font-weight:500; line-height:1.25; padding:5px 6px 0; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical}
+.nb span{display:block; font-size:9px; color:var(--ink-3); padding:2px 6px 6px; line-height:1.3}
+.nb:hover{border-color:var(--ink-3)}
+.mcredit{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:9.5px; letter-spacing:.06em; color:var(--ink-3); margin:0 0 12px; line-height:1.5; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.mcredit a{color:var(--ink-3)}

@@ -19,9 +19,15 @@ var CATS = {
 };
 
 function parseRow(r, i){
-  return { id:i, title:r[0], lat:r[1], lon:r[2], start:r[3], end:r[4], cat:r[5], w:r[6], place:r[7], desc:r[8], slug:r[9],
-           date:(typeof r[10] === 'string' && /^-?\d{1,6}-\d{2}-\d{2}$/.test(r[10]) && !/-01-01$/.test(r[10])) ? r[10] : null, who:r[11] || null };
+  var e = { id:i, title:r[0], lat:r[1], lon:r[2], start:r[3], end:r[4], cat:r[5], w:r[6], place:r[7], desc:r[8], slug:r[9],
+            date:(typeof r[10] === 'string' && /^-?\d{1,6}-\d{2}-\d{2}$/.test(r[10]) && !/-01-01$/.test(r[10])) ? r[10] : null, who:r[11] || null };
+  // time bounds in fractional years: a dated event is a point, a year-only event covers its whole year(s)
+  if (e.date){ var m = /^(-?\d+)-(\d\d)-(\d\d)$/.exec(e.date); e.t0 = +m[1] + (+m[2] - 1) / 12 + (+m[3] - 1) / 365; e.t1 = e.t0 + 1 / 365; }
+  else { e.t0 = e.start; e.t1 = e.end + 1; }
+  return e;
 }
+function inWindow(e, w){ return e.t0 < w.end && e.t1 > w.start; }
+function fracYear(y){ return Math.round(y * 12) / 12; }
 var EVENTS = RAW.map(parseRow);
 // Large builds keep only the top events per year in events.json and the rest in data/y/<year>.json shards,
 // listed in data/index.json; a window loads the shards it touches on demand (not in the playground build).
@@ -31,8 +37,8 @@ var loadedYears = {};
 // Two rails. "century" = calendar decades with 5-year windows; "all" = eleven eras from the first stone tools.
 var ERA_SETS = {
   // a slider: the window is `width` years wide and moves one year at a time across from..to
-  recent:  [ {name:'', label:'', from:2000, to:2026, step:1, width:5,  slider:true, tick:5} ],
-  century: [ {name:'', label:'', from:1926, to:2026, step:1, width:10, slider:true, tick:10} ],
+  recent:  [ {name:'', label:'', from:2000, to:2026, step:1/12, width:5,  slider:true, tick:5} ],   // one month at a time
+  century: [ {name:'', label:'', from:1926, to:2026, step:1/12, width:10, slider:true, tick:10} ],
   all: [
     {name:'ORIGINS',        label:'4–0.3 Mya',        from:-4000000, to:-320000, step:1000000},
     {name:'HOMO SAPIENS',   label:'320–12 kya',       from:-320000,  to:-10000,  step:100000},
@@ -54,11 +60,11 @@ function buildWindows(){
   WINDOWS = [];
   ERAS.forEach(function(era, ei){
     var width = era.width || era.step;
-    var n = era.slider ? (era.to - era.from - width) / era.step + 1 : Math.ceil((era.to - era.from) / era.step);
+    var n = era.slider ? Math.round((era.to - era.from - width) / era.step) + 1 : Math.ceil((era.to - era.from) / era.step);
     era.first = WINDOWS.length; era.count = n;
     for (var k = 0; k < n; k++){
-      var a = era.from + k * era.step;
-      WINDOWS.push({ start:a, end:Math.min(a + width, era.to), era:ei });
+      var a = era.slider ? fracYear(era.from + k * era.step) : era.from + k * era.step;
+      WINDOWS.push({ start:a, end:Math.min(fracYear(a + width), era.to), era:ei });
     }
   });
 }
@@ -101,8 +107,11 @@ function rangeLabel(a, b){
   if (a < -10000) return ago(a) + ' – ' + yearLabel(b);
   if (a < 0 && b <= 0) return Math.abs(a).toLocaleString() + '–' + Math.abs(b).toLocaleString() + ' BCE';
   if (a < 0 && b > 0)  return Math.abs(a) + ' BCE – ' + b + ' CE';
+  if (a !== Math.floor(a) || b !== Math.floor(b)) return monthLabel(a) + ' – ' + monthLabel(b);
   return a + '–' + b;
 }
+var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function monthLabel(y){ var yr = Math.floor(y + 1e-6), m = Math.round((y - yr) * 12); if (m >= 12){ yr++; m = 0; } return MONTHS[m] + ' ' + yr; }
 
 // ---------- icons ----------
 function css(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
@@ -475,7 +484,7 @@ var shown = [];   // events currently bound to pool holders
 var windowTotal = 0;
 function bindWindow(){
   var w = WINDOWS[wi];
-  var list = EVENTS.filter(function(e){ return !off[e.cat] && e.start <= w.end && e.end >= w.start; });
+  var list = EVENTS.filter(function(e){ return !off[e.cat] && inWindow(e, w); });
   list.sort(function(a, b){ return b.w - a.w; });
   windowTotal = list.length;
   shown = list.slice(0, shownCap());
@@ -618,11 +627,11 @@ function contextFor(e){
   if (d0 != null){
     var dated = pool.filter(function(o){ return o.date; }).map(function(o){ return { e:o, gap:Math.abs(dayNumber(o.date) - d0) }; });
     dated.sort(function(a, b){ return (a.gap - b.gap) || (b.e.w - a.e.w); });
-    var near = dated.filter(function(x){ return x.gap <= 92; }).slice(0, 3).map(function(x){ x.e._gap = Math.round(x.gap); return x.e; });
+    var near = dated.filter(function(x){ return x.gap <= 92; }).slice(0, 4).map(function(x){ x.e._gap = Math.round(x.gap); return x.e; });
     if (near.length) return near;
   }
   pool.forEach(function(o){ o._gap = null; });
-  return pool.sort(function(a, b){ return b.w - a.w; }).slice(0, 3);
+  return pool.sort(function(a, b){ return b.w - a.w; }).slice(0, 4);
 }
 
 // ---------- panel ----------
@@ -639,40 +648,35 @@ function openPanel(e){
   var when = whenLabel(e);
   var html = '<button class="pclose" id="pclose" aria-label="Close">✕</button>';
   html += '<div class="pcat"><img src="' + ICON_URL[e.cat] + '" alt="">' + CATS[e.cat].label + '</div>';
-  var im = IMAGES[e.slug];
-  if (im){
-    html += '<figure class="pimg"><img src="' + IMG_DIR + im.file + '" alt="" loading="lazy"><figcaption>' +
-            (im.author ? im.author + ' · ' : '') + '<a href="' + im.filePage + '" target="_blank" rel="noopener">' + (im.license || 'Commons') + '</a></figcaption></figure>';
-  } else {
-    html += '<div class="imgslot"><img src="' + ICON_URL[e.cat] + '" alt="" style="width:44px;height:44px;opacity:.7"></div>';
+  var im = IMAGES[e.slug], md = MEDIA[e.slug];
+  // the moment: the clip (or photo) magnified in the middle, and what was happening elsewhere at the same time on either side
+  function neighbour(o){
+    var thumb = IMAGES[o.slug] ? '<img src="' + IMG_DIR + IMAGES[o.slug].file + '" alt="">' : '<img class="ic" src="' + ICON_URL[o.cat] + '" alt="">';
+    var gapText = o._gap != null ? (o._gap === 0 ? 'same day' : o._gap === 1 ? '1 day later/earlier' : o._gap + ' days apart') : rangeLabel(WINDOWS[wi].start, WINDOWS[wi].end);
+    return '<button class="nb" data-id="' + o.id + '">' + thumb + '<b>' + o.title + '</b><span>' + o.place + ' · ' + gapText + '</span></button>';
   }
+  var centre = md
+    ? (md.kind === 'video' ? '<video src="' + MEDIA_DIR + md.file + '" controls autoplay muted loop playsinline preload="metadata"></video>'
+                           : (im ? '<img src="' + IMG_DIR + im.file + '" alt="">' : '') + '<audio src="' + MEDIA_DIR + md.file + '" controls autoplay preload="metadata"></audio>')
+    : im ? '<img src="' + IMG_DIR + im.file + '" alt="">' : '<div class="imgslot"><img src="' + ICON_URL[e.cat] + '" alt="" style="width:44px;height:44px;opacity:.7"></div>';
+  var credit = (md ? (md.title ? md.title + ' · ' : '') + (md.author ? md.author + ' · ' : '') + '<a href="' + (md.filePage || md.source || '#') + '" target="_blank" rel="noopener">' + (md.license || 'source') + '</a>'
+                   : im ? (im.author ? im.author + ' · ' : '') + '<a href="' + im.filePage + '" target="_blank" rel="noopener">' + (im.license || 'Commons') + '</a>' : '');
+  var left = ctxEls.filter(function(o, i){ return i % 2 === 0; }), right = ctxEls.filter(function(o, i){ return i % 2 === 1; });
+  html += '<div class="moment' + (ctxEls.length ? ' has-sides' : '') + '">' +
+          '<div class="side">' + left.map(neighbour).join('') + '</div>' +
+          '<div class="centre">' + centre + '</div>' +
+          '<div class="side">' + right.map(neighbour).join('') + '</div></div>';
+  if (credit) html += '<div class="mcredit">' + credit + '</div>';
   html += '<h2>' + e.title + '</h2>';
   html += '<div class="pmeta">' + when + (e.who ? '<br>BY ' + e.who : '') + '<br>' + e.place + '</div>';
-  var md = MEDIA[e.slug];
-  if (md){
-    html += '<div class="pmedia">' + (md.kind === 'video'
-      ? '<video src="' + MEDIA_DIR + md.file + '" controls playsinline preload="metadata"></video>'
-      : '<audio src="' + MEDIA_DIR + md.file + '" controls preload="metadata"></audio>') +
-      '<div class="mcredit">' + (md.title ? md.title + ' · ' : '') + (md.author ? md.author + ' · ' : '') +
-      '<a href="' + (md.filePage || md.source || '#') + '" target="_blank" rel="noopener">' + (md.license || 'source') + '</a></div></div>';
-  }
   html += '<p class="pdesc">' + e.desc + '</p>';
   html += '<a class="plink" target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/' + e.slug + '">Read more →</a>';
-  if (ctxEls.length){
-    var byDate = ctxEls[0]._gap != null;
-    html += '<div class="elsewhere"><p>' + (byDate ? 'Elsewhere, within weeks of ' + dayLabel(e.date) : 'Elsewhere, ' + rangeLabel(WINDOWS[wi].start, WINDOWS[wi].end)) + '</p>';
-    ctxEls.forEach(function(o){
-      var gapText = o._gap != null ? (o._gap === 0 ? 'same day' : o._gap === 1 ? '1 day apart' : o._gap + ' days apart') : '';
-      html += '<button class="ew" data-id="' + o.id + '"><img src="' + ICON_URL[o.cat] + '" alt="">' +
-              '<span><b>' + o.title + '</b><span>' + (gapText ? gapText + ' · ' : '') + o.place + '</span></span></button>';
-    });
-    html += '</div>';
-  }
   p.innerHTML = html;
   p.classList.add('on');
+  p.classList.toggle('wide', ctxEls.length > 0);
   writeHash();
   document.getElementById('pclose').onclick = closePanel;
-  Array.prototype.forEach.call(p.querySelectorAll('.ew'), function(b){
+  Array.prototype.forEach.call(p.querySelectorAll('.ew, .nb'), function(b){
     b.onclick = function(){ var t = EVENTS[+b.dataset.id]; spinTo(t); openPanel(t); };
   });
   resize();
@@ -915,8 +919,9 @@ var playRange = document.getElementById('playRange'), playVal = document.getElem
 function speedFromSlider(v){ return 0.02 * Math.pow(1.047, v); }                    // 0 -> 1 yr / 50 s ... 40 -> 1 yr / 8 s ... 100 -> 2 yr / s
 function setPlaySpeed(v){
   yearsPerSec = speedFromSlider(v);
-  var secPerYear = 1 / yearsPerSec;
-  playVal.textContent = secPerYear >= 1 ? '1 YEAR\n/ ' + (secPerYear >= 10 ? Math.round(secPerYear) : secPerYear.toFixed(1)) + ' S' : yearsPerSec.toFixed(1) + ' YEARS\n/ S';
+  var secPerYear = 1 / yearsPerSec, secPerMonth = secPerYear / 12;
+  playVal.textContent = secPerMonth >= 1 ? '1 MONTH\n/ ' + (secPerMonth >= 10 ? Math.round(secPerMonth) : secPerMonth.toFixed(1)) + ' S'
+                      : secPerYear >= 1 ? '1 YEAR\n/ ' + (secPerYear >= 10 ? Math.round(secPerYear) : secPerYear.toFixed(1)) + ' S' : yearsPerSec.toFixed(1) + ' YEARS\n/ S';
 }
 function setPlaying(on){
   playing = on; playAcc = 0; playLast = performance.now();
@@ -933,8 +938,9 @@ if (playRange){
 function tickPlay(now){
   if (!playing) return;
   playAcc += (now - playLast) / 1000 * yearsPerSec; playLast = now;
-  if (playAcc >= 1){
-    playAcc -= 1;
+  var step = ERAS[WINDOWS[wi].era].slider ? ERAS[WINDOWS[wi].era].step : (WINDOWS[wi].end - WINDOWS[wi].start);
+  if (playAcc >= step){
+    playAcc -= step;
     if (wi >= WINDOWS.length - 1){ setPlaying(false); return; }
     setWindow(wi + 1);
   }
@@ -987,7 +993,7 @@ function railSet(clientX, first){
     var era = ERAS[0], width = era.width, yearAt = era.from + f * (era.to - era.from);
     var w = WINDOWS[wi];
     if (first) grabOffset = (yearAt >= w.start && yearAt <= w.end) ? yearAt - w.start : width / 2;
-    setWindow(Math.round(yearAt - grabOffset - era.from));
+    setWindow(Math.round((yearAt - grabOffset - era.from) / era.step));
     return;
   }
   var ei = Math.floor(f * ERAS.length), within = f * ERAS.length - ei, era2 = ERAS[ei];
@@ -998,8 +1004,9 @@ track.addEventListener('pointerdown', function(ev){ if (playing) setPlaying(fals
 track.addEventListener('pointermove', function(ev){ if (railDrag) railSet(ev.clientX); });
 track.addEventListener('pointerup', function(){ railDrag = false; });
 window.addEventListener('keydown', function(ev){
-  if (ev.key === 'ArrowLeft'){ setWindow(wi - 1); ev.preventDefault(); }
-  if (ev.key === 'ArrowRight'){ setWindow(wi + 1); ev.preventDefault(); }
+  var stepN = ERAS[0].slider && ev.shiftKey ? Math.round(1 / ERAS[0].step) : 1;     // shift + arrow: a whole year
+  if (ev.key === 'ArrowLeft'){ setWindow(wi - stepN); ev.preventDefault(); }
+  if (ev.key === 'ArrowRight'){ setWindow(wi + stepN); ev.preventDefault(); }
   if (ev.key === 'Escape') closePanel();
   if (ev.key === ' ' && ev.target === document.body && playBtn){ playBtn.onclick(); ev.preventDefault(); }
 });
@@ -1008,7 +1015,7 @@ function setWindow(next){
   if (next === wi) return;
   wi = next;
   hovered = null; document.getElementById('tip').classList.remove('on'); canvas.style.cursor = '';
-  if (selected && !(selected.start <= WINDOWS[wi].end && selected.end >= WINDOWS[wi].start)) closePanel();
+  if (selected && !inWindow(selected, WINDOWS[wi])) closePanel();
   else if (selected) openPanel(selected);
   bindWindow(); syncHeader(); placeHandle(); render(); writeHash(); resetTicker();   // the globe keeps turning while the slider moves
   ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added, latest){ if (added && latest){ bindWindow(); render(); resetTicker(); } });
@@ -1016,7 +1023,7 @@ function setWindow(next){
 function syncHeader(){
   var w = WINDOWS[wi], era = ERAS[w.era];
   var span = w.end - w.start;
-  var stepLabel = span >= 1000000 ? (span/1000000) + ' MILLION-YEAR' : span >= 1000 ? (span/1000) + ',000-YEAR' : span + '-YEAR';
+  var stepLabel = span >= 1000000 ? (span/1000000) + ' MILLION-YEAR' : span >= 1000 ? (span/1000) + ',000-YEAR' : Math.round(span) + '-YEAR';
   document.getElementById('now').innerHTML = '<b>' + rangeLabel(w.start, w.end) + '</b>' + (era.name ? ' · ' + era.name : '') + ' · ' + stepLabel + ' WINDOW';
   track.setAttribute('aria-valuetext', rangeLabel(w.start, w.end));
 }
@@ -1038,7 +1045,7 @@ function setMode(next, keepYear){
   if (next === mode) return;
   var year = keepYear != null ? keepYear : WINDOWS[wi].start;
   mode = next; ERAS = ERA_SETS[mode]; buildWindows(); buildRail();
-  wi = WINDOWS.findIndex(function(w){ return w.start === year; });
+  wi = WINDOWS.findIndex(function(w){ return Math.abs(w.start - year) < 0.02; });
   if (wi < 0) wi = WINDOWS.findIndex(function(w){ return w.start <= year && w.end > year; });
   if (wi < 0) wi = WINDOWS.length - 1;
   Array.prototype.forEach.call(document.querySelectorAll('#modes button'), function(b){ b.setAttribute('aria-pressed', b.dataset.mode === mode ? 'true' : 'false'); });
@@ -1051,20 +1058,20 @@ Array.prototype.forEach.call(document.querySelectorAll('#modes button'), functio
 
 // ---------- URL state: #mode=century&y=1965&e=Apollo_11 ----------
 function writeHash(){
-  var parts = ['mode=' + mode, 'y=' + WINDOWS[wi].start];
+  var parts = ['mode=' + mode, 'y=' + (Math.round(WINDOWS[wi].start * 100) / 100)];
   if (selected) parts.push('e=' + encodeURIComponent(selected.slug));
   history.replaceState(null, '', '#' + parts.join('&'));
 }
 function readHash(){
   var h = {}; location.hash.slice(1).split('&').forEach(function(p){ var kv = p.split('='); if (kv[0]) h[kv[0]] = decodeURIComponent(kv[1] || ''); });
   if (h.mode && ERA_SETS[h.mode] && h.mode !== mode) setMode(h.mode, h.y ? +h.y : null);
-  else if (h.y){ var y = +h.y; var i = WINDOWS.findIndex(function(w){ return w.start === y; }); if (i < 0) i = WINDOWS.findIndex(function(w){ return w.start <= y && w.end > y; }); if (i >= 0 && i !== wi){ wi = i; bindWindow(); syncHeader(); placeHandle(); resetTicker(); } }
+  else if (h.y){ var y = +h.y; var i = WINDOWS.findIndex(function(w){ return Math.abs(w.start - y) < 0.02; }); if (i < 0) i = WINDOWS.findIndex(function(w){ return w.start <= y && w.end > y; }); if (i >= 0 && i !== wi){ wi = i; bindWindow(); syncHeader(); placeHandle(); resetTicker(); } }
   if (h.e){
     var w = WINDOWS[wi];
     var matches = EVENTS.filter(function(x){ return x.slug === h.e; });
-    var e = matches.find(function(x){ return x.start <= w.end && x.end >= w.start; }) || matches[0];
+    var e = matches.find(function(x){ return inWindow(x, w); }) || matches[0];
     if (e){
-      if (!(e.start <= w.end && e.end >= w.start)){ var i = WINDOWS.findIndex(function(win){ return e.start <= win.end && e.end >= win.start; }); if (i >= 0) wi = i; }
+      if (!inWindow(e, w)){ var i = WINDOWS.findIndex(function(win){ return inWindow(e, win); }); if (i >= 0) wi = i; }
       bindWindow(); syncHeader(); placeHandle(); spinTo(e); openPanel(e);
     }
   }
@@ -1079,7 +1086,7 @@ var LINKS_BY_SLUG = {};
 LINKS.forEach(function(l){ (LINKS_BY_SLUG[l[0]] = LINKS_BY_SLUG[l[0]] || []).push(l); });
 function coincidences(){
   var w = WINDOWS[wi];
-  var inWin = EVENTS.filter(function(e){ return e.start <= w.end && e.end >= w.start; });
+  var inWin = EVENTS.filter(function(e){ return inWindow(e, w); });
   var bySlug = {};
   inWin.forEach(function(e){ if (!bySlug[e.slug]) bySlug[e.slug] = e; });
   var pairs = [], seen = {};
