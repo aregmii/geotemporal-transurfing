@@ -295,9 +295,13 @@ def run_query(cache_key, sparql):
             print("  rate limited; sleeping 60 s", file=sys.stderr)
             time.sleep(60)
             response = requests.get(ENDPOINT, params={"query": sparql}, headers=headers, timeout=95)
+        if response.status_code == 429:
+            print("  still rate limited; sleeping 120 s and retrying once more", file=sys.stderr)
+            time.sleep(120)
+            response = requests.get(ENDPOINT, params={"query": sparql}, headers=headers, timeout=95)
         if response.status_code != 200:
             print("  FAILED " + cache_key + " with HTTP " + str(response.status_code) + " — skipping (likely a 60 s timeout)", file=sys.stderr)
-            LAST_FAILURE["kind"] = "timeout"
+            LAST_FAILURE["kind"] = "ratelimit" if response.status_code == 429 else "timeout"
             time.sleep(PAUSE_SECONDS)
             return {"results": {"bindings": []}}
         payload = response.json()
@@ -592,9 +596,9 @@ def run_sliced(query, key_prefix, params, day_from, day_to, days):
         if failed and LAST_FAILURE["kind"] == "connection":
             raise ConnectionError("query service unreachable")
         # fail fast: a query that times out even on a tiny slice is hopeless, not slow
-        STREAK["n"] = STREAK["n"] + 1 if failed else 0
-        if STREAK["n"] >= 8:
-            raise ConnectionError(key_prefix + " timed out 8 times in a row — the query needs rewriting, not smaller slices")
+        STREAK["n"] = STREAK["n"] + 1 if (failed and LAST_FAILURE["kind"] == "timeout") else (0 if not failed else STREAK["n"])
+        if STREAK["n"] >= 15:
+            raise ConnectionError(key_prefix + " timed out 15 times in a row — the query needs rewriting, not smaller slices")
         if (failed or len(bindings) >= SLICE_LIMIT) and days > SLICE_MIN_DAYS:
             print("  splitting " + key + (" (timed out)" if failed else " (hit the row cap)"), file=sys.stderr)
             for b in run_sliced(query, key_prefix, params, cursor, end, max(SLICE_MIN_DAYS, days // 2)):
@@ -621,8 +625,13 @@ def collect_dated(rows):
     best = {}
     for day_from, day_to, days in wide_slices():
         print("dated: " + str(day_from.year) + " to " + str(day_to.year), file=sys.stderr)
-        for binding in list(run_sliced(DATED_QUERY, "dated4", {"min_sitelinks": DATED_MIN_SITELINKS, "prop": "P585"}, day_from, day_to, days)) + \
-                       list(run_sliced(DATED_QUERY, "dated4start", {"min_sitelinks": DATED_MIN_SITELINKS, "prop": "P580"}, day_from, day_to, days)):
+        # two passes (point in time, then start time), consumed as they stream so a stop halfway keeps what came back
+        def both_passes():
+            for b in run_sliced(DATED_QUERY, "dated4", {"min_sitelinks": DATED_MIN_SITELINKS, "prop": "P585"}, day_from, day_to, days):
+                yield b
+            for b in run_sliced(DATED_QUERY, "dated4start", {"min_sitelinks": DATED_MIN_SITELINKS, "prop": "P580"}, day_from, day_to, days):
+                yield b
+        for binding in both_passes():
             qid = value_of(binding, "item").rsplit("/", 1)[-1]
             point, point_key = first_point(binding, ["coord", "placeCoord", "countryCoord"])
             if point is None:

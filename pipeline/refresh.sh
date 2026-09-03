@@ -13,11 +13,16 @@ if [ "${1:-}" = "--all" ]; then IMAGE_FROM=-4000000; fi
 echo "== 1/5 events from Wikidata"
 python3 extract_events.py || echo "   (some queries failed — continuing with what came back)"
 
+echo "== 1b. events from Wikipedia's year-by-country pages (2000 onward)"
+python3 fetch_year_pages.py --from 2000 --to 2026 --out events_yearpages.json || echo "   (year pages failed — continuing without them)"
+
 echo "== 2/5 Wikipedia lead paragraphs"
 python3 fetch_summaries.py events_wikidata.json
+[ -f events_yearpages.json ] && python3 fetch_summaries.py events_yearpages.json
 
 echo "== 3/5 licensed images from Commons (from year $IMAGE_FROM)"
 python3 fetch_images.py events_wikidata.json --from "$IMAGE_FROM" --img-dir ../site/img --out ../site/data/images.json
+[ -f events_yearpages.json ] && python3 fetch_images.py events_yearpages.json --from "$IMAGE_FROM" --img-dir ../site/img --out ../site/data/images.json
 
 echo "== 4/5 images for curated events that have no Wikidata row"
 node -e '

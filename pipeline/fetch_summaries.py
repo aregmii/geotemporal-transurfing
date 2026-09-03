@@ -37,17 +37,17 @@ def fetch_summary(slug):
     url = "https://en.wikipedia.org/api/rest_v1/page/summary/" + urllib.parse.quote(slug, safe="")
     try:
         response = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=30)
-    except requests.RequestException as error:
+        if response.status_code != 200:
+            payload = {"extract": None, "thumbnail": None, "status": response.status_code}
+        else:
+            body = response.json()
+            thumbnail = None
+            if isinstance(body, dict) and body.get("thumbnail"):
+                thumbnail = body["thumbnail"].get("source")
+            payload = {"extract": body.get("extract") if isinstance(body, dict) else None, "thumbnail": thumbnail, "status": 200}
+    except Exception as error:   # network, non-JSON reply, anything: never let one article stop the run
         print("  " + slug + ": " + type(error).__name__ + " — left for the next run", file=sys.stderr)
         return {"extract": None, "thumbnail": None, "status": 0}
-    if response.status_code != 200:
-        payload = {"extract": None, "thumbnail": None, "status": response.status_code}
-    else:
-        body = response.json()
-        thumbnail = None
-        if "thumbnail" in body and body["thumbnail"] is not None:
-            thumbnail = body["thumbnail"].get("source")
-        payload = {"extract": body.get("extract"), "thumbnail": thumbnail, "status": 200}
     with open(cache_path, "w", encoding="utf-8") as cache_file:
         json.dump(payload, cache_file)
     time.sleep(PAUSE_SECONDS)
