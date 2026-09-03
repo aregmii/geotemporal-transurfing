@@ -2,7 +2,7 @@
 
 A globe with a time slider. Spin to a place, slide to a moment, click an event: a photograph, a paragraph, a source, and what was happening elsewhere in the world at the same time.
 
-One rail for now: **2000–2025**, a slider whose 5-year window you drag a year at a time (**Last 100 years** and **All of history** still exist behind `#mode=century` / `#mode=all`). A ticker at the bottom shows consequences Wikidata records between events in the window ("September 11 attacks — led to — War in Afghanistan"), and otherwise same-day coincidences on different sides of the world. Events with a video clip play it, muted, inside their hologram card. With clips fetched, a **Sound** toggle plays each event's audio or video louder as you zoom toward its card.
+One rail for now: **2000–2025**, a slider whose 5-year window you drag a year at a time (**Last 100 years** and **All of history** still exist behind `#mode=century` / `#mode=all`). A ticker at the bottom shows consequences Wikidata records between events in the window ("September 11 attacks — led to — War in Afghanistan"), and otherwise same-day coincidences on different sides of the world. Events with a video clip play it, muted, inside their hologram card; cards without a photo animate their category glyph (conflict flashes, disasters ripple, science orbits). With clips fetched, a **Sound** toggle plays each event's audio or video louder as you zoom toward its card.
 
 ## How it works
 
@@ -54,6 +54,8 @@ One event is one row in `site/data/events.json`:
 | 9 | slug | English Wikipedia article name; also the key into `images.json` |
 | 10 | date | exact date `YYYY-MM-DD` when Wikidata records one, else `null`. For the class queries a date on 1 January is treated as year-precision and dropped (the `wdt:` value carries no precision flag); the wide pull checks precision and keeps them; `pipeline/curated_dates.json` fills in checked dates for curated rows |
 | 11 | who | discoverer, inventor or author, when known |
+| 12 | end date | exact end `YYYY-MM-DD` for events that ran for a while (from Wikidata P582); the event stays on the map for its whole span |
+| 13 | article name | the Wikipedia title; index 0 is now a **headline** ("Argentina wins 2022 FIFA World Cup Final", "Ural Airlines Flight 178 crashes, 0 killed" never — deaths only when known) built by `merge.js` from `pipeline/facts.json` (winner, deaths, magnitude) and the lead sentence, or taken from `pipeline/headlines.json` when `headlines_llm.py` has run |
 
 `site/data/images.json` maps slug → `{ file, author, license, licenseUrl, source, filePage }`. Only files under Creative Commons, CC0, public-domain or GFDL terms are kept; the app shows the credit in every panel. `site/data/media.json` does the same for clips (`{ file, kind, title, author, license, licenseUrl, filePage, seconds }`), found via `pipeline/curated_media.json`, the item's Wikidata audio/video (P51/P10), then a Commons search; same licence rule.
 
@@ -80,6 +82,8 @@ pipeline/
   fetch_images.py     Commons licence check + thumbnails → site/img
   fetch_media.py      one licensed audio/video clip per major event → site/media (curated_media.json first; video preferred, gifs become webm)
   fetch_links.py      consequence links between events (P1542 has effect, P828 has cause, P361 part of, …) → site/data/links.json
+  fetch_facts.py      winner / elected / deaths / magnitude / exact start+end per event → facts.json (headlines and spans)
+  headlines_llm.py    optional: Claude writes a headline per event from the lead paragraph → headlines.json (needs ANTHROPIC_API_KEY, ≈$4 per 10k events)
   merge.js            curated + Wikidata rows, dedupe, clean-up, weight by rank
   curated_dates.json  exact dates for curated rows (slug → YYYY-MM-DD)
   build.js            runs merge into site/data/events.json

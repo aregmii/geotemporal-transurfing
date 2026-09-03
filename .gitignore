@@ -12,3 +12,9 @@ playground.html
 pipeline/skybake_in.json
 pipeline/mw_mask.pgm
 pipeline/media_cache/
+pipeline/.env
+pipeline/facts_cache/
+pipeline/headlines_cache/
+pipeline/links_cache/
+pipeline/facts.json
+pipeline/headlines.json

@@ -20,12 +20,14 @@ var CATS = {
 
 function parseRow(r, i){
   var e = { id:i, title:r[0], lat:r[1], lon:r[2], start:r[3], end:r[4], cat:r[5], w:r[6], place:r[7], desc:r[8], slug:r[9],
-            date:(typeof r[10] === 'string' && /^-?\d{1,6}-\d{2}-\d{2}$/.test(r[10]) && !/-01-01$/.test(r[10])) ? r[10] : null, who:r[11] || null };
-  // time bounds in fractional years: a dated event is a point, a year-only event covers its whole year(s)
-  if (e.date){ var m = /^(-?\d+)-(\d\d)-(\d\d)$/.exec(e.date); e.t0 = +m[1] + (+m[2] - 1) / 12 + (+m[3] - 1) / 365; e.t1 = e.t0 + 1 / 365; }
+            date:(typeof r[10] === 'string' && /^-?\d{1,6}-\d{2}-\d{2}$/.test(r[10]) && !/-01-01$/.test(r[10])) ? r[10] : null, who:r[11] || null,
+            endDate:(typeof r[12] === 'string' && /^-?\d{1,6}-\d{2}-\d{2}$/.test(r[12])) ? r[12] : null, name:r[13] || r[0] };
+  // time bounds in fractional years: a dated event is a point (or its exact span), a year-only event covers its whole year(s)
+  if (e.date){ e.t0 = fracOfDate(e.date); e.t1 = e.endDate ? Math.max(e.t0 + 1 / 365, fracOfDate(e.endDate)) : (e.end > e.start ? e.end + 1 : e.t0 + 1 / 365); }
   else { e.t0 = e.start; e.t1 = e.end + 1; }
   return e;
 }
+function fracOfDate(iso){ var m = /^(-?\d+)-(\d\d)-(\d\d)$/.exec(iso); return +m[1] + (+m[2] - 1) / 12 + (+m[3] - 1) / 365; }
 function inWindow(e, w){ return e.t0 < w.end && e.t1 > w.start; }
 function fracYear(y){ return Math.round(y * 12) / 12; }
 var EVENTS = RAW.map(parseRow);
@@ -479,6 +481,54 @@ function cardTexture(e, onReady){
 }
 var GLYPH_TEX = {};
 Object.keys(CATS).forEach(function(k){ GLYPH_TEX[k] = cardTexture({ cat:k, slug:'' }, function(){}); });
+// Cards without a photo or clip animate their category glyph so the kind of event reads at a glance:
+// conflict flashes, disasters send out shockwaves, science orbits, culture breathes. One shared texture per category.
+var GLYPH_LIVE = {};
+Object.keys(CATS).forEach(function(k){
+  var c = document.createElement('canvas'); c.width = 256; c.height = 192;
+  GLYPH_LIVE[k] = { canvas:c, ctx:c.getContext('2d'), tex:new THREE.CanvasTexture(c), painter:cardTexture({ cat:k, slug:'' }, 'painter') };
+});
+function paintLiveGlyph(k, t){
+  var L = GLYPH_LIVE[k], ctx = L.ctx, cw = 256, ch = 192, col = css(CATS[k].v);
+  L.painter(null, L.canvas);                       // frame, scanlines, badge — same as the static card
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  var cx = cw / 2, cy = ch / 2;
+  if (k === 'dis'){
+    for (var i = 0; i < 3; i++){
+      var ph = ((t / 1400) + i / 3) % 1;
+      ctx.beginPath(); ctx.arc(cx, cy, 20 + ph * 95, 0, 2 * Math.PI);
+      ctx.strokeStyle = col; ctx.globalAlpha = (1 - ph) * 0.55; ctx.lineWidth = 3; ctx.stroke();
+    }
+  } else if (k === 'con'){
+    var f = 0.5 + 0.5 * Math.sin(t / 160) * Math.sin(t / 530);
+    ctx.globalAlpha = 0.25 + 0.45 * f;
+    var g = ctx.createRadialGradient(cx, cy, 10, cx, cy, 110); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, cw, ch);
+  } else if (k === 'sci'){
+    for (var j = 0; j < 3; j++){
+      var a = t / 700 + j * 2.1, rx = 52 + j * 6, ry = 22 + j * 8, rot = j * Math.PI / 3;
+      var x = Math.cos(a) * rx, y = Math.sin(a) * ry;
+      var px = cx + x * Math.cos(rot) - y * Math.sin(rot), py = cy + x * Math.sin(rot) + y * Math.cos(rot);
+      ctx.beginPath(); ctx.arc(px, py, 5, 0, 2 * Math.PI); ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.9; ctx.fill();
+    }
+  } else {
+    ctx.globalAlpha = 0.18 + 0.14 * Math.sin(t / 900);
+    var g2 = ctx.createRadialGradient(cx, cy, 5, cx, cy, 120); g2.addColorStop(0, col); g2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g2; ctx.fillRect(0, 0, cw, ch);
+  }
+  ctx.restore();
+  L.tex.needsUpdate = true;
+}
+var glyphLast = 0;
+function updateLiveGlyphs(now){
+  if (now - glyphLast < 50) return false;          // 20 fps is plenty for a glow
+  glyphLast = now;
+  var used = {};
+  for (var i = 0; i < shown.length; i++){ var e = shown[i]; if (e.holder && e.holder.visible && !IMAGES[e.slug]) used[e.cat] = true; }
+  var any = false;
+  Object.keys(used).forEach(function(k){ paintLiveGlyph(k, now); any = true; });
+  return any;
+}
 
 var shown = [];   // events currently bound to pool holders
 var windowTotal = 0;
@@ -492,7 +542,7 @@ function bindWindow(){
   shown.forEach(function(e, i){
     var h = POOL[i], u = h.userData;
     var tex = cardTexture(e, function(t){ if (e.holder === h){ u.card.material.map = t; u.card.material.needsUpdate = true; render(); } });
-    u.card.material.map = tex || GLYPH_TEX[e.cat]; u.card.material.needsUpdate = true;
+    u.card.material.map = tex || (GLYPH_LIVE[e.cat] ? GLYPH_LIVE[e.cat].tex : GLYPH_TEX[e.cat]); u.card.material.needsUpdate = true;
     u.beam.material.color.set(css(CATS[e.cat].v));
     h.position.copy(e.foot); h.quaternion.copy(e.quat);
     e.holder = h; e.stackH = 0;
@@ -668,9 +718,9 @@ function openPanel(e){
           '<div class="side">' + right.map(neighbour).join('') + '</div></div>';
   if (credit) html += '<div class="mcredit">' + credit + '</div>';
   html += '<h2>' + e.title + '</h2>';
-  html += '<div class="pmeta">' + when + (e.who ? '<br>BY ' + e.who : '') + '<br>' + e.place + '</div>';
+  html += '<div class="pmeta">' + when + (e.endDate ? ' – ' + dayLabel(e.endDate) : '') + (e.who ? '<br>BY ' + e.who : '') + '<br>' + e.place + '</div>';
   html += '<p class="pdesc">' + e.desc + '</p>';
-  html += '<a class="plink" target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/' + e.slug + '">Read more →</a>';
+  html += '<a class="plink" target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/' + e.slug + '">' + (e.name !== e.title ? e.name.replace(/</g, '&lt;') + ' on Wikipedia →' : 'Read more →') + '</a>';
   p.innerHTML = html;
   p.classList.add('on');
   p.classList.toggle('wide', ctxEls.length > 0);
@@ -885,6 +935,7 @@ function kenBurns(t){
 }
 function tick(){
   kenBurns(performance.now()); tickPlay(performance.now()); if (selected) render();
+  if (updateLiveGlyphs(performance.now()) && !selected) render();
   if (SOUND.on) updateSound();
   if (liveClips){ updateLive(); if (!selected) render(); }
   if (!dragging && (Math.abs(velX) > 0.0003 || Math.abs(velY) > 0.0003)){

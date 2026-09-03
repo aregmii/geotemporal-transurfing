@@ -45,6 +45,7 @@ for (const file of curatedFiles) {
     const slug = (row[9] || '').toLowerCase();
     while (row.length < 12) row.push(null);
     if (!row[10] && row[9] && curatedDates[row[9]]) row[10] = curatedDates[row[9]];
+    row._curated = true;                     // hand-written title and text: left alone by the headline step
     if (slug) { seenSlug.add(slugKey(slug, row[0])); curatedBySlug.set(slugKey(slug, row[0]), row); }
     seenTitle.add(normalizeTitle(row[0]));
     curatedByTitle.set(normalizeTitle(row[0]), row);
@@ -137,6 +138,57 @@ let mergedDeaths = 0;
 for (let i = out.length - 1; i >= 0; i--) {
   const m = /^death of (.+)$/i.exec(out[i][0]);
   if (m && assassinated.has(normalizeTitle(m[1]) + '|' + out[i][3])) { out.splice(i, 1); mergedDeaths++; }
+}
+
+// ---- headlines: say what happened, not what the article is called ----
+// facts.json (fetch_facts.py) gives winner / deaths / magnitude / exact span; headlines.json (headlines_llm.py, optional)
+// gives a written headline. Without either, the first sentence of the Wikipedia lead supplies the predicate.
+let facts = {}, written = {};
+try { facts = JSON.parse(fs.readFileSync(require('path').join(__dirname, 'facts.json'), 'utf8')); } catch (e) { /* optional */ }
+try { written = JSON.parse(fs.readFileSync(require('path').join(__dirname, 'headlines.json'), 'utf8')); } catch (e) { /* optional */ }
+function fmtNum(n) { return n >= 1000 ? n.toLocaleString('en-US') : String(n); }
+function predicateOf(title, lead) {
+  // "X was a Formula One motor race that took place on ..." -> "Formula One motor race"
+  let first = String(lead || '').replace(/\u00a0/g, ' ').split(/(?<=[a-z0-9\)])\.\s+(?=[A-Z])/)[0].replace(/\s+/g, ' ').trim();
+  if (!first) return '';
+  // "On 26 May 2017, masked gunmen opened fire on ..." -> "masked gunmen opened fire on ..." (the whole clause, subject included)
+  const bad = p => !p || p.length < 12 || title.toLowerCase().indexOf(p.toLowerCase().replace(/[.…]+$/, '')) >= 0 || /^(at|around|about|approximately|shortly|just)\s/i.test(p);
+  let m = /^(?:On|In|At|During|From)\s+(?:the\s+)?(?:early|late|morning of|evening of|night of)?\s*[\w\d ,–-]*?\d{4},\s+(?:at\s+(?:about |around |approximately )?[\d:.]+\s*[ap]?\.?m?\.?\s*(?:[A-Z]{2,5})?\s*(?:\([^)]*\))?,\s+)?(.+)$/.exec(first);
+  let pred = m ? m[1] : '';
+  if (bad(pred)) {
+    m = /\b(?:was|is|were|are)\s+(?:an?\s+|the\s+)?(.+)$/i.exec(first);
+    pred = m ? m[1] : '';
+  }
+  if (bad(pred)) return '';
+  pred = pred.split(/,|;|\s(?:that|which|when|after|while|where|whose|in which|during which|held|played)\s/)[0].trim();
+  pred = pred.replace(/\s+\(.*?\)/g, '').replace(/\s+(?:on|from|between|at|for)\s+\d.*$/, '').trim();
+  if (pred.length > 80) pred = pred.slice(0, 80).replace(/\s+\S*$/, '') + '…';
+  pred = pred.replace(/[.\s]+$/, '');
+  return bad(pred) ? '' : pred;
+}
+function headline(row) {
+  const title = row[0], slug = row[9], lead = row[8] || '', f = facts[slug] || {};
+  if (written[slug]) return written[slug];
+  const lower = title.toLowerCase();
+  if (f.winner && /final|cup|championship|grand prix|super bowl|open|masters|derby|race|bowl|series|tournament|olympic|games\b/.test(lower)) return f.winner + ' wins ' + title.replace(/^the /i, '');
+  if (f.elected && /election/.test(lower)) return f.elected + ' wins ' + title.replace(/^the /i, '');
+  if (f.winner && /battle|siege|war\b/.test(lower)) return title + ': ' + f.winner + ' victorious';
+  if (f.magnitude && /earthquake/.test(lower)) return 'M' + f.magnitude + ' ' + title + (f.deaths ? ', ' + fmtNum(f.deaths) + ' killed' : '');
+  if (f.deaths && /flight|crash|air|ferry|sinking|disaster|derail|collision/.test(lower)) return title + (/flight/.test(lower) ? (/shot down|shootdown/i.test(lead) ? ' shot down, ' : ' crashes, ') : ': ') + fmtNum(f.deaths) + ' killed';
+  if (f.deaths && /attack|bombing|shooting|massacre|stampede|fire|flood|cyclone|hurricane|typhoon|storm|tsunami|explosion|landslide|heat wave|avalanche/.test(lower)) return title + ': ' + fmtNum(f.deaths) + ' killed';
+  if (/^(birth|death) of /i.test(title)) { const p = predicateOf(title, lead); return p ? title + ', ' + p.replace(/^(?:the|an?)\s+/i, '') : title; }
+  if (/^(discovery|invention) of /i.test(title) || / introduced$/.test(title) || /^constellation /i.test(title)) return title;
+  const p = predicateOf(title, lead);
+  return p ? title + ': ' + p : title;
+}
+for (const r of out) {
+  const f = facts[r[9]] || {};
+  while (r.length < 14) r.push(null);
+  r[13] = r[0];                                   // the article name, for search and for the panel
+  if (!r._curated) r[0] = written[r[9]] ? written[r[9]] : headline(r);
+  delete r._curated;
+  if (!r[10] && f.start) r[10] = f.start;         // exact start when the class query only had a year
+  r[12] = f.end && f.end !== r[10] ? f.end : null; // exact end: the event persists over its whole span
 }
 
 // Weight by rank among Wikidata rows: top 8% -> 4, next 17% -> 3, next 30% -> 2, rest 1.
