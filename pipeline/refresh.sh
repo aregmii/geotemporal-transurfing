@@ -1,5 +1,5 @@
 #!/bin/bash
-# Geotemporal Transfusion — full data refresh. Run from anywhere:
+# Geotemporal Transfusing — full data refresh. Run from anywhere:
 #   pipeline/refresh.sh            # events + summaries + images for the last century
 #   pipeline/refresh.sh --all      # images for every event, not only the last century
 # Every step caches and resumes; re-running is cheap.

@@ -1,4 +1,4 @@
-# Geotemporal Transfusion
+# Geotemporal Transfusing
 
 A globe with a time slider. Spin to a place, slide to a moment, click an event: a photograph, a paragraph, a source, and what was happening elsewhere in the world at the same time.
 

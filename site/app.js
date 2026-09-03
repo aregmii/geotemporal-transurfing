@@ -865,7 +865,7 @@ canvas.addEventListener('wheel', function(ev){
   ev.preventDefault();
   camDist = Math.max(1.6, Math.min(140, camDist * (ev.deltaY > 0 ? 1.07 : 0.93)));
   hovered = null; document.getElementById('tip').classList.remove('on');
-  bindWindow(); bumpIdle(); render();
+  bindWindow(); render();                 // zooming does not stop the globe turning
 }, { passive:false });
 
 // ---------- idle spin ----------
@@ -880,7 +880,7 @@ function kenBurns(t){
   tex.repeat.set(z, z); tex.offset.set((1 - z) / 2 + 0.05 * Math.sin(t / 3100), (1 - z) / 2 + 0.05 * Math.cos(t / 4300));
 }
 function tick(){
-  kenBurns(performance.now()); if (selected) render();
+  kenBurns(performance.now()); tickPlay(performance.now()); if (selected) render();
   if (SOUND.on) updateSound();
   if (liveClips){ updateLive(); if (!selected) render(); }
   if (!dragging && (Math.abs(velX) > 0.0003 || Math.abs(velY) > 0.0003)){
@@ -889,9 +889,55 @@ function tick(){
     velX *= 0.965; velY *= 0.965;           // decay: a flick coasts for a second or two, then settles
     render();
   } else if (idle && !selected && !dragging){
-    qTmp.setFromAxisAngle(AY, 0.00035); globe.quaternion.premultiply(qTmp); render();
+    qTmp.setFromAxisAngle(AY, spinSpeed); globe.quaternion.premultiply(qTmp); render();
   }
   requestAnimationFrame(tick);
+}
+
+// ---------- spin speed (left) and time playback (right) ----------
+var spinSpeed = 0.00045;
+var spinRange = document.getElementById('spinRange'), spinVal = document.getElementById('spinVal');
+function spinFromSlider(v){ return v === 0 ? 0 : 0.00015 * Math.pow(1.03, v); }     // 0 .. ~0.0029 rad/frame; 30 -> 0.00036
+function setSpin(v){
+  spinSpeed = spinFromSlider(v);
+  var secPerTurn = spinSpeed > 0 ? (2 * Math.PI / spinSpeed) / 60 : 0;
+  spinVal.textContent = spinSpeed === 0 ? 'STILL' : (secPerTurn >= 60 ? Math.round(secPerTurn / 60) + ' MIN' : Math.round(secPerTurn) + ' S') + '\nPER TURN';
+  try { localStorage.setItem('gt-spin', String(v)); } catch (e) {}
+}
+if (spinRange){
+  var savedSpin = null; try { savedSpin = localStorage.getItem('gt-spin'); } catch (e) {}
+  if (savedSpin !== null) spinRange.value = savedSpin;
+  spinRange.oninput = function(){ setSpin(+spinRange.value); };
+  setSpin(+spinRange.value);
+}
+var playing = false, playAcc = 0, playLast = 0, yearsPerSec = 0.2;
+var playRange = document.getElementById('playRange'), playVal = document.getElementById('playVal'), playBtn = document.getElementById('playBtn');
+function speedFromSlider(v){ return 0.02 * Math.pow(1.047, v); }                    // 0 -> 1 yr / 50 s ... 40 -> 1 yr / 8 s ... 100 -> 2 yr / s
+function setPlaySpeed(v){
+  yearsPerSec = speedFromSlider(v);
+  var secPerYear = 1 / yearsPerSec;
+  playVal.textContent = secPerYear >= 1 ? '1 YEAR\n/ ' + (secPerYear >= 10 ? Math.round(secPerYear) : secPerYear.toFixed(1)) + ' S' : yearsPerSec.toFixed(1) + ' YEARS\n/ S';
+}
+function setPlaying(on){
+  playing = on; playAcc = 0; playLast = performance.now();
+  playBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); playBtn.textContent = on ? '❚❚' : '▶';
+}
+if (playRange){
+  playRange.oninput = function(){ setPlaySpeed(+playRange.value); };
+  setPlaySpeed(+playRange.value);
+  playBtn.onclick = function(){
+    if (!playing && wi >= WINDOWS.length - 1) setWindow(0);            // at the end: start over from the first window
+    setPlaying(!playing);
+  };
+}
+function tickPlay(now){
+  if (!playing) return;
+  playAcc += (now - playLast) / 1000 * yearsPerSec; playLast = now;
+  if (playAcc >= 1){
+    playAcc -= 1;
+    if (wi >= WINDOWS.length - 1){ setPlaying(false); return; }
+    setWindow(wi + 1);
+  }
 }
 
 // ---------- rail ----------
@@ -948,13 +994,14 @@ function railSet(clientX, first){
   setWindow(era2.first + Math.min(era2.count - 1, Math.floor(within * era2.count)));
 }
 var railDrag = false;
-track.addEventListener('pointerdown', function(ev){ railDrag = true; track.setPointerCapture(ev.pointerId); railSet(ev.clientX, true); });
+track.addEventListener('pointerdown', function(ev){ if (playing) setPlaying(false); railDrag = true; track.setPointerCapture(ev.pointerId); railSet(ev.clientX, true); });
 track.addEventListener('pointermove', function(ev){ if (railDrag) railSet(ev.clientX); });
 track.addEventListener('pointerup', function(){ railDrag = false; });
 window.addEventListener('keydown', function(ev){
   if (ev.key === 'ArrowLeft'){ setWindow(wi - 1); ev.preventDefault(); }
   if (ev.key === 'ArrowRight'){ setWindow(wi + 1); ev.preventDefault(); }
   if (ev.key === 'Escape') closePanel();
+  if (ev.key === ' ' && ev.target === document.body && playBtn){ playBtn.onclick(); ev.preventDefault(); }
 });
 function setWindow(next){
   next = Math.max(0, Math.min(WINDOWS.length - 1, next));
@@ -963,7 +1010,7 @@ function setWindow(next){
   hovered = null; document.getElementById('tip').classList.remove('on'); canvas.style.cursor = '';
   if (selected && !(selected.start <= WINDOWS[wi].end && selected.end >= WINDOWS[wi].start)) closePanel();
   else if (selected) openPanel(selected);
-  bindWindow(); syncHeader(); placeHandle(); bumpIdle(); render(); writeHash(); resetTicker();
+  bindWindow(); syncHeader(); placeHandle(); render(); writeHash(); resetTicker();   // the globe keeps turning while the slider moves
   ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added, latest){ if (added && latest){ bindWindow(); render(); resetTicker(); } });
 }
 function syncHeader(){

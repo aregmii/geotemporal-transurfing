@@ -1,5 +1,5 @@
 """
-Geotemporal Transfusion — fetch, license-check and pack event images from Wikimedia Commons.
+Geotemporal Transfusing — fetch, license-check and pack event images from Wikimedia Commons.
 
 Run:   python3 fetch_images.py events_wikidata.json --from 1926 --img-dir ../site/img --out ../site/data/images.json
 Needs: pip install requests pillow
@@ -27,7 +27,7 @@ import urllib.parse
 
 import requests
 
-USER_AGENT = "GeotemporalTransfusion/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
+USER_AGENT = "GeotemporalTransfusing/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 CACHE_DIR = "img_cache"
 PAUSE_SECONDS = 0.15

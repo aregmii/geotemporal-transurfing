@@ -5,7 +5,12 @@ const fs = require('fs'), path = require('path');
 const { execFileSync } = require('child_process');
 const root = path.resolve(__dirname, '..'), site = path.join(root, 'site');
 const out = process.argv[2] || path.join(root, 'playground.html');
-const events = fs.readFileSync(path.join(site, 'data/events.json'), 'utf8');
+// the hosted playground must stay under 16 MB: it carries the rows the visible rail (2000–2025) can show, plus the
+// heaviest rows of earlier years for the hidden rails, and photos for those rows within a byte budget
+const allRows = JSON.parse(fs.readFileSync(path.join(site, 'data/events.json'), 'utf8'));
+const rowsKept = allRows.filter(r => r[4] >= 2000 || r[6] >= 4);
+const events = JSON.stringify(rowsKept);
+const PHOTO_BUDGET = 5.2 * 1048576;
 const borders = fs.readFileSync(path.join(site, 'assets/countries-110m.json'), 'utf8');
 const skyLabels = fs.readFileSync(path.join(site, 'assets/skylabels.json'), 'utf8');
 const skyImage = 'data:image/jpeg;base64,' + fs.readFileSync(path.join(site, 'assets/sky.jpg')).toString('base64');
@@ -13,7 +18,7 @@ const astro = fs.readFileSync(path.join(site, 'vendor/astronomy.browser.min.js')
 const earth = 'data:image/jpeg;base64,' + fs.readFileSync(path.join(site, 'assets/earth.jpg')).toString('base64');
 const manifest = JSON.parse(fs.readFileSync(path.join(site, 'data/images.json'), 'utf8'));
 // only photos an event actually uses (the manifest also keeps rows that merge.js later dropped)
-const usedSlugs = new Set(JSON.parse(events).map(r => r[9]));
+const usedSlugs = new Set(rowsKept.map(r => r[9]));
 for (const slug of Object.keys(manifest)) if (!usedSlugs.has(slug)) delete manifest[slug];
 // shrink every photo to 208px / q55 with pillow, inline as data URI (the hosted artifact must stay under 16 MB)
 const tmp = path.join(root, '.playground-img'); fs.mkdirSync(tmp, { recursive: true });
@@ -25,16 +30,19 @@ man = json.load(open(os.path.join(site, 'data/images.json')))
 for slug, v in man.items():
     src = os.path.join(site, 'img', v['file']); dst = os.path.join(tmp, v['file'])
     if not os.path.exists(src) or os.path.exists(dst): continue
-    im = Image.open(src).convert('RGB'); w, h = im.size; k = min(1.0, 208 / max(w, h))
+    im = Image.open(src).convert('RGB'); w, h = im.size; k = min(1.0, 176 / max(w, h))
     if k < 1: im = im.resize((max(1, int(w * k)), max(1, int(h * k))), Image.LANCZOS)
-    im.save(dst, 'JPEG', quality=55, optimize=True, progressive=True)
+    im.save(dst, 'JPEG', quality=50, optimize=True, progressive=True)
 `;
 execFileSync('python3', ['-c', py, site, tmp], { stdio: 'inherit' });
 let bytes = 0;
-for (const slug of Object.keys(manifest)) {
+const rank = {}; rowsKept.forEach(r => { const v = (r[4] >= 2000 ? 10 : 0) + r[6]; if (!(r[9] in rank) || rank[r[9]] < v) rank[r[9]] = v; });
+for (const slug of Object.keys(manifest).sort((a, b) => (rank[b] || 0) - (rank[a] || 0))) {
   const f = path.join(tmp, manifest[slug].file);
   if (!fs.existsSync(f)) { delete manifest[slug]; continue; }
-  const b = fs.readFileSync(f); bytes += b.length;
+  const b = fs.readFileSync(f);
+  if (bytes + b.length > PHOTO_BUDGET) { delete manifest[slug]; continue; }
+  bytes += b.length;
   manifest[slug].file = 'data:image/jpeg;base64,' + b.toString('base64');
 }
 // clips: a small demo set inlined as data URIs — the ten heaviest events with a clip inside the United States,
@@ -43,7 +51,7 @@ let links = [];
 try { links = JSON.parse(fs.readFileSync(path.join(site, 'data/links.json'), 'utf8')); } catch (e) { /* no links yet */ }
 let media = {};
 try { media = JSON.parse(fs.readFileSync(path.join(site, 'data/media.json'), 'utf8')); } catch (e) { /* no clips yet */ }
-const weightOf = {}; JSON.parse(events).forEach(r => { weightOf[r[9]] = { w: r[6], us: r[1] > 24 && r[1] < 50 && r[2] > -125 && r[2] < -66 }; });
+const weightOf = {}; rowsKept.forEach(r => { weightOf[r[9]] = { w: r[6], us: r[1] > 24 && r[1] < 50 && r[2] > -125 && r[2] < -66 }; });
 const MEDIA_BUDGET = 2.4 * 1048576; let mediaBytes = 0; const mediaOut = {};
 Object.keys(media).filter(s => weightOf[s]).sort((a, b) => (weightOf[b].us - weightOf[a].us) || (weightOf[b].w - weightOf[a].w)).forEach(slug => {
   const f = path.join(site, 'media', media[slug].file);
