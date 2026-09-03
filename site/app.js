@@ -406,8 +406,10 @@ for (var pi = 0; pi < MAX_SHOWN; pi++){
   var base = new THREE.Sprite(new THREE.SpriteMaterial({ map:BASE_TEX, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending }));
   base.scale.set(0.03, 0.03, 1);
   var card = new THREE.Sprite(new THREE.SpriteMaterial({ map:SPRITE_TEX.con, transparent:true, depthTest:true, depthWrite:false }));
-  holder.add(beam); holder.add(base); holder.add(card);
-  holder.visible = false; holder.userData = { beam:beam, base:base, card:card };
+  var badge = new THREE.Sprite(new THREE.SpriteMaterial({ map:SPRITE_TEX.con, transparent:true, depthTest:false, depthWrite:false }));
+  badge.renderOrder = 3; badge.visible = false;
+  holder.add(beam); holder.add(base); holder.add(card); holder.add(badge);
+  holder.visible = false; holder.userData = { beam:beam, base:base, card:card, badge:badge };
   POOL.push(holder); markers.add(holder);
 }
 var Y_AXIS = new THREE.Vector3(0, 1, 0);
@@ -481,52 +483,159 @@ function cardTexture(e, onReady){
 }
 var GLYPH_TEX = {};
 Object.keys(CATS).forEach(function(k){ GLYPH_TEX[k] = cardTexture({ cat:k, slug:'' }, function(){}); });
+// ---------- animated icons by kind of event ----------
+// A plane going down, a tremor, a ballot dropping, a trophy, a rocket, a candle: drawn procedurally so every
+// event has a moving picture that says what kind of thing it was, whether or not a photo exists.
+var KIND_RULES = [
+  ['plane',   /flight \d|air crash|plane crash|airlines|aircraft|air disaster|airliner|helicopter/i],
+  ['rocket',  /^launch of|spaceflight|rocket|space shuttle|sts-\d|soyuz|apollo|artemis|satellite|probe|orbiter|lander|rover|mission to/i],
+  ['quake',   /earthquake|quake|tremor/i],
+  ['storm',   /hurricane|cyclone|typhoon|storm|tornado/i],
+  ['flood',   /flood|tsunami|dam failure/i],
+  ['volcano', /eruption|volcan/i],
+  ['fire',    /wildfire|bushfire|fire\b|blaze|inferno/i],
+  ['virus',   /pandemic|epidemic|outbreak|covid|ebola|cholera|plague|influenza/i],
+  ['blast',   /bombing|bombings|attack|attacks|explosion|shooting|massacre|assassination|killing of|stabbing|terror/i],
+  ['war',     /war\b|battle|siege|invasion|offensive|operation|coup|uprising|revolution|rebellion|insurgency|conflict|crisis|protests?|riots?|genocide|strike/i],
+  ['ballot',  /election|referendum|inaugurat|vote|elected/i],
+  ['trophy',  /final\b|finals|cup\b|championship|grand prix|super bowl|olympic|world series|tournament|open\b|derby|games\b|wins /i],
+  ['treaty',  /treaty|agreement|accord|summit|conference|convention|pact|armistice|ceasefire|peace/i],
+  ['birth',   /^birth of /i],
+  ['death',   /^death of /i],
+  ['orbit',   /discovery|discovered|invention|telescope|comet|asteroid|planet|nebula|galaxy|element|particle|experiment|observ|nobel|introduced$/i],
+];
+var KIND_DEFAULT = { con:'war', dis:'blast', sci:'orbit', cul:'culture' };
+function kindOf(e){
+  if (e.kind) return e.kind;
+  var text = e.name + ' ' + e.title;
+  for (var i = 0; i < KIND_RULES.length; i++) if (KIND_RULES[i][1].test(text)) return (e.kind = KIND_RULES[i][0]);
+  return (e.kind = KIND_DEFAULT[e.cat] || 'culture');
+}
+// draw one kind, centred at (0,0) in a 100-unit box, at time t (ms); col is the category colour
+function drawKind(ctx, kind, t, col){
+  var s = t / 1000, TAU = Math.PI * 2;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#fff'; ctx.fillStyle = '#fff'; ctx.lineWidth = 5;
+  function ring(r, a){ ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.globalAlpha = a; ctx.stroke(); ctx.globalAlpha = 1; }
+  if (kind === 'plane'){
+    var k = (s * 0.45) % 1;                                        // a plane descends across the box, trailing smoke
+    ctx.save(); ctx.translate(-45 + k * 90, -30 + k * 55); ctx.rotate(0.55);
+    ctx.beginPath(); ctx.moveTo(-22, 0); ctx.lineTo(22, 0); ctx.moveTo(-4, 0); ctx.lineTo(-12, -14); ctx.moveTo(-4, 0); ctx.lineTo(-12, 14); ctx.moveTo(-20, 0); ctx.lineTo(-24, -7); ctx.stroke();
+    ctx.restore();
+    for (var i = 1; i <= 4; i++){ var kk = k - i * 0.09; if (kk < 0) continue; ctx.beginPath(); ctx.arc(-45 + kk * 90, -30 + kk * 55, 3 + i * 1.5, 0, TAU); ctx.globalAlpha = 0.5 - i * 0.1; ctx.fillStyle = col; ctx.fill(); ctx.globalAlpha = 1; ctx.fillStyle = '#fff'; }
+  } else if (kind === 'rocket'){
+    var y = 30 - ((s * 0.5) % 1) * 80;                              // a rocket climbs, flame flickering
+    ctx.beginPath(); ctx.moveTo(0, y - 30); ctx.lineTo(10, y - 6); ctx.lineTo(10, y + 12); ctx.lineTo(-10, y + 12); ctx.lineTo(-10, y - 6); ctx.closePath(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-10, y + 4); ctx.lineTo(-18, y + 16); ctx.moveTo(10, y + 4); ctx.lineTo(18, y + 16); ctx.stroke();
+    var f = 10 + 8 * Math.abs(Math.sin(s * 25));
+    ctx.beginPath(); ctx.moveTo(-6, y + 12); ctx.lineTo(0, y + 12 + f); ctx.lineTo(6, y + 12); ctx.closePath(); ctx.fillStyle = col; ctx.fill(); ctx.fillStyle = '#fff';
+  } else if (kind === 'quake'){
+    var sh = Math.sin(s * 40) * 3 * (0.5 + 0.5 * Math.sin(s * 1.3));  // the ground line shakes and cracks
+    ctx.save(); ctx.translate(sh, 0);
+    ctx.beginPath(); ctx.moveTo(-45, 20); ctx.lineTo(-18, 20); ctx.lineTo(-8, 4); ctx.lineTo(2, 28); ctx.lineTo(12, 10); ctx.lineTo(20, 20); ctx.lineTo(45, 20); ctx.stroke();
+    ctx.restore();
+    for (var q = 0; q < 2; q++){ var ph = ((s * 0.9) + q * 0.5) % 1; ctx.strokeStyle = col; ring(12 + ph * 40, (1 - ph) * 0.7); ctx.strokeStyle = '#fff'; }
+  } else if (kind === 'storm'){
+    ctx.save(); ctx.rotate(-s * 2.2); ctx.strokeStyle = '#fff';       // a spiral turns
+    for (var arm = 0; arm < 3; arm++){ ctx.beginPath(); for (var a = 0; a < 3.2; a += 0.15){ var r = 6 + a * 11; var ang = a + arm * TAU / 3; var x = Math.cos(ang) * r, yy = Math.sin(ang) * r; if (a === 0) ctx.moveTo(x, yy); else ctx.lineTo(x, yy); } ctx.stroke(); }
+    ctx.restore();
+    ctx.beginPath(); ctx.arc(0, 0, 5, 0, TAU); ctx.fillStyle = col; ctx.fill(); ctx.fillStyle = '#fff';
+  } else if (kind === 'flood'){
+    for (var w = 0; w < 3; w++){ ctx.beginPath(); for (var x2 = -48; x2 <= 48; x2 += 4){ var yy2 = -18 + w * 18 + Math.sin(x2 / 9 + s * 4 + w) * 6; if (x2 === -48) ctx.moveTo(x2, yy2); else ctx.lineTo(x2, yy2); } ctx.globalAlpha = 1 - w * 0.25; ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  } else if (kind === 'volcano'){
+    ctx.beginPath(); ctx.moveTo(-42, 34); ctx.lineTo(-12, -14); ctx.lineTo(12, -14); ctx.lineTo(42, 34); ctx.closePath(); ctx.stroke();
+    for (var p = 0; p < 7; p++){ var ph2 = ((s * 0.8) + p * 0.14) % 1; var px = Math.sin(p * 2.3) * 22 * ph2, py = -14 - ph2 * 48 + ph2 * ph2 * 26; ctx.beginPath(); ctx.arc(px, py, 4 - ph2 * 2, 0, TAU); ctx.fillStyle = col; ctx.globalAlpha = 1 - ph2; ctx.fill(); }
+    ctx.globalAlpha = 1; ctx.fillStyle = '#fff';
+  } else if (kind === 'fire'){
+    for (var fl = 0; fl < 3; fl++){ var h = 30 + 14 * Math.sin(s * 9 + fl * 2.1), ox = (fl - 1) * 16; ctx.beginPath(); ctx.moveTo(ox - 12, 30); ctx.quadraticCurveTo(ox - 14, 30 - h * 0.5, ox, 30 - h); ctx.quadraticCurveTo(ox + 14, 30 - h * 0.5, ox + 12, 30); ctx.closePath(); ctx.fillStyle = fl === 1 ? '#fff' : col; ctx.globalAlpha = fl === 1 ? 0.9 : 0.7; ctx.fill(); }
+    ctx.globalAlpha = 1; ctx.fillStyle = '#fff';
+  } else if (kind === 'virus'){
+    var pulse = 1 + 0.08 * Math.sin(s * 5);
+    ctx.save(); ctx.scale(pulse, pulse); ctx.rotate(s * 0.6);
+    ctx.beginPath(); ctx.arc(0, 0, 18, 0, TAU); ctx.stroke();
+    for (var sp = 0; sp < 8; sp++){ var an = sp * TAU / 8; ctx.beginPath(); ctx.moveTo(Math.cos(an) * 18, Math.sin(an) * 18); ctx.lineTo(Math.cos(an) * 32, Math.sin(an) * 32); ctx.stroke(); ctx.beginPath(); ctx.arc(Math.cos(an) * 34, Math.sin(an) * 34, 4, 0, TAU); ctx.fillStyle = col; ctx.fill(); }
+    ctx.restore(); ctx.fillStyle = '#fff';
+  } else if (kind === 'blast'){
+    var b = (s * 1.1) % 1;                                          // a burst expands and fades, then again
+    ctx.save(); ctx.rotate(s * 0.3);
+    ctx.beginPath(); for (var r2 = 0; r2 < 12; r2++){ var an2 = r2 * TAU / 12, rad = (r2 % 2 ? 14 : 30) * (0.5 + b); ctx.lineTo(Math.cos(an2) * rad, Math.sin(an2) * rad); } ctx.closePath();
+    ctx.fillStyle = col; ctx.globalAlpha = 1 - b * 0.8; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = '#fff'; ctx.stroke();
+    ctx.restore(); ctx.fillStyle = '#fff';
+  } else if (kind === 'war'){
+    var clash = Math.max(0, Math.sin(s * 3));                        // crossed swords, a flash where they meet
+    ctx.beginPath(); ctx.moveTo(-30, 30); ctx.lineTo(30, -30); ctx.moveTo(-30, -30); ctx.lineTo(30, 30); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-33, 15); ctx.lineTo(-15, 33); ctx.moveTo(33, 15); ctx.lineTo(15, 33); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, 4 + clash * 12, 0, TAU); ctx.fillStyle = col; ctx.globalAlpha = 0.9 * clash; ctx.fill(); ctx.globalAlpha = 1; ctx.fillStyle = '#fff';
+  } else if (kind === 'ballot'){
+    var d = (s * 0.7) % 1, drop = Math.min(1, d * 1.6);              // a ballot drops into the box
+    ctx.beginPath(); ctx.rect(-30, 0, 60, 34); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(14, 0); ctx.lineWidth = 8; ctx.strokeStyle = col; ctx.stroke(); ctx.lineWidth = 5; ctx.strokeStyle = '#fff';
+    ctx.save(); ctx.translate(0, -40 + drop * 38); ctx.rotate(0.15 * (1 - drop)); ctx.globalAlpha = 1 - Math.max(0, drop - 0.8) * 5;
+    ctx.beginPath(); ctx.rect(-12, -14, 24, 20); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-6, -4); ctx.lineTo(-1, 1); ctx.lineTo(7, -9); ctx.stroke(); ctx.restore(); ctx.globalAlpha = 1;
+  } else if (kind === 'trophy'){
+    var lift = Math.sin(s * 2.5) * 5;                                // a trophy lifts, a sparkle turns
+    ctx.save(); ctx.translate(0, lift);
+    ctx.beginPath(); ctx.moveTo(-20, -30); ctx.lineTo(20, -30); ctx.lineTo(14, 4); ctx.quadraticCurveTo(0, 14, -14, 4); ctx.closePath(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-20, -24); ctx.quadraticCurveTo(-36, -22, -22, -6); ctx.moveTo(20, -24); ctx.quadraticCurveTo(36, -22, 22, -6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 10); ctx.lineTo(0, 22); ctx.moveTo(-14, 26); ctx.lineTo(14, 26); ctx.stroke();
+    ctx.restore();
+    var sa = s * 3; ctx.save(); ctx.translate(26, -36); ctx.rotate(sa); ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(8, 0); ctx.moveTo(0, -8); ctx.lineTo(0, 8); ctx.strokeStyle = col; ctx.stroke(); ctx.restore(); ctx.strokeStyle = '#fff';
+  } else if (kind === 'treaty'){
+    var g = 0.5 + 0.5 * Math.sin(s * 1.8);                           // two rings drift together and link
+    ctx.beginPath(); ctx.arc(-26 + g * 12, 0, 18, 0, TAU); ctx.stroke(); ctx.beginPath(); ctx.arc(26 - g * 12, 0, 18, 0, TAU); ctx.strokeStyle = col; ctx.stroke(); ctx.strokeStyle = '#fff';
+  } else if (kind === 'birth'){
+    var tw = 0.6 + 0.4 * Math.sin(s * 4);                            // a star twinkles, rays breathe
+    ctx.beginPath(); for (var st = 0; st < 10; st++){ var an3 = st * TAU / 10 - Math.PI / 2, rr = st % 2 ? 12 : 28 * tw + 4; ctx.lineTo(Math.cos(an3) * rr, Math.sin(an3) * rr); } ctx.closePath(); ctx.fillStyle = col; ctx.fill(); ctx.stroke(); ctx.fillStyle = '#fff';
+  } else if (kind === 'death'){
+    var fl2 = 1 + 0.25 * Math.sin(s * 11) + 0.1 * Math.sin(s * 23);   // a candle flame flickers
+    ctx.beginPath(); ctx.rect(-8, -4, 16, 36); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-6, -6); ctx.quadraticCurveTo(-8, -20 * fl2, 0, -30 * fl2); ctx.quadraticCurveTo(8, -20 * fl2, 6, -6); ctx.closePath(); ctx.fillStyle = col; ctx.fill(); ctx.fillStyle = '#fff';
+  } else if (kind === 'orbit'){
+    ctx.lineWidth = 3.5;
+    for (var o = 0; o < 3; o++){ ctx.beginPath(); ctx.ellipse(0, 0, 34, 13, o * Math.PI / 3, 0, TAU); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(0, 0, 6, 0, TAU); ctx.fill();
+    for (var el = 0; el < 3; el++){ var a4 = s * 2 + el * 2.1, rot = el * Math.PI / 3, x4 = Math.cos(a4) * 34, y4 = Math.sin(a4) * 13; ctx.beginPath(); ctx.arc(x4 * Math.cos(rot) - y4 * Math.sin(rot), x4 * Math.sin(rot) + y4 * Math.cos(rot), 4.5, 0, TAU); ctx.fillStyle = col; ctx.fill(); }
+    ctx.fillStyle = '#fff'; ctx.lineWidth = 5;
+  } else {                                                           // culture: a temple, light breathing behind it
+    ctx.beginPath(); ctx.moveTo(-34, -8); ctx.lineTo(0, -30); ctx.lineTo(34, -8); ctx.closePath(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-30, 30); ctx.lineTo(30, 30); ctx.moveTo(-20, -2); ctx.lineTo(-20, 26); ctx.moveTo(0, -2); ctx.lineTo(0, 26); ctx.moveTo(20, -2); ctx.lineTo(20, 26); ctx.stroke();
+    var gl = 0.25 + 0.2 * Math.sin(s * 1.5); var grd = ctx.createRadialGradient(0, 0, 4, 0, 0, 60); grd.addColorStop(0, col); grd.addColorStop(1, 'rgba(0,0,0,0)'); ctx.globalAlpha = gl; ctx.fillStyle = grd; ctx.fillRect(-60, -60, 120, 120); ctx.globalAlpha = 1; ctx.fillStyle = '#fff';
+  }
+}
+
 // Cards without a photo or clip animate their category glyph so the kind of event reads at a glance:
 // conflict flashes, disasters send out shockwaves, science orbits, culture breathes. One shared texture per category.
-var GLYPH_LIVE = {};
-Object.keys(CATS).forEach(function(k){
-  var c = document.createElement('canvas'); c.width = 256; c.height = 192;
-  GLYPH_LIVE[k] = { canvas:c, ctx:c.getContext('2d'), tex:new THREE.CanvasTexture(c), painter:cardTexture({ cat:k, slug:'' }, 'painter') };
-});
-function paintLiveGlyph(k, t){
-  var L = GLYPH_LIVE[k], ctx = L.ctx, cw = 256, ch = 192, col = css(CATS[k].v);
-  L.painter(null, L.canvas);                       // frame, scanlines, badge — same as the static card
-  ctx.save(); ctx.globalCompositeOperation = 'lighter';
-  var cx = cw / 2, cy = ch / 2;
-  if (k === 'dis'){
-    for (var i = 0; i < 3; i++){
-      var ph = ((t / 1400) + i / 3) % 1;
-      ctx.beginPath(); ctx.arc(cx, cy, 20 + ph * 95, 0, 2 * Math.PI);
-      ctx.strokeStyle = col; ctx.globalAlpha = (1 - ph) * 0.55; ctx.lineWidth = 3; ctx.stroke();
-    }
-  } else if (k === 'con'){
-    var f = 0.5 + 0.5 * Math.sin(t / 160) * Math.sin(t / 530);
-    ctx.globalAlpha = 0.25 + 0.45 * f;
-    var g = ctx.createRadialGradient(cx, cy, 10, cx, cy, 110); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, cw, ch);
-  } else if (k === 'sci'){
-    for (var j = 0; j < 3; j++){
-      var a = t / 700 + j * 2.1, rx = 52 + j * 6, ry = 22 + j * 8, rot = j * Math.PI / 3;
-      var x = Math.cos(a) * rx, y = Math.sin(a) * ry;
-      var px = cx + x * Math.cos(rot) - y * Math.sin(rot), py = cy + x * Math.sin(rot) + y * Math.cos(rot);
-      ctx.beginPath(); ctx.arc(px, py, 5, 0, 2 * Math.PI); ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.9; ctx.fill();
-    }
-  } else {
-    ctx.globalAlpha = 0.18 + 0.14 * Math.sin(t / 900);
-    var g2 = ctx.createRadialGradient(cx, cy, 5, cx, cy, 120); g2.addColorStop(0, col); g2.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g2; ctx.fillRect(0, 0, cw, ch);
+var GLYPH_LIVE = {};                          // per category|kind: a full card (no photo) repainted with the moving icon
+var BADGE_LIVE = {};                          // per category|kind: a small badge for cards that do have a photo or clip
+function liveKey(e){ return e.cat + '|' + kindOf(e); }
+function liveFor2(e){
+  var key = liveKey(e);
+  if (!GLYPH_LIVE[key]){
+    var c = document.createElement('canvas'); c.width = 256; c.height = 192;
+    GLYPH_LIVE[key] = { canvas:c, ctx:c.getContext('2d'), tex:new THREE.CanvasTexture(c), painter:cardTexture({ cat:e.cat, slug:'' }, 'painter'), cat:e.cat, kind:kindOf(e) };
+    var b = document.createElement('canvas'); b.width = 96; b.height = 96;
+    BADGE_LIVE[key] = { canvas:b, ctx:b.getContext('2d'), tex:new THREE.CanvasTexture(b), cat:e.cat, kind:kindOf(e) };
   }
-  ctx.restore();
+  return GLYPH_LIVE[key];
+}
+function paintLiveGlyph(key, t){
+  var L = GLYPH_LIVE[key], ctx = L.ctx, col = css(CATS[L.cat].v);
+  L.painter(null, L.canvas);                        // frame, scanlines, badge — same as the static card
+  ctx.save(); ctx.translate(128, 90); ctx.scale(1.05, 1.05); drawKind(ctx, L.kind, t, col); ctx.restore();
   L.tex.needsUpdate = true;
+  var B = BADGE_LIVE[key], bc = B.ctx;
+  bc.clearRect(0, 0, 96, 96);
+  bc.beginPath(); bc.arc(48, 48, 44, 0, 2 * Math.PI); bc.fillStyle = 'rgba(8,14,26,.82)'; bc.fill(); bc.lineWidth = 3; bc.strokeStyle = col; bc.stroke();
+  bc.save(); bc.beginPath(); bc.arc(48, 48, 41, 0, 2 * Math.PI); bc.clip(); bc.translate(48, 48); bc.scale(0.62, 0.62); drawKind(bc, B.kind, t, col); bc.restore();
+  B.tex.needsUpdate = true;
 }
 var glyphLast = 0;
 function updateLiveGlyphs(now){
   if (now - glyphLast < 50) return false;          // 20 fps is plenty for a glow
   glyphLast = now;
   var used = {};
-  for (var i = 0; i < shown.length; i++){ var e = shown[i]; if (e.holder && e.holder.visible && !IMAGES[e.slug]) used[e.cat] = true; }
+  for (var i = 0; i < shown.length; i++){ var e = shown[i]; if (e.holder && e.holder.visible && e._sx != null) used[liveKey(e)] = true; }
   var any = false;
-  Object.keys(used).forEach(function(k){ paintLiveGlyph(k, now); any = true; });
+  Object.keys(used).forEach(function(k){ if (GLYPH_LIVE[k]){ paintLiveGlyph(k, now); any = true; } });
   return any;
 }
 
@@ -542,7 +651,10 @@ function bindWindow(){
   shown.forEach(function(e, i){
     var h = POOL[i], u = h.userData;
     var tex = cardTexture(e, function(t){ if (e.holder === h){ u.card.material.map = t; u.card.material.needsUpdate = true; render(); } });
-    u.card.material.map = tex || (GLYPH_LIVE[e.cat] ? GLYPH_LIVE[e.cat].tex : GLYPH_TEX[e.cat]); u.card.material.needsUpdate = true;
+    var live = liveFor2(e);
+    u.card.material.map = tex || live.tex; u.card.material.needsUpdate = true;
+    u.badge.material.map = BADGE_LIVE[liveKey(e)].tex; u.badge.material.needsUpdate = true;
+    u.hasPhoto = !!tex;
     u.beam.material.color.set(css(CATS[e.cat].v));
     h.position.copy(e.foot); h.quaternion.copy(e.quat);
     e.holder = h; e.stackH = 0;
@@ -619,7 +731,7 @@ function render(){
     }
     var u = h.userData;
     if (clash){
-      u.card.visible = false; u.beam.visible = false; u.base.visible = true; u.base.scale.set(0.03, 0.03, 1);
+      u.card.visible = false; u.beam.visible = false; u.badge.visible = false; u.base.visible = true; u.base.scale.set(0.03, 0.03, 1);
       e._sx = null; e.stackH = 0; e.pos.copy(e.foot); hiddenCount++;
       return;
     }
@@ -629,9 +741,14 @@ function render(){
     u.beam.scale.set(1, height, 1);
     u.card.position.set(0, height, 0);
     u.card.scale.set(cw, chh, 1);
+    if (u.hasPhoto && MEDIA[e.slug] == null){
+      var bs = chh * 0.34;
+      u.badge.visible = true; u.badge.position.set(0, height, 0); u.badge.scale.set(bs, bs, 1);
+      u.badge.center.set(0.5 + (cw / 2 - bs * 0.62) / bs, 0.5 + (chh / 2 - bs * 0.62) / bs);
+    } else u.badge.visible = false;
     u.base.scale.set(0.02, 0.02, 1);
     var dim = selected && selected.id !== e.id && ctxEls.indexOf(e) < 0;
-    u.card.material.opacity = dim ? 0.45 : 0.96;
+    u.card.material.opacity = dim ? 0.45 : 0.96; u.badge.material.opacity = dim ? 0.35 : 1;
     u.beam.material.opacity = dim ? 0.08 : 0.22;
     u.base.material.opacity = dim ? 0.3 : 0.9;
     e.pos.copy(e.normal).multiplyScalar(1.002 + height);
