@@ -1013,6 +1013,17 @@ function setSound(on){
     Object.keys(SOUND.nodes).forEach(function(k){ var n = SOUND.nodes[k]; n.el.pause(); n.playing = false; n.gain.gain.value = 0; });
   }
 }
+// share: copy a link to exactly this view (mode, month, open event)
+var shareBtn = document.getElementById('shareBtn');
+if (shareBtn){
+  shareBtn.onclick = function(){
+    writeHash();
+    var url = location.href.replace(/^file:.*#/, '#');
+    var done = function(ok){ shareBtn.textContent = ok ? 'Link copied' : 'Copy: ' + url; setTimeout(function(){ shareBtn.textContent = 'Share moment'; }, 2200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function(){ done(true); }, function(){ done(false); });
+    else done(false);
+  };
+}
 window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtCam = function(){ return camDist.toFixed(2); }; window.__cgtNow = function(){ return WINDOWS[wi].end; }; window.__cgtGoto = function(y){ var i = WINDOWS.findIndex(function(w){ return Math.abs(w.end - y) < 0.05; }); if (i >= 0) setWindow(i); };   // debugging hooks
 var soundBtn = document.getElementById('soundBtn');
 if (soundBtn){

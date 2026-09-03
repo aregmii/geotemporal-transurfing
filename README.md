@@ -13,6 +13,7 @@ Commons ───API─────▶ fetch_images.py ────▶ site/img/
 curated/*.json ────▶ merge.js ───────────▶ site/data/events.json (+ data/y/<year>.json shards and data/index.json past 12,000 rows)
 Commons ───API─────▶ fetch_media.py ─────▶ site/media/<hash>.opus|webm + site/data/media.json (one clip per major event; needs ffmpeg for small files)
 Wikidata ──SPARQL──▶ fetch_links.py ─────▶ site/data/links.json (cause/effect/part-of links between shown events)
+Wikipedia ──API────▶ fetch_year_pages.py ─▶ events_yearpages.json ("2015 in India": every dated bullet on the year-by-country pages, 2000 onward)
 ```
 
 `site/` is a plain static site: `index.html`, `app.js`, `styles.css`, vendored three.js and astronomy-engine, and the generated data. The sky behind the Earth is real: stars and constellations from the Yale Bright Star Catalog placed for the moment shown, the Moon at its true distance and phase, planets, and the Earth lit from the Sun's actual direction. A dated event shows the sky of that day. No build tool, no framework. Cloudflare Pages (or any static host) serves the `site/` directory as-is.
@@ -83,6 +84,7 @@ pipeline/
   fetch_media.py      one licensed audio/video clip per major event → site/media (curated_media.json first; video preferred, gifs become webm)
   fetch_links.py      consequence links between events (P1542 has effect, P828 has cause, P361 part of, …) → site/data/links.json
   fetch_facts.py      winner / elected / deaths / magnitude / exact start+end per event → facts.json (headlines and spans)
+  fetch_year_pages.py Wikipedia "YYYY in <country>" pages → dated, placed, editor-phrased events per country (countries.json: Natural Earth centroids)
   headlines_llm.py    optional: Claude writes a headline per event from the lead paragraph → headlines.json (needs ANTHROPIC_API_KEY, ≈$4 per 10k events)
   merge.js            curated + Wikidata rows, dedupe, clean-up, weight by rank
   curated_dates.json  exact dates for curated rows (slug → YYYY-MM-DD)
@@ -103,7 +105,7 @@ docs/
 
 ## Known gaps
 
-- Wikidata's coverage is strongest for Europe, North America, and the last two centuries. Prehistory and the ancient eras rely mostly on the curated rows.
+- Wikidata's coverage is strongest for Europe, North America, and the last two centuries; the year-by-country pages even that out from 2000 on, but are English Wikipedia's editorial choice and thin for small countries. Prehistory and the ancient eras rely mostly on the curated rows.
 - Three class identifiers (Olympic Games, ecumenical councils, premieres) return nothing and need checking against wikidata.org.
 - Date precision is inferred, not queried: a real 1 January event loses its day. Querying `p:`/`psv:` with `wikibase:timePrecision` would fix it.
 - The Wikidata class and property identifiers were written without live access to wikidata.org and have only been validated by what they returned.

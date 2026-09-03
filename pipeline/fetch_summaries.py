@@ -35,7 +35,11 @@ def fetch_summary(slug):
         with open(cache_path, "r", encoding="utf-8") as cache_file:
             return json.load(cache_file)
     url = "https://en.wikipedia.org/api/rest_v1/page/summary/" + urllib.parse.quote(slug, safe="")
-    response = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=30)
+    try:
+        response = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=30)
+    except requests.RequestException as error:
+        print("  " + slug + ": " + type(error).__name__ + " — left for the next run", file=sys.stderr)
+        return {"extract": None, "thumbnail": None, "status": 0}
     if response.status_code != 200:
         payload = {"extract": None, "thumbnail": None, "status": response.status_code}
     else:
@@ -66,12 +70,19 @@ def main():
         rows = json.load(input_file)
 
     enriched = 0
-    for index in range(len(rows)):
+    # a few requests in flight at once (Wikipedia's REST API is fine with this; the pause keeps each thread polite)
+    from concurrent.futures import ThreadPoolExecutor
+    todo = [(index, row[9]) for index, row in enumerate(rows) if row[9] and not str(row[9]).startswith(("Q", "yp:"))]
+    slugs = sorted(set(slug for _, slug in todo))
+    summaries = {}
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        for count, (slug, summary) in enumerate(zip(slugs, pool.map(fetch_summary, slugs))):
+            summaries[slug] = summary
+            if count % 500 == 0:
+                print(str(count) + "/" + str(len(slugs)) + " summaries", file=sys.stderr)
+    for index, slug in todo:
         row = rows[index]
-        slug = row[9]
-        if slug is None or slug.startswith("Q"):
-            continue
-        summary = fetch_summary(slug)
+        summary = summaries.get(slug) or {"extract": None, "thumbnail": None}
         if summary["extract"]:
             row[8] = trim_words(summary["extract"], MAX_WORDS)
             enriched += 1
@@ -80,10 +91,6 @@ def main():
         while len(row) < 16:
             row.append(None)
         row[15] = summary["thumbnail"]
-        if index % 200 == 0:
-            print(str(index) + "/" + str(len(rows)) + " enriched " + str(enriched), file=sys.stderr)
-            with open(path, "w", encoding="utf-8") as output_file:
-                json.dump(rows, output_file, ensure_ascii=False)
 
     with open(path, "w", encoding="utf-8") as output_file:
         json.dump(rows, output_file, ensure_ascii=False)

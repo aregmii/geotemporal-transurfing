@@ -18,8 +18,10 @@ if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
 const curatedFiles = fs.readdirSync(curatedDir).filter(f => f.endsWith('.json')).map(f => path.join(curatedDir, f));
 const args = [path.join(pipelineDir, 'merge.js'), path.join(outDir, 'events.json'), ...curatedFiles];
+const yearPagesFile = path.join(pipelineDir, 'events_yearpages.json');
 if (fs.existsSync(wikidataFile)) {
   args.push('--wikidata', wikidataFile);
+  if (fs.existsSync(yearPagesFile)) args.push(yearPagesFile);      // Wikipedia year-by-country pages, same row shape
 } else {
   console.log('no pipeline/events_wikidata.json yet — building from curated rows only');
 }

@@ -90,7 +90,11 @@ for (const file of wikidataFiles) {
   for (const row of rows) {
     const slug = (row[9] || '').toLowerCase();
     const titleKey = normalizeTitle(row[0]);
-    const sk = slugKey(slug, row[0]);
+    // year-page rows link a related article, not necessarily the event's own; they dedupe on date + headline,
+    // and drop out when a Wikidata row already covers the linked article as an event
+    const yearPage = row[12] === 'yearpage';
+    const sk = yearPage ? 'yp|' + row[13] + '|' + titleKey : slugKey(slug, row[0]);
+    if (yearPage && slug && seenSlug.has(slug + '|')) { wikidataDropped++; continue; }
     if ((slug && seenSlug.has(sk)) || seenTitle.has(titleKey)) {
       const twin = curatedBySlug.get(sk) || curatedByTitle.get(titleKey);
       if (twin && twin[3] === row[3]) {
@@ -123,7 +127,7 @@ for (const file of wikidataFiles) {
     copy._sitelinks = typeof copy[11] === 'number' ? copy[11] : 0;
     if (!copy[8] || copy[8].length < 12) copy[8] = 'No description yet — run fetch_summaries.py to pull the Wikipedia lead paragraph.';
     if (!copy[7]) copy[7] = '';
-    const trimmed = copy.slice(0, 10); trimmed._sitelinks = copy._sitelinks;
+    const trimmed = copy.slice(0, 10); trimmed._sitelinks = copy._sitelinks; trimmed._yearpage = yearPage;
     trimmed[10] = typeof copy[13] === 'string' && /^-?\d{1,5}-\d\d-\d\d$/.test(copy[13]) ? copy[13] : null;   // exact date YYYY-MM-DD when Wikidata has one
     trimmed[11] = typeof copy[14] === 'string' ? copy[14] : null;   // discoverer / author
     out.push(trimmed);
@@ -213,8 +217,8 @@ for (const r of out) {
   const f = facts[r[9]] || {};
   while (r.length < 14) r.push(null);
   r[13] = r[0];                                   // the article name, for search and for the panel
-  if (!r._curated) r[0] = written[r[9]] ? written[r[9]] : headline(r);
-  delete r._curated;
+  if (!r._curated && !r._yearpage) r[0] = written[r[9]] ? written[r[9]] : headline(r);   // year-page rows already read as headlines
+  delete r._curated; delete r._yearpage;
   if (!r[10] && f.start) r[10] = f.start;         // exact start when the class query only had a year
   r[12] = f.end && f.end !== r[10] ? f.end : null; // exact end: the event persists over its whole span
 }

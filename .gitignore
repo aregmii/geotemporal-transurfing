@@ -18,3 +18,5 @@ pipeline/headlines_cache/
 pipeline/links_cache/
 pipeline/facts.json
 pipeline/headlines.json
+pipeline/yearpages_cache/
+pipeline/events_yearpages.json

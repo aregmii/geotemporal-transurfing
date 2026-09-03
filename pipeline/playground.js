@@ -8,7 +8,13 @@ const out = process.argv[2] || path.join(root, 'playground.html');
 // the hosted playground must stay under 16 MB: it carries the rows the visible rail (2000–2025) can show, plus the
 // heaviest rows of earlier years for the hidden rails, and photos for those rows within a byte budget
 const allRows = JSON.parse(fs.readFileSync(path.join(site, 'data/events.json'), 'utf8'));
-const rowsKept = allRows.filter(r => r[4] >= 2000 || r[6] >= 4);
+const PLAYGROUND_ROWS = 7000;
+let rowsKept = allRows.filter(r => r[4] >= 2000 || r[6] >= 4);
+if (rowsKept.length > PLAYGROUND_ROWS) {   // weight first, then rows with a photo, then exact dates
+  const man = JSON.parse(fs.readFileSync(path.join(site, 'data/images.json'), 'utf8'));
+  rowsKept.sort((a, b) => (b[6] - a[6]) || ((man[b[9]] ? 1 : 0) - (man[a[9]] ? 1 : 0)) || ((b[10] ? 1 : 0) - (a[10] ? 1 : 0)));
+  rowsKept = rowsKept.slice(0, PLAYGROUND_ROWS).sort((a, b) => a[3] - b[3]);
+}
 const events = JSON.stringify(rowsKept);
 const PHOTO_BUDGET = 5.2 * 1048576;
 const borders = fs.readFileSync(path.join(site, 'assets/countries-110m.json'), 'utf8');

@@ -4,7 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Geotemporal Transfusing</title>
-<meta name="description" content="A globe with a time slider: spin to a place, slide to a moment, see what happened there and what was happening elsewhere.">
+<meta name="description" content="Spin the Earth, slide through time: every event stands where it happened, with what was happening elsewhere in the world that same day.">
+<meta property="og:title" content="Geotemporal Transfusing">
+<meta property="og:description" content="Spin the Earth, slide through time: every event stands where it happened, with what was happening elsewhere in the world that same day.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Geotemporal Transfusing">
+<meta name="twitter:image" content="assets/og.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -21,6 +28,7 @@
       <!-- "Last 100 years" and "All of history" still work via #mode=century / #mode=all; buttons hidden for now -->
     </div>
     <button class="sound" id="soundBtn" aria-pressed="false" title="Clips play louder as you zoom toward them">Sound off</button>
+    <button class="sound share" id="shareBtn" title="Copy a link to this moment (and the open event)">Share moment</button>
     <div class="filters" id="filters"></div>
   </header>
   <div id="stage">
