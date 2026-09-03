@@ -28,7 +28,29 @@ function parseRow(r, i){
   return e;
 }
 function fracOfDate(iso){ var m = /^(-?\d+)-(\d\d)-(\d\d)$/.exec(iso); return +m[1] + (+m[2] - 1) / 12 + (+m[3] - 1) / 365; }
-function inWindow(e, w){ return e.t0 < w.end && e.t1 > w.start; }
+// How loud an event is at a moment NOW, 0..1. It bursts when it starts, decays over a "headline" period that grows
+// with importance, stays in the background at a floor while it is still running, and after it ends fades out over
+// an afterglow of the same length. A weight-4 event is the headline for ~3 years; a weight-1 one for ~6 months.
+var HEADLINE_YEARS = { 1:0.5, 2:1, 3:2, 4:3 };
+var BACKGROUND = 0.42;
+function prominence(e, now){
+  if (now < e.t0) return 0;
+  var H = HEADLINE_YEARS[e.w] || 1;
+  var since = now - e.t0;
+  var p = since < H ? 1 - (1 - BACKGROUND) * (since / H) : BACKGROUND;      // headline -> background
+  var over = Math.max(e.t1, e.t0 + H);                                      // a moment gets its full headline period first
+  if (now > over){                                                          // then an afterglow of the same length, then gone
+    var after = now - over;
+    if (after >= H) return 0;
+    p *= 1 - after / H;
+  }
+  return p;
+}
+function inWindow(e, w){
+  var era = ERAS[w.era];
+  if (era && era.slider) return prominence(e, w.end) > 0.01;                 // the slider rails follow NOW
+  return e.t0 < w.end && e.t1 > w.start;                                     // era tabs: anything inside the era
+}
 function fracYear(y){ return Math.round(y * 12) / 12; }
 var EVENTS = RAW.map(parseRow);
 // Large builds keep only the top events per year in events.json and the rest in data/y/<year>.json shards,
@@ -644,7 +666,9 @@ var windowTotal = 0;
 function bindWindow(){
   var w = WINDOWS[wi];
   var list = EVENTS.filter(function(e){ return !off[e.cat] && inWindow(e, w); });
-  list.sort(function(a, b){ return (b.w - a.w) || (b.t0 - a.t0); });
+  var now = w.end, slider = ERAS[w.era] && ERAS[w.era].slider;
+  list.forEach(function(e){ e._p = slider ? prominence(e, now) : 1; });
+  list.sort(function(a, b){ return (b.w * (0.5 + b._p) - a.w * (0.5 + a._p)) || (b.t0 - a.t0); });
   windowTotal = list.length;
   shown = list.slice(0, shownCap());
   EVENTS.forEach(function(e){ e.holder = null; e._sx = null; });
@@ -714,7 +738,8 @@ function render(){
     var front = worldNormal(e).z > 0.12;
     h.visible = front;
     if (!front){ e._sx = null; behind++; return; }
-    var scale = e.size * zoomBoost;
+    var p = e._p == null ? 1 : e._p;
+    var scale = e.size * zoomBoost * (0.72 + 0.28 * p);
     var cw = CARD_W * scale, chh = CARD_H * scale;
     var hwPx = cw * pxPerUnit / CARD_H * 0.5, hhPx = chh * pxPerUnit / CARD_H * 0.5;
     // cards float just above the surface; a card that would overlap a more important one is hidden,
@@ -748,9 +773,7 @@ function render(){
     } else u.badge.visible = false;
     u.base.scale.set(0.02, 0.02, 1);
     var dim = selected && selected.id !== e.id && ctxEls.indexOf(e) < 0;
-    // recency: an event that ended long before NOW fades a little (a big one lingers longer than a small one)
-    var w0 = WINDOWS[wi], age = Math.max(0, w0.end - e.t1), span0 = Math.max(0.5, w0.end - w0.start);
-    var fade = 1 - 0.4 * Math.min(1, age / span0) * (1 - (e.w - 1) * 0.15);
+    var fade = 0.45 + 0.55 * p;                                 // headline bright, background dimmer, afterglow fading
     u.card.material.opacity = (dim ? 0.45 : 0.96) * fade; u.badge.material.opacity = (dim ? 0.35 : 1) * fade;
     u.beam.material.opacity = dim ? 0.08 : 0.22;
     u.base.material.opacity = dim ? 0.3 : 0.9;
@@ -990,7 +1013,7 @@ function setSound(on){
     Object.keys(SOUND.nodes).forEach(function(k){ var n = SOUND.nodes[k]; n.el.pause(); n.playing = false; n.gain.gain.value = 0; });
   }
 }
-window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtCam = function(){ return camDist.toFixed(2); };   // debugging hooks
+window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtCam = function(){ return camDist.toFixed(2); }; window.__cgtNow = function(){ return WINDOWS[wi].end; }; window.__cgtGoto = function(y){ var i = WINDOWS.findIndex(function(w){ return Math.abs(w.end - y) < 0.05; }); if (i >= 0) setWindow(i); };   // debugging hooks
 var soundBtn = document.getElementById('soundBtn');
 if (soundBtn){
   if (!Object.keys(MEDIA).length) soundBtn.hidden = true;
@@ -1192,8 +1215,8 @@ function placeHandle(){
   var w = WINDOWS[wi], era = ERAS[w.era];
   if (era.slider){
     var span = era.to - era.from;
-    handle.style.left = ((w.start - era.from) / span * 100) + '%';
-    handle.style.width = ((w.end - w.start) / span * 100) + '%';
+    handle.style.left = ((Math.max(era.from, w.end - Math.min(w.end - w.start, HEADLINE_YEARS[4])) - era.from) / span * 100) + '%';
+    handle.style.width = (Math.min(w.end - w.start, HEADLINE_YEARS[4]) / span * 100) + '%';   // the band: how long the loudest events stay headlines
     handle.innerHTML = '<span class="hnow">' + monthLabel(w.end) + '</span>';
     return;
   }
@@ -1244,7 +1267,7 @@ function syncHeader(){
   var stepLabel = span >= 1000000 ? (span/1000000) + ' MILLION-YEAR' : span >= 1000 ? (span/1000) + ',000-YEAR' : Math.round(span) + '-YEAR';
   var nowText = era.slider ? monthLabel(w.end) : rangeLabel(w.start, w.end);
   document.getElementById('now').innerHTML = '<span class="nowlab">NOW</span><b>' + nowText + '</b>' +
-    (era.slider ? '<span class="nowsub">showing the ' + Math.round(span) + ' years before · since ' + monthLabel(w.start) + '</span>' : (era.name ? '<span class="nowsub">' + era.name + ' · ' + stepLabel + ' WINDOW</span>' : ''));
+    (era.slider ? '<span class="nowsub">new events are loud · long ones settle into the background · ended ones fade</span>' : (era.name ? '<span class="nowsub">' + era.name + ' · ' + stepLabel + ' WINDOW</span>' : ''));
   track.setAttribute('aria-valuetext', 'now ' + nowText);
 }
 
