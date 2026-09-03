@@ -690,6 +690,15 @@ function skyDateFor(e){
   if (e && e.date){ var y = parseInt(e.date, 10); if (y > 1600 && y < 2200){ var d = new Date(e.date + 'T12:00:00Z'); if (!isNaN(d)) return d; } }
   return new Date();
 }
+function tinyDesc(e){
+  // the first sentence or two of the lead, at most ~220 characters; curated rows are already short
+  var d = String(e.desc || '').replace(/\u00a0/g, ' ');
+  var parts = d.split(/(?<=[a-z0-9\)])\.\s+(?=[A-Z])/);
+  var out = parts[0] || '';
+  if (parts[1] && (out + '. ' + parts[1]).length <= 220) out += '. ' + parts[1];
+  if (out.length > 240) out = out.slice(0, 240).replace(/\s+\S*$/, '') + '…';
+  return out.replace(/[.\s]*$/, '') + (out.length && !/…$/.test(out) ? '.' : '');
+}
 function openPanel(e){
   selected = e;
   setSkyDate(skyDateFor(e));
@@ -699,31 +708,31 @@ function openPanel(e){
   var html = '<button class="pclose" id="pclose" aria-label="Close">✕</button>';
   html += '<div class="pcat"><img src="' + ICON_URL[e.cat] + '" alt="">' + CATS[e.cat].label + '</div>';
   var im = IMAGES[e.slug], md = MEDIA[e.slug];
-  // the moment: the clip (or photo) magnified in the middle, and what was happening elsewhere at the same time on either side
-  function neighbour(o){
-    var thumb = IMAGES[o.slug] ? '<img src="' + IMG_DIR + IMAGES[o.slug].file + '" alt="">' : '<img class="ic" src="' + ICON_URL[o.cat] + '" alt="">';
-    var gapText = o._gap != null ? (o._gap === 0 ? 'same day' : o._gap === 1 ? '1 day later/earlier' : o._gap + ' days apart') : rangeLabel(WINDOWS[wi].start, WINDOWS[wi].end);
-    return '<button class="nb" data-id="' + o.id + '">' + thumb + '<b>' + o.title + '</b><span>' + o.place + ' · ' + gapText + '</span></button>';
-  }
+  // the hero: the clip (or the photo, kept moving) magnified
   var centre = md
     ? (md.kind === 'video' ? '<video src="' + MEDIA_DIR + md.file + '" controls autoplay muted loop playsinline preload="metadata"></video>'
-                           : (im ? '<img src="' + IMG_DIR + im.file + '" alt="">' : '') + '<audio src="' + MEDIA_DIR + md.file + '" controls autoplay preload="metadata"></audio>')
-    : im ? '<img src="' + IMG_DIR + im.file + '" alt="">' : '<div class="imgslot"><img src="' + ICON_URL[e.cat] + '" alt="" style="width:44px;height:44px;opacity:.7"></div>';
+                           : (im ? '<img class="kb" src="' + IMG_DIR + im.file + '" alt="">' : '') + '<audio src="' + MEDIA_DIR + md.file + '" controls autoplay preload="metadata"></audio>')
+    : im ? '<img class="kb" src="' + IMG_DIR + im.file + '" alt="">' : '<div class="imgslot"><img src="' + ICON_URL[e.cat] + '" alt="" style="width:44px;height:44px;opacity:.7"></div>';
   var credit = (md ? (md.title ? md.title + ' · ' : '') + (md.author ? md.author + ' · ' : '') + '<a href="' + (md.filePage || md.source || '#') + '" target="_blank" rel="noopener">' + (md.license || 'source') + '</a>'
                    : im ? (im.author ? im.author + ' · ' : '') + '<a href="' + im.filePage + '" target="_blank" rel="noopener">' + (im.license || 'Commons') + '</a>' : '');
-  var left = ctxEls.filter(function(o, i){ return i % 2 === 0; }), right = ctxEls.filter(function(o, i){ return i % 2 === 1; });
-  html += '<div class="moment' + (ctxEls.length ? ' has-sides' : '') + '">' +
-          '<div class="side">' + left.map(neighbour).join('') + '</div>' +
-          '<div class="centre">' + centre + '</div>' +
-          '<div class="side">' + right.map(neighbour).join('') + '</div></div>';
+  html += '<div class="hero">' + centre + '</div>';
   if (credit) html += '<div class="mcredit">' + credit + '</div>';
   html += '<h2>' + e.title + '</h2>';
   html += '<div class="pmeta">' + when + (e.endDate ? ' – ' + dayLabel(e.endDate) : '') + (e.who ? '<br>BY ' + e.who : '') + '<br>' + e.place + '</div>';
-  html += '<p class="pdesc">' + e.desc + '</p>';
-  html += '<a class="plink" target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/' + e.slug + '">' + (e.name !== e.title ? e.name.replace(/</g, '&lt;') + ' on Wikipedia →' : 'Read more →') + '</a>';
+  html += '<p class="pdesc">' + tinyDesc(e) + '</p>';
+  html += '<a class="plink" target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/' + e.slug + '">Read more →</a>';
+  // concurrent events elsewhere: small moving pictures of what else was going on, ranked by days apart
+  if (ctxEls.length){
+    html += '<div class="concurrent"><p>Concurrent events elsewhere</p><div class="crow">';
+    ctxEls.forEach(function(o){
+      var thumb = IMAGES[o.slug] ? '<img class="kb" src="' + IMG_DIR + IMAGES[o.slug].file + '" alt="">' : '<img class="ic" src="' + ICON_URL[o.cat] + '" alt="">';
+      var gapText = o._gap != null ? (o._gap === 0 ? 'same day' : o._gap === 1 ? '1 day apart' : o._gap + ' days apart') : (o.date ? dayLabel(o.date) : yearLabel(o.start));
+      html += '<button class="nb" data-id="' + o.id + '">' + thumb + '<b>' + o.title + '</b><span>' + o.place + ' · ' + gapText + '</span></button>';
+    });
+    html += '</div></div>';
+  }
   p.innerHTML = html;
   p.classList.add('on');
-  p.classList.toggle('wide', ctxEls.length > 0);
   writeHash();
   document.getElementById('pclose').onclick = closePanel;
   Array.prototype.forEach.call(p.querySelectorAll('.ew, .nb'), function(b){
@@ -863,7 +872,7 @@ function spinTo(e){
 
 // ---------- pointer ----------
 var dragging = false, lastX = 0, lastY = 0, moved = 0, shifted = false;
-var velX = 0, velY = 0, lastMoveT = 0;
+var velX = 0, velY = 0, lastMoveT = 0, spinDir = 1;
 var AX = new THREE.Vector3(1,0,0), AY = new THREE.Vector3(0,1,0), AZ = new THREE.Vector3(0,0,1);
 var qTmp = new THREE.Quaternion(), qTmp2 = new THREE.Quaternion();
 
@@ -905,8 +914,8 @@ canvas.addEventListener('pointermove', function(ev){
 function endDrag(ev){
   if (!dragging) return;
   dragging = false; canvas.classList.remove('drag');
-  if (performance.now() - lastMoveT > 80){ velX = 0; velY = 0; }   // held still before release: no throw
-  if (moved < 5){ velX = 0; velY = 0;
+  if (performance.now() - lastMoveT > 80){ velX = spinDir * spinSpeed; velY = 0; }   // held still before release: no throw, keep turning
+  if (moved < 5){ velX = spinDir * spinSpeed; velY = 0;
     var rect = canvas.getBoundingClientRect();
     var hit = pick(ev.clientX - rect.left, ev.clientY - rect.top);
     if (hit) openPanel(hit); else closePanel();
@@ -926,25 +935,40 @@ canvas.addEventListener('wheel', function(ev){
 function bumpIdle(){ idle = false; clearTimeout(idleTimer); idleTimer = setTimeout(function(){ idle = true; }, 4500); }
 var kb = { tex:null };
 function kenBurns(t){
-  var tex = selected && selected.holder && IMAGES[selected.slug] ? CARD_TEX[selected.slug] : null;
-  if (kb.tex && kb.tex !== tex){ kb.tex.repeat.set(1, 1); kb.tex.offset.set(0, 0); kb.tex.needsUpdate = true; kb.tex = null; }
-  if (!tex) return;
-  kb.tex = tex; tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
-  var z = 0.82 + 0.04 * Math.sin(t / 2600);
-  tex.repeat.set(z, z); tex.offset.set((1 - z) / 2 + 0.05 * Math.sin(t / 3100), (1 - z) / 2 + 0.05 * Math.cos(t / 4300));
+  // every photo card drifts and breathes a little (a still made to move); the selected one moves more
+  var any = false;
+  for (var i = 0; i < shown.length; i++){
+    var e = shown[i];
+    if (!e.holder || !e.holder.visible || e._sx == null || !IMAGES[e.slug]) continue;
+    var tex = CARD_TEX[e.slug + (MEDIA[e.slug] ? '|m' : '')];
+    if (!tex || tex === e.holder.userData.card.material.map && false) continue;
+    if (tex !== e.holder.userData.card.material.map) continue;      // a live clip or glyph is showing instead
+    var ph = (e.id * 0.61803) % 1 * Math.PI * 2, sel = selected && selected.id === e.id;
+    var amp = sel ? 0.06 : 0.035, spd = sel ? 1 : 0.6;
+    tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+    var z = (sel ? 0.82 : 0.88) + amp * 0.6 * Math.sin(t / 2600 * spd + ph);
+    tex.repeat.set(z, z); tex.offset.set((1 - z) / 2 + amp * Math.sin(t / 3100 * spd + ph), (1 - z) / 2 + amp * Math.cos(t / 4300 * spd + ph));
+    any = true;
+  }
+  return any;
 }
 function tick(){
-  kenBurns(performance.now()); tickPlay(performance.now()); if (selected) render();
+  var moving = kenBurns(performance.now()); tickPlay(performance.now()); if (selected || moving) render();
   if (updateLiveGlyphs(performance.now()) && !selected) render();
   if (SOUND.on) updateSound();
   if (liveClips){ updateLive(); if (!selected) render(); }
-  if (!dragging && (Math.abs(velX) > 0.0003 || Math.abs(velY) > 0.0003)){
-    qTmp.setFromAxisAngle(AY, velX); qTmp2.setFromAxisAngle(AX, velY);
-    globe.quaternion.premultiply(qTmp).premultiply(qTmp2);
-    velX *= 0.965; velY *= 0.965;           // decay: a flick coasts for a second or two, then settles
-    render();
-  } else if (idle && !selected && !dragging){
-    qTmp.setFromAxisAngle(AY, spinSpeed); globe.quaternion.premultiply(qTmp); render();
+  if (!dragging){
+    // the globe always turns. A flick throws it faster (in either direction); it eases back to the set speed and
+    // keeps turning the way it was thrown, rather than stopping and resuming the default spin.
+    if (Math.abs(velX) > 1e-6) spinDir = velX < 0 ? -1 : 1;
+    var target = spinDir * spinSpeed;
+    velX = target + (velX - target) * 0.965;
+    velY *= 0.965;
+    if (Math.abs(velX) > 1e-7 || Math.abs(velY) > 0.0003){
+      qTmp.setFromAxisAngle(AY, velX); qTmp2.setFromAxisAngle(AX, velY);
+      globe.quaternion.premultiply(qTmp).premultiply(qTmp2);
+      render();
+    }
   }
   requestAnimationFrame(tick);
 }
@@ -1170,6 +1194,7 @@ function coincidences(){
   pairs.sort(function(p, q){ return q.score - p.score; });
   return pairs.slice(0, 14);
 }
+function shortTitle(e){ return e.title.length <= 64 ? e.title : e.name; }   // the ticker wants a line, not a paragraph
 var tickerPairs = [], tickerIndex = 0, tickerTimer = null;
 function showTicker(){
   var el = document.getElementById('ticker');
@@ -1177,9 +1202,9 @@ function showTicker(){
   var p = tickerPairs[tickerIndex % tickerPairs.length];
   if (p.rel){
     var whenA = p.a.date ? dayLabel(p.a.date) : yearLabel(p.a.start);
-    el.innerHTML = '<span class="tk">' + whenA + '</span> ' + p.a.title + ' <em>' + p.a.place + '</em> — ' + p.rel + ' — ' + p.b.title + ' <em>' + p.b.place + (p.b.date ? ' · ' + dayLabel(p.b.date) : '') + '</em>';
+    el.innerHTML = '<span class="tk">' + whenA + '</span> ' + shortTitle(p.a) + ' <em>' + p.a.place + '</em> — ' + p.rel + ' — ' + shortTitle(p.b) + ' <em>' + p.b.place + (p.b.date ? ' · ' + dayLabel(p.b.date) : '') + '</em>';
   } else {
-    el.innerHTML = '<span class="tk">' + dayLabel(p.a.date) + '</span> While ' + p.a.title + ' <em>' + p.a.place + '</em> — ' + p.b.title + ' <em>' + p.b.place + '</em>';
+    el.innerHTML = '<span class="tk">' + dayLabel(p.a.date) + '</span> While ' + shortTitle(p.a) + ' <em>' + p.a.place + '</em> — ' + shortTitle(p.b) + ' <em>' + p.b.place + '</em>';
   }
   el.classList.add('on');
   el.onclick = function(){ spinTo(p.a); openPanel(p.a); };

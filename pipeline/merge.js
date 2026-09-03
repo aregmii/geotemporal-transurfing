@@ -162,14 +162,42 @@ function predicateOf(title, lead) {
   if (bad(pred)) return '';
   pred = pred.split(/,|;|\s(?:that|which|when|after|while|where|whose|in which|during which|held|played)\s/)[0].trim();
   pred = pred.replace(/\s+\(.*?\)/g, '').replace(/\s+(?:on|from|between|at|for)\s+\d.*$/, '').trim();
-  if (pred.length > 80) pred = pred.slice(0, 80).replace(/\s+\S*$/, '') + '…';
+  if (pred.length > 64) pred = pred.slice(0, 64).replace(/\s+\S*$/, '') + '…';
   pred = pred.replace(/[.\s]+$/, '');
   return bad(pred) ? '' : pred;
+}
+// what the lead paragraph itself says about deaths and about how a crash happened
+function deathsInLead(lead) {
+  const t = String(lead).replace(/\u00a0/g, ' ');
+  const both = /\ball (\d[\d,]*) passengers and (\d[\d,]*) crew/i.exec(t);
+  if (both) return parseInt(both[1].replace(/,/g, ''), 10) + parseInt(both[2].replace(/,/g, ''), 10);
+  const pats = [
+    /\bkilling (?:all |at least |about |over |more than |some |an estimated )?(\d[\d,]*)/i,
+    /\ball (\d[\d,]*) (?:people|passengers|persons|occupants|crew)[^.]{0,40}?(?:were |was )?(?:killed|died|perished|lost)/i,
+    /\b(\d[\d,]*) (?:people|passengers|persons|occupants|civilians|soldiers|residents|pilgrims|students|workers|miners)[^.]{0,40}?(?:were |was )?(?:killed|died|perished|lost their lives)/i,
+    /\b(?:death toll|deaths) (?:of|was|reached|rose to|stood at) (?:at least |about |over |more than |an estimated )?(\d[\d,]*)/i,
+    /\b(?:killed|claimed the lives of|left) (?:at least |about |over |more than |some |an estimated )?(\d[\d,]*) (?:people|persons|lives|dead)/i,
+    /\b(\d[\d,]*) (?:deaths|fatalities|dead)\b/i,
+  ];
+  for (const p of pats) { const m = p.exec(t); if (m) { const n = parseInt(m[1].replace(/,/g, ''), 10); if (n > 0 && n < 100000000) return n; } }
+  return null;
+}
+function crashPhrase(lead) {
+  const m = /\b(crashed|crash-landed|was shot down|shot down|broke up|disappeared|collided|ditched|exploded|ran off the runway|overran|struck)(?: (?:into|in|on|near|over|off|with|shortly after|during|while|at) [^.,;]{3,50})?/i.exec(String(lead).replace(/\u00a0/g, ' '));
+  if (!m) return null;
+  // stop before a date or a death count: those are said separately
+  return m[0].replace(/^was /, '').replace(/\s+(?:on|at|in) \d.*$/, '').replace(/\s+(?:killing|with|carrying).*$/, '').replace(/\s+(?:near|in) [A-Z][^ ]* in [A-Z].*$/, '').trim();
 }
 function headline(row) {
   const title = row[0], slug = row[9], lead = row[8] || '', f = facts[slug] || {};
   if (written[slug]) return written[slug];
   const lower = title.toLowerCase();
+  const deaths = f.deaths || deathsInLead(lead);
+  if (/\bflight \d/i.test(title)) {
+    const how = crashPhrase(lead);
+    if (how) return title + ' ' + how + (deaths ? ', ' + fmtNum(deaths) + ' killed' : '');
+  }
+  if (deaths && /attack|bombing|bombings|shooting|massacre|stampede|crush|fire|flood|floods|cyclone|hurricane|typhoon|storm|tsunami|explosion|landslide|heat wave|avalanche|earthquake|crash|collapse|sinking|derailment|collision|accident|disaster/.test(lower) && !f.magnitude) return title + ': ' + fmtNum(deaths) + ' killed';
   if (f.winner && /final|cup|championship|grand prix|super bowl|open|masters|derby|race|bowl|series|tournament|olympic|games\b/.test(lower)) return f.winner + ' wins ' + title.replace(/^the /i, '');
   if (f.elected && /election/.test(lower)) return f.elected + ' wins ' + title.replace(/^the /i, '');
   if (f.winner && /battle|siege|war\b/.test(lower)) return title + ': ' + f.winner + ' victorious';
