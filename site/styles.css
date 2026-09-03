@@ -21,8 +21,11 @@ header{
 .brand{font-family:Fraunces,Georgia,serif; font-size:17px; font-weight:600; letter-spacing:-.01em}
 .now{
   font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11.5px; letter-spacing:.08em;
-  color:var(--ink-2); font-variant-numeric:tabular-nums;
+  color:var(--ink-2); font-variant-numeric:tabular-nums; display:flex; align-items:baseline; gap:10px;
 }
+.now .nowlab{font-size:9.5px; letter-spacing:.16em; color:var(--dis); border:1px solid var(--dis); border-radius:3px; padding:1px 6px}
+.now b{font-family:Fraunces,Georgia,serif; font-size:20px; font-weight:600; letter-spacing:-.01em; color:var(--ink)}
+.now .nowsub{font-size:10px; color:var(--ink-3)}
 .now b{color:var(--ink); font-weight:500}
 .spacer{flex:1}
 .modes{display:flex; border:1px solid var(--rule); border-radius:20px; overflow:hidden; margin-right:6px}
@@ -118,7 +121,7 @@ canvas.drag{cursor:grabbing}
 .era .yr{font-size:10.5px; color:var(--ink); white-space:nowrap; font-variant-numeric:tabular-nums}
 .era .nm{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:8px; letter-spacing:.1em; color:var(--ink-3); white-space:nowrap}
 @media (max-width:900px){ .era .nm{display:none} .era .yr{font-size:9px} }
-#handle{position:absolute; top:-1px; height:42px; border:1.5px solid var(--hi); border-radius:4px; background:rgba(255,255,255,.13); pointer-events:none; transition:left .13s ease, width .13s ease;
+#handle{position:absolute; top:-1px; height:42px; border:1px solid rgba(255,255,255,.35); border-right:3px solid var(--dis); border-radius:4px 2px 2px 4px; background:linear-gradient(90deg, rgba(255,255,255,.04), rgba(255,255,255,.18)); pointer-events:none; transition:left .13s ease, width .13s ease;
   display:flex; align-items:center; justify-content:center; font-size:11.5px; color:var(--ink); font-variant-numeric:tabular-nums; white-space:nowrap; overflow:visible}
 .track.slider{cursor:grab}
 .track.slider .tick{position:absolute; bottom:0; width:1px; height:6px; background:var(--rule)}
@@ -175,3 +178,14 @@ canvas.drag{cursor:grabbing}
 .vctl input[type=range]{height:96px; width:18px}
 .vctl button{width:26px; height:26px; font-size:10px}
 .vctl.left{left:10px} .vctl.right{right:10px}
+
+/* the NOW mark on the rail: date sits at the right edge of the lookback band */
+#handle .hnow{position:absolute; right:6px; top:50%; transform:translateY(-50%); font:500 11.5px "IBM Plex Mono",ui-monospace,monospace; color:var(--ink); background:rgba(13,17,27,.75); padding:2px 6px; border-radius:3px; white-space:nowrap}
+/* side controls: readable against the stars */
+.vctl{opacity:.92; background:rgba(13,17,27,.9); border-color:rgba(255,255,255,.28)}
+.vctl .vlab{color:var(--ink); font-weight:500}
+.vctl .vval{color:var(--ink-2)}
+.vctl input[type=range]::-webkit-slider-runnable-track{background:rgba(255,255,255,.35)}
+.vctl input[type=range]::-moz-range-track{background:rgba(255,255,255,.35)}
+.vctl input[type=range]::-webkit-slider-thumb{background:var(--dis); box-shadow:0 0 0 3px rgba(13,17,27,.9)}
+.vctl input[type=range]::-moz-range-thumb{background:var(--dis)}

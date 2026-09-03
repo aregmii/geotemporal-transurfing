@@ -644,7 +644,7 @@ var windowTotal = 0;
 function bindWindow(){
   var w = WINDOWS[wi];
   var list = EVENTS.filter(function(e){ return !off[e.cat] && inWindow(e, w); });
-  list.sort(function(a, b){ return b.w - a.w; });
+  list.sort(function(a, b){ return (b.w - a.w) || (b.t0 - a.t0); });
   windowTotal = list.length;
   shown = list.slice(0, shownCap());
   EVENTS.forEach(function(e){ e.holder = null; e._sx = null; });
@@ -748,7 +748,10 @@ function render(){
     } else u.badge.visible = false;
     u.base.scale.set(0.02, 0.02, 1);
     var dim = selected && selected.id !== e.id && ctxEls.indexOf(e) < 0;
-    u.card.material.opacity = dim ? 0.45 : 0.96; u.badge.material.opacity = dim ? 0.35 : 1;
+    // recency: an event that ended long before NOW fades a little (a big one lingers longer than a small one)
+    var w0 = WINDOWS[wi], age = Math.max(0, w0.end - e.t1), span0 = Math.max(0.5, w0.end - w0.start);
+    var fade = 1 - 0.4 * Math.min(1, age / span0) * (1 - (e.w - 1) * 0.15);
+    u.card.material.opacity = (dim ? 0.45 : 0.96) * fade; u.badge.material.opacity = (dim ? 0.35 : 1) * fade;
     u.beam.material.opacity = dim ? 0.08 : 0.22;
     u.base.material.opacity = dim ? 0.3 : 0.9;
     e.pos.copy(e.normal).multiplyScalar(1.002 + height);
@@ -1097,7 +1100,7 @@ function spinFromSlider(v){ return v === 0 ? 0 : 0.00015 * Math.pow(1.03, v); } 
 function setSpin(v){
   spinSpeed = spinFromSlider(v);
   var secPerTurn = spinSpeed > 0 ? (2 * Math.PI / spinSpeed) / 60 : 0;
-  spinVal.textContent = spinSpeed === 0 ? 'STILL' : (secPerTurn >= 60 ? Math.round(secPerTurn / 60) + ' MIN' : Math.round(secPerTurn) + ' S') + '\nPER TURN';
+  spinVal.textContent = spinSpeed === 0 ? 'STILL' : 'ONE TURN\nIN ' + (secPerTurn >= 60 ? Math.round(secPerTurn / 60) + ' MIN' : Math.round(secPerTurn) + ' S');
   try { localStorage.setItem('gt-spin', String(v)); } catch (e) {}
 }
 if (spinRange){
@@ -1112,8 +1115,8 @@ function speedFromSlider(v){ return 0.02 * Math.pow(1.047, v); }                
 function setPlaySpeed(v){
   yearsPerSec = speedFromSlider(v);
   var secPerYear = 1 / yearsPerSec, secPerMonth = secPerYear / 12;
-  playVal.textContent = secPerMonth >= 1 ? '1 MONTH\n/ ' + (secPerMonth >= 10 ? Math.round(secPerMonth) : secPerMonth.toFixed(1)) + ' S'
-                      : secPerYear >= 1 ? '1 YEAR\n/ ' + (secPerYear >= 10 ? Math.round(secPerYear) : secPerYear.toFixed(1)) + ' S' : yearsPerSec.toFixed(1) + ' YEARS\n/ S';
+  playVal.textContent = secPerMonth >= 1 ? 'A MONTH\nEVERY ' + (secPerMonth >= 10 ? Math.round(secPerMonth) : secPerMonth.toFixed(1)) + ' S'
+                      : secPerYear >= 1 ? 'A YEAR\nEVERY ' + (secPerYear >= 10 ? Math.round(secPerYear) : secPerYear.toFixed(1)) + ' S' : yearsPerSec.toFixed(1) + ' YEARS\nA SECOND';
 }
 function setPlaying(on){
   playing = on; playAcc = 0; playLast = performance.now();
@@ -1168,7 +1171,7 @@ function placeHandle(){
     var span = era.to - era.from;
     handle.style.left = ((w.start - era.from) / span * 100) + '%';
     handle.style.width = ((w.end - w.start) / span * 100) + '%';
-    handle.textContent = rangeLabel(w.start, w.end);
+    handle.innerHTML = '<span class="hnow">' + monthLabel(w.end) + '</span>';
     return;
   }
   var segW = 100 / ERAS.length;
@@ -1216,8 +1219,10 @@ function syncHeader(){
   var w = WINDOWS[wi], era = ERAS[w.era];
   var span = w.end - w.start;
   var stepLabel = span >= 1000000 ? (span/1000000) + ' MILLION-YEAR' : span >= 1000 ? (span/1000) + ',000-YEAR' : Math.round(span) + '-YEAR';
-  document.getElementById('now').innerHTML = '<b>' + rangeLabel(w.start, w.end) + '</b>' + (era.name ? ' · ' + era.name : '') + ' · ' + stepLabel + ' WINDOW';
-  track.setAttribute('aria-valuetext', rangeLabel(w.start, w.end));
+  var nowText = era.slider ? monthLabel(w.end) : rangeLabel(w.start, w.end);
+  document.getElementById('now').innerHTML = '<span class="nowlab">NOW</span><b>' + nowText + '</b>' +
+    (era.slider ? '<span class="nowsub">showing the ' + Math.round(span) + ' years before · since ' + monthLabel(w.start) + '</span>' : (era.name ? '<span class="nowsub">' + era.name + ' · ' + stepLabel + ' WINDOW</span>' : ''));
+  track.setAttribute('aria-valuetext', 'now ' + nowText);
 }
 
 // ---------- filters ----------
