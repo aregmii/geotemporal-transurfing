@@ -1287,6 +1287,7 @@ function coincidences(){
     (LINKS_BY_SLUG[a.slug] || []).forEach(function(l){
       var b = bySlug[l[2]];
       if (!b || b === a || !REL_TEXT[l[1]]) return;
+      if (family(a) === family(b) || (a.place && a.place === b.place) || /^launch of/i.test(a.title) && /^launch of/i.test(b.title)) return;   // a mission and its own rover is not a consequence
       var key = a.slug < b.slug ? a.slug + '|' + b.slug : b.slug + '|' + a.slug;
       if (seen[key]) return; seen[key] = true;
       var far = a.normal.angleTo(b.normal) > 0.6;

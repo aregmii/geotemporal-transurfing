@@ -182,6 +182,7 @@ SELECT ?item ?itemLabel ?itemDescription ?when ?who ?whoLabel ?workLabel ?workCo
 
 PERSON_QUERY = """
 SELECT ?item ?itemLabel ?itemDescription ?born ?died ?birthPlaceLabel ?birthCoord ?deathPlaceLabel ?deathCoord ?article ?sitelinks WHERE {
+  hint:Query hint:optimizer "None" .
   ?item wdt:P569 ?born . hint:Prior hint:rangeSafe true .
   FILTER(?born >= "%(date_from)s"^^xsd:dateTime && ?born < "%(date_to)s"^^xsd:dateTime)
   ?item wdt:P31 wd:Q5 .
@@ -199,19 +200,15 @@ SELECT ?item ?itemLabel ?itemDescription ?born ?died ?birthPlaceLabel ?birthCoor
 # exact by construction. Location: own coordinate, else the location's (P276), else the country's (P17).
 DATED_QUERY = """
 SELECT ?item ?itemLabel ?itemDescription ?when ?coord ?placeLabel ?placeCoord ?countryCoord ?classLabel ?article ?sitelinks WHERE {
-  # a point in time (P585) or, for wars, battles, expeditions and the like, a start time (P580).
-  # The range scan runs on the truthy wdt: value (the index WDQS can range-scan quickly); the statement value is then
-  # checked for day precision (11), which the truthy value cannot tell us.
-  { ?item wdt:P585 ?when . hint:Prior hint:rangeSafe true .
-    FILTER(?when >= "%(date_from)s"^^xsd:dateTime && ?when < "%(date_to)s"^^xsd:dateTime)
-    ?item p:P585/psv:P585 ?tv . ?tv wikibase:timeValue ?when ; wikibase:timePrecision 11 . }
-  UNION
-  { ?item wdt:P580 ?when . hint:Prior hint:rangeSafe true .
-    FILTER(?when >= "%(date_from)s"^^xsd:dateTime && ?when < "%(date_to)s"^^xsd:dateTime)
-    FILTER NOT EXISTS { ?item wdt:P585 [] }
-    ?item p:P580/psv:P580 ?tv . ?tv wikibase:timeValue ?when ; wikibase:timePrecision 11 . }
+  # Evaluated in the written order (optimizer off): the range scan on the truthy date first, the popularity floor
+  # next, and only then the precision check on the statement value. The optimizer otherwise starts from
+  # "everything with day precision" and times out.
+  hint:Query hint:optimizer "None" .
+  { ?item wdt:%(prop)s ?when . hint:Prior hint:rangeSafe true .
+    FILTER(?when >= "%(date_from)s"^^xsd:dateTime && ?when < "%(date_to)s"^^xsd:dateTime) }
   ?item wikibase:sitelinks ?sitelinks . FILTER(?sitelinks >= %(min_sitelinks)d)
   FILTER NOT EXISTS { ?item wdt:P31 wd:Q5 }
+  ?item p:%(prop)s ?st . ?st psv:%(prop)s ?tv . ?tv wikibase:timePrecision 11 .
   OPTIONAL { ?item wdt:P625 ?coord . }
   OPTIONAL { ?item wdt:P276 ?place . ?place wdt:P625 ?placeCoord . }
   OPTIONAL { ?item wdt:P17 ?country . ?country wdt:P625 ?countryCoord . }
@@ -225,12 +222,13 @@ LIMIT %(limit)d
 # v0.6: people with a day-precision birth (this slice) — death handled by the same row when it is day-precise.
 PERSON_DEEP_QUERY = """
 SELECT ?item ?itemLabel ?itemDescription ?born ?died ?birthPlaceLabel ?birthCoord ?deathPlaceLabel ?deathCoord ?occLabel ?article ?sitelinks WHERE {
+  hint:Query hint:optimizer "None" .
   ?item wdt:P569 ?born . hint:Prior hint:rangeSafe true .
   FILTER(?born >= "%(date_from)s"^^xsd:dateTime && ?born < "%(date_to)s"^^xsd:dateTime)
   ?item wikibase:sitelinks ?sitelinks . FILTER(?sitelinks >= %(min_sitelinks)d)
-  ?item p:P569/psv:P569 ?bv . ?bv wikibase:timeValue ?born ; wikibase:timePrecision 11 .
+  ?item p:P569 ?bs . ?bs psv:P569 ?bv . ?bv wikibase:timePrecision 11 .
   OPTIONAL { ?item wdt:P19 ?birthPlace . ?birthPlace wdt:P625 ?birthCoord . }
-  OPTIONAL { ?item wdt:P570 ?died . ?item p:P570/psv:P570 ?dv . ?dv wikibase:timeValue ?died ; wikibase:timePrecision 11 . }
+  OPTIONAL { ?item wdt:P570 ?died . ?item p:P570 ?ds . ?ds psv:P570 ?dv . ?dv wikibase:timePrecision 11 . }
   OPTIONAL { ?item wdt:P20 ?deathPlace . ?deathPlace wdt:P625 ?deathCoord . }
   OPTIONAL { ?item wdt:P106 ?occ . }
   ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> .
@@ -279,6 +277,7 @@ def iso_date(year):
 
 
 LAST_FAILURE = {"kind": None}   # "timeout" splits a slice; "connection" stops the wide pull
+STREAK = {"n": 0}                # consecutive failed slices in the wide pull
 
 
 def run_query(cache_key, sparql):
@@ -304,6 +303,10 @@ def run_query(cache_key, sparql):
         payload = response.json()
     except requests.Timeout:
         print("  FAILED " + cache_key + ": read timeout — skipping", file=sys.stderr)
+        LAST_FAILURE["kind"] = "timeout"
+        return {"results": {"bindings": []}}
+    except ValueError:
+        print("  FAILED " + cache_key + ": the reply was not JSON (an error page) — skipping", file=sys.stderr)
         LAST_FAILURE["kind"] = "timeout"
         return {"results": {"bindings": []}}
     except requests.RequestException as error:
@@ -588,6 +591,10 @@ def run_sliced(query, key_prefix, params, day_from, day_to, days):
         failed = not had_cache and not os.path.exists(cache_path)      # run_query only caches successes
         if failed and LAST_FAILURE["kind"] == "connection":
             raise ConnectionError("query service unreachable")
+        # fail fast: a query that times out even on a tiny slice is hopeless, not slow
+        STREAK["n"] = STREAK["n"] + 1 if failed else 0
+        if STREAK["n"] >= 8:
+            raise ConnectionError(key_prefix + " timed out 8 times in a row — the query needs rewriting, not smaller slices")
         if (failed or len(bindings) >= SLICE_LIMIT) and days > SLICE_MIN_DAYS:
             print("  splitting " + key + (" (timed out)" if failed else " (hit the row cap)"), file=sys.stderr)
             for b in run_sliced(query, key_prefix, params, cursor, end, max(SLICE_MIN_DAYS, days // 2)):
@@ -609,13 +616,13 @@ def wide_slices():
     ]
 
 
-def collect_dated():
-    """v0.6 wide pull: every non-human item with a day-precision point in time."""
-    rows = []
+def collect_dated(rows):
+    """v0.6 wide pull: every non-human item with a day-precision point in time. Appends to `rows`."""
     best = {}
     for day_from, day_to, days in wide_slices():
         print("dated: " + str(day_from.year) + " to " + str(day_to.year), file=sys.stderr)
-        for binding in run_sliced(DATED_QUERY, "dated3", {"min_sitelinks": DATED_MIN_SITELINKS}, day_from, day_to, days):
+        for binding in list(run_sliced(DATED_QUERY, "dated4", {"min_sitelinks": DATED_MIN_SITELINKS, "prop": "P585"}, day_from, day_to, days)) + \
+                       list(run_sliced(DATED_QUERY, "dated4start", {"min_sitelinks": DATED_MIN_SITELINKS, "prop": "P580"}, day_from, day_to, days)):
             qid = value_of(binding, "item").rsplit("/", 1)[-1]
             point, point_key = first_point(binding, ["coord", "placeCoord", "countryCoord"])
             if point is None:
@@ -643,13 +650,12 @@ def collect_dated():
     return rows
 
 
-def collect_people_deep():
-    """v0.6: births and deaths at day precision for everyone above PERSON_DEEP_MIN_SITELINKS."""
-    rows = []
+def collect_people_deep(rows):
+    """v0.6: births and deaths at day precision for everyone above PERSON_DEEP_MIN_SITELINKS. Appends to `rows`."""
     seen = set()
     for day_from, day_to, days in wide_slices():
         print("people (deep): born " + str(day_from.year) + " to " + str(day_to.year), file=sys.stderr)
-        for binding in run_sliced(PERSON_DEEP_QUERY, "peopledeep3", {"min_sitelinks": PERSON_DEEP_MIN_SITELINKS}, day_from, day_to, days):
+        for binding in run_sliced(PERSON_DEEP_QUERY, "peopledeep4", {"min_sitelinks": PERSON_DEEP_MIN_SITELINKS}, day_from, day_to, days):
             qid = value_of(binding, "item").rsplit("/", 1)[-1]
             if qid in seen:
                 continue
@@ -687,11 +693,15 @@ def main():
 
     all_rows = collect_events() + collect_discoveries() + collect_launches() + collect_publications() + collect_people()
     if not arguments.no_wide:
+        # the collectors append into these lists as they go, so a stop halfway keeps what came back
+        dated_rows, deep_rows = [], []
         try:
-            all_rows += collect_dated()
-            all_rows += collect_people_deep()
+            collect_dated(dated_rows)
+            collect_people_deep(deep_rows)
         except ConnectionError as error:
             print("wide pull stopped: " + str(error) + " — keeping what came back", file=sys.stderr)
+        all_rows += dated_rows + deep_rows
+        print("wide pull: " + str(len(dated_rows)) + " dated rows, " + str(len(deep_rows)) + " birth/death rows", file=sys.stderr)
 
     # Dedupe on (qid, title) — the same item can appear under several classes.
     seen = {}

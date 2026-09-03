@@ -52,7 +52,7 @@ try { links = JSON.parse(fs.readFileSync(path.join(site, 'data/links.json'), 'ut
 let media = {};
 try { media = JSON.parse(fs.readFileSync(path.join(site, 'data/media.json'), 'utf8')); } catch (e) { /* no clips yet */ }
 const weightOf = {}; rowsKept.forEach(r => { weightOf[r[9]] = { w: r[6], us: r[1] > 24 && r[1] < 50 && r[2] > -125 && r[2] < -66 }; });
-const MEDIA_BUDGET = 2.4 * 1048576; let mediaBytes = 0; const mediaOut = {};
+const MEDIA_BUDGET = 2.6 * 1048576; let mediaBytes = 0; const mediaOut = {};
 Object.keys(media).filter(s => weightOf[s]).sort((a, b) => (weightOf[b].us - weightOf[a].us) || (weightOf[b].w - weightOf[a].w)).forEach(slug => {
   const f = path.join(site, 'media', media[slug].file);
   if (!fs.existsSync(f)) return;

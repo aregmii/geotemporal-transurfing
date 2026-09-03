@@ -313,7 +313,14 @@ def main():
         with open(args.out, "w", encoding="utf-8") as f:
             json.dump(manifest, f, ensure_ascii=False, indent=0)
 
-    print("done: " + str(added) + " new clips, " + str(len(manifest)) + " in " + args.out, file=sys.stderr)
+    # clips no manifest entry points at any more (dropped loose matches, re-packed under a new name): remove them
+    keep = set(v["file"] for v in manifest.values())
+    removed = 0
+    for name in os.listdir(args.media_dir):
+        if name not in keep and os.path.splitext(name)[1].lower() in (".webm", ".opus", ".ogg", ".oga", ".ogv", ".mp3", ".mp4", ".wav"):
+            os.remove(os.path.join(args.media_dir, name))
+            removed += 1
+    print("done: " + str(added) + " new clips, " + str(len(manifest)) + " in " + args.out + (", " + str(removed) + " orphaned files removed" if removed else ""), file=sys.stderr)
 
 
 if __name__ == "__main__":
