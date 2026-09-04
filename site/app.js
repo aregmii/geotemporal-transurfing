@@ -28,23 +28,21 @@ function parseRow(r, i){
   return e;
 }
 function fracOfDate(iso){ var m = /^(-?\d+)-(\d\d)-(\d\d)$/.exec(iso); return +m[1] + (+m[2] - 1) / 12 + (+m[3] - 1) / 365; }
-// How loud an event is at a moment NOW, 0..1. It bursts when it starts, decays over a "headline" period that grows
-// with importance, stays in the background at a floor while it is still running, and after it ends fades out over
-// an afterglow of the same length. A weight-4 event is the headline for ~3 years; a weight-1 one for ~6 months.
-var HEADLINE_YEARS = { 1:0.5, 2:1, 3:2, 4:3 };
+// Event time. NOW names a month, and the globe shows what was happening in that month: a moment (a day, a
+// match, a crash) appears in its own month and is gone the month after; something that runs for months or years
+// (a war, a pandemic) stays as long as it runs — loudest when it begins, then at a background level — and goes
+// when it ends. Nothing lingers: 9/11 is on the globe in September 2001 and not in October.
+var STEP = 1 / 12;                                     // the month
+var HEADLINE_YEARS = { 1:0.5, 2:1, 3:2, 4:3 };         // how long a long-running thing stays loud after it begins
 var BACKGROUND = 0.42;
+var MOMENT = 45 / 365;                                 // shorter than this, an event is a moment
 function prominence(e, now){
-  if (now < e.t0) return 0;
-  var H = HEADLINE_YEARS[e.w] || 1;
-  var since = now - e.t0;
-  var p = since < H ? 1 - (1 - BACKGROUND) * (since / H) : BACKGROUND;      // headline -> background
-  var over = Math.max(e.t1, e.t0 + H);                                      // a moment gets its full headline period first
-  if (now > over){                                                          // then an afterglow of the same length, then gone
-    var after = now - over;
-    if (after >= H) return 0;
-    p *= 1 - after / H;
-  }
-  return p;
+  var monthEnd = now + STEP;
+  if (e.t0 >= monthEnd) return 0;                      // not yet
+  if (e.t1 - e.t0 < MOMENT) return e.t0 >= now ? 1 : 0;   // a moment: its month, and only its month
+  if (e.t1 <= now) return 0;                           // over
+  var since = monthEnd - e.t0, H = HEADLINE_YEARS[e.w] || 1;
+  return since < H ? 1 - (1 - BACKGROUND) * (since / H) : BACKGROUND;
 }
 function inWindow(e, w){
   var era = ERAS[w.era];
@@ -61,8 +59,8 @@ var loadedYears = {};
 // Two rails. "century" = calendar decades with 5-year windows; "all" = eleven eras from the first stone tools.
 var ERA_SETS = {
   // a slider: the window is `width` years wide and moves one year at a time across from..to
-  recent:  [ {name:'', label:'', from:2000, to:2026, step:1/12, width:5,  slider:true, tick:5} ],   // one month at a time
-  century: [ {name:'', label:'', from:1926, to:2026, step:1/12, width:10, slider:true, tick:10} ],
+  recent:  [ {name:'', label:'', from:2000, to:2026, step:1/12, width:1/12, slider:true, tick:5} ],   // one month at a time, from the first month
+  century: [ {name:'', label:'', from:1926, to:2026, step:1/12, width:1/12, slider:true, tick:10} ],
   all: [
     {name:'ORIGINS',        label:'4–0.3 Mya',        from:-4000000, to:-320000, step:1000000},
     {name:'HOMO SAPIENS',   label:'320–12 kya',       from:-320000,  to:-10000,  step:100000},
@@ -84,11 +82,17 @@ function buildWindows(){
   WINDOWS = [];
   ERAS.forEach(function(era, ei){
     var width = era.width || era.step;
-    var n = era.slider ? Math.round((era.to - era.from - width) / era.step) + 1 : Math.ceil((era.to - era.from) / era.step);
+    var n = era.slider ? Math.round((era.to - era.from) / era.step) : Math.ceil((era.to - era.from) / era.step);
     era.first = WINDOWS.length; era.count = n;
     for (var k = 0; k < n; k++){
-      var a = era.slider ? fracYear(era.from + k * era.step) : era.from + k * era.step;
-      WINDOWS.push({ start:a, end:Math.min(fracYear(a + width), era.to), era:ei });
+      if (era.slider){
+        // a slider window is named by its end, which is NOW: the month on the globe runs from NOW for one step
+        var now = fracYear(era.from + k * era.step);
+        WINDOWS.push({ start:fracYear(now - width), end:now, era:ei });
+      } else {
+        var a = era.from + k * era.step;
+        WINDOWS.push({ start:a, end:Math.min(a + width, era.to), era:ei });
+      }
     }
   });
 }
@@ -503,7 +507,7 @@ var shardLoads = 0;
 function ensureYears(start, end, done){
   // fetch the shards a window touches, append their rows to EVENTS, then call done(true) if anything new arrived
   if (!SHARDS){ done(false); return; }
-  var need = SHARDS.years.filter(function(y){ return y >= start && y <= end && !loadedYears[y]; });
+  var need = SHARDS.years.filter(function(y){ return y >= Math.floor(start) && y <= Math.floor(end + STEP) && !loadedYears[y]; });   // the years the month touches
   if (!need.length){ done(false); return; }
   need.forEach(function(y){ loadedYears[y] = 'loading'; });
   var gen = ++shardLoads;
@@ -1029,6 +1033,7 @@ function tinyDesc(e){
 }
 function openPanel(e){
   selected = e;
+  if (typeof setPlayDir === 'function' && playDir) setPlayDir(0);   // opening something stops the film, as in any player
   setSkyDate(skyDateFor(e));
   bindWindow(); render();                  // pin the event and its same-day partners onto the globe, then lay out
   var p = document.getElementById('panel');
@@ -1490,9 +1495,10 @@ function placeHandle(){
   var w = WINDOWS[wi], era = ERAS[w.era];
   if (era.slider){
     var span = era.to - era.from;
-    handle.style.left = ((Math.max(era.from, w.end - Math.min(w.end - w.start, HEADLINE_YEARS[4])) - era.from) / span * 100) + '%';
-    handle.style.width = (Math.min(w.end - w.start, HEADLINE_YEARS[4]) / span * 100) + '%';   // the band: how long the loudest events stay headlines
-    handle.innerHTML = '<span class="hnow">' + monthLabel(w.end) + '</span>';
+    var leftPct = (w.end - era.from) / span * 100;
+    handle.style.left = leftPct + '%';
+    handle.style.width = (STEP / span * 100) + '%';                                            // the month on the globe
+    handle.innerHTML = '<span class="hnow' + (leftPct > 88 ? ' before' : '') + '">' + monthLabel(w.end) + '</span>';
     return;
   }
   var segW = 100 / ERAS.length;
@@ -1620,7 +1626,7 @@ function coincidences(){
   // The strip is the news of NOW: only days in the two months up to the NOW mark qualify, so the line moves with
   // the film. A quiet stretch widens to six months, then to the whole window, rather than going blank.
   var w = WINDOWS[wi], now = w.end;
-  var reaches = [2 / 12, 6 / 12, now - w.start], lines = [];
+  var reaches = [2 / 12, 6 / 12, 5], lines = [];
   for (var r = 0; r < reaches.length && lines.length < 3; r++){
     lines = linesWithin(w, now, reaches[r]);
   }
@@ -1630,14 +1636,14 @@ function linesWithin(w, now, reach){
   var byDay = {};
   EVENTS.forEach(function(e){
     if (!e.date || e.w < 3 || off[e.cat] || !inWindow(e, w)) return;
-    if (e.t0 > now || now - e.t0 > reach) return;
+    if (e.t0 >= now + STEP || now + STEP - e.t0 > reach) return;   // the month on the globe and the reach before it
     if (e.title.split(/\s+/).length < 3) return;                   // "Megaclite introduced" is not a line anyone can read
     (byDay[e.date] = byDay[e.date] || []).push(e);
   });
   var lines = [];
   Object.keys(byDay).forEach(function(d){
     var arr = byDay[d];
-    var recency = now - arr[0].t0 < 1 / 12 ? 3 : now - arr[0].t0 < 0.5 ? 1 : 0;
+    var recency = arr[0].t0 >= now ? 3 : now - arr[0].t0 < 0.5 ? 1 : 0;   // this very month first
     for (var i = 0; i < arr.length; i++){
       var a = arr[i];
       if (a.w >= 4 && partnerQuality(a) >= 0) lines.push({ a:a, b:null, score:a.w + partnerQuality(a) + recency });   // big enough to stand alone
