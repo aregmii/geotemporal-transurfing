@@ -407,7 +407,7 @@ RING_DASH = new THREE.CanvasTexture(ringCanvas(128, true));
 
 var markers = new THREE.Group(); globe.add(markers);
 var MAX_SHOWN = 400;
-function shownCap(){ return Math.round(Math.max(48, Math.min(MAX_SHOWN, 48 * Math.pow(3.9 / camDist, 2)))); }
+function shownCap(){ return Math.round(Math.max(90, Math.min(MAX_SHOWN, 90 * Math.pow(3.9 / camDist, 2)))); }
 
 // Each event is a hologram: a translucent light beam rising from the exact spot, with the event's image floating
 // at the top as a framed card. Cards that would overlap on screen are lifted higher, so dense regions stack
@@ -668,7 +668,9 @@ function bindWindow(){
   var list = EVENTS.filter(function(e){ return !off[e.cat] && inWindow(e, w); });
   var now = w.end, slider = ERAS[w.era] && ERAS[w.era].slider;
   list.forEach(function(e){ e._p = slider ? prominence(e, now) : 1; });
-  list.sort(function(a, b){ return (b.w * (0.5 + b._p) - a.w * (0.5 + a._p)) || (b.t0 - a.t0); });
+  // What gets a card: loudness now, weighted by importance (w^0.7). A fresh small event beats a faded big one,
+  // which is what "the news at this moment" means; a war at its background level still outranks minor items.
+  list.sort(function(a, b){ return (Math.pow(b.w, 0.7) * b._p - Math.pow(a.w, 0.7) * a._p) || (b.t0 - a.t0); });
   windowTotal = list.length;
   shown = list.slice(0, shownCap());
   EVENTS.forEach(function(e){ e.holder = null; e._sx = null; });
@@ -738,8 +740,8 @@ function render(){
     var front = worldNormal(e).z > 0.12;
     h.visible = front;
     if (!front){ e._sx = null; behind++; return; }
-    var p = e._p == null ? 1 : e._p;
-    var scale = e.size * zoomBoost * (0.72 + 0.28 * p);
+    var prom = e._p == null ? 1 : e._p;              // loudness now; `p` below is a placed-card rectangle
+    var scale = e.size * zoomBoost * (0.80 + 0.20 * prom);
     var cw = CARD_W * scale, chh = CARD_H * scale;
     var hwPx = cw * pxPerUnit / CARD_H * 0.5, hhPx = chh * pxPerUnit / CARD_H * 0.5;
     // cards float just above the surface; a card that would overlap a more important one is hidden,
@@ -773,7 +775,7 @@ function render(){
     } else u.badge.visible = false;
     u.base.scale.set(0.02, 0.02, 1);
     var dim = selected && selected.id !== e.id && ctxEls.indexOf(e) < 0;
-    var fade = 0.45 + 0.55 * p;                                 // headline bright, background dimmer, afterglow fading
+    var fade = 0.62 + 0.38 * prom;                              // headline bright, background dimmer, afterglow fading
     u.card.material.opacity = (dim ? 0.45 : 0.96) * fade; u.badge.material.opacity = (dim ? 0.35 : 1) * fade;
     u.beam.material.opacity = dim ? 0.08 : 0.22;
     u.base.material.opacity = dim ? 0.3 : 0.9;
