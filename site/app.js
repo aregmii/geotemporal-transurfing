@@ -1786,7 +1786,7 @@ function coincidences(){
   // The strip is the news of NOW: only days in the two months up to the NOW mark qualify, so the line moves with
   // the film. A quiet stretch widens to six months, then to the whole window, rather than going blank.
   var w = WINDOWS[wi], now = w.end;
-  var reaches = [2 / 12, 6 / 12, 5], lines = [];
+  var reaches = [2 / 12, 6 / 12], lines = [];          // a quiet month shows fewer lines rather than old ones
   for (var r = 0; r < reaches.length && lines.length < 3; r++){
     lines = linesWithin(w, now, reaches[r]);
   }
@@ -1798,6 +1798,7 @@ function linesWithin(w, now, reach){
     if (!e.date || e.w < 3 || off[e.cat] || !inWindow(e, w)) return;
     if (e.t0 >= now + STEP || now + STEP - e.t0 > reach) return;   // the month on the globe and the reach before it
     if (e.title.split(/\s+/).length < 3) return;                   // "Megaclite introduced" is not a line anyone can read
+    if (/^\(\d+\)|^\d{4} [A-Z]{2}\d/.test(e.title)) return;         // a catalogue number is not news
     (byDay[e.date] = byDay[e.date] || []).push(e);
   });
   var lines = [];

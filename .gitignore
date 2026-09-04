@@ -27,3 +27,4 @@ pipeline/earth_cache/
 .gt*.tgz
 __pycache__/
 *.pyc
+.gt-out/

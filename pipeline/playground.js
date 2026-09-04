@@ -22,7 +22,7 @@ const skyLabels = fs.readFileSync(path.join(site, 'assets/skylabels.json'), 'utf
 const skyFacts = fs.existsSync(path.join(site, 'data/skyfacts.json')) ? fs.readFileSync(path.join(site, 'data/skyfacts.json'), 'utf8') : '{}';
 const skyImage = 'data:image/jpeg;base64,' + fs.readFileSync(path.join(site, 'assets/sky.jpg')).toString('base64');
 const astro = fs.readFileSync(path.join(site, 'vendor/astronomy.browser.min.js'), 'utf8');
-const earth = 'data:image/jpeg;base64,' + fs.readFileSync(path.join(site, 'assets/earth.jpg')).toString('base64');
+let earth = null;   // filled after the pillow step below has written the smaller copy
 const manifest = JSON.parse(fs.readFileSync(path.join(site, 'data/images.json'), 'utf8'));
 // only photos an event actually uses (the manifest also keeps rows that merge.js later dropped)
 const usedSlugs = new Set(rowsKept.map(r => r[9]));
@@ -40,8 +40,15 @@ for slug, v in man.items():
     im = Image.open(src).convert('RGB'); w, h = im.size; k = min(1.0, 176 / max(w, h))
     if k < 1: im = im.resize((max(1, int(w * k)), max(1, int(h * k))), Image.LANCZOS)
     im.save(dst, 'JPEG', quality=50, optimize=True, progressive=True)
+# the Earth: the site ships 5400 px, which alone is 2 MB inlined; the hosted page gets 4096 px at a lighter quality
+earth_src = os.path.join(site, 'assets/earth.jpg'); earth_dst = os.path.join(tmp, 'earth.jpg')
+if not os.path.exists(earth_dst) or os.path.getmtime(earth_dst) < os.path.getmtime(earth_src):
+    im = Image.open(earth_src).convert('RGB')
+    if im.size[0] > 4096: im = im.resize((4096, 2048), Image.LANCZOS)
+    im.save(earth_dst, 'JPEG', quality=72, optimize=True, progressive=True)
 `;
 execFileSync('python3', ['-c', py, site, tmp], { stdio: 'inherit' });
+earth = 'data:image/jpeg;base64,' + fs.readFileSync(path.join(tmp, 'earth.jpg')).toString('base64');
 let bytes = 0;
 const rank = {}; rowsKept.forEach(r => { const v = (r[4] >= 2000 ? 10 : 0) + r[6]; if (!(r[9] in rank) || rank[r[9]] < v) rank[r[9]] = v; });
 for (const slug of Object.keys(manifest).sort((a, b) => (rank[b] || 0) - (rank[a] || 0))) {
