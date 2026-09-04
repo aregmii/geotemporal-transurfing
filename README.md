@@ -6,7 +6,9 @@ Spin the Earth, slide to a month, click an event: a photograph, a headline, and 
 
 **[Try it](#)** · 71,507 events, 2000–2025 · three.js, no build step · MIT
 
-Every event stands on the globe where it happened. The header shows one **NOW** that the rail moves and the play button advances. Events fade as they age, in proportion to how big they were. Where a place is too crowded to draw them all, the top card wears a **+N** chip and lists the rest.
+Every event stands on the globe where it happened, on a beam straight up from its own coordinates; two events in one place are two holograms at two heights. Time is a film: it rolls from the moment the page opens, and the transport at the bottom rewinds, pauses and fast-forwards it — a step faster each press, either way. Events fade as they age, in proportion to how big they were. Where a place is too crowded to draw them all, the top card wears a **+N** chip and lists the rest.
+
+![Tilted close-up over Europe: columns of holograms rising from their cities while time runs backwards](docs/closeup.gif)
 
 The sky behind the Earth is the real sky for the moment shown — Yale Bright Star Catalog, the Moon at its true phase and distance.
 

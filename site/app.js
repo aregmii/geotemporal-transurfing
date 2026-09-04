@@ -1378,46 +1378,49 @@ if (spinRange){
   spinRange.oninput = function(){ setSpin(+spinRange.value); };
   setSpin(+spinRange.value);
 }
-// Time runs both ways. ◀ and ▶ set the direction, the speed button cycles through multiples of a base rate of one
-// month every two seconds, and either button pressed again stops the clock where it is. Running backwards is not
-// a rewind: the globe keeps turning and the cards fade in and out exactly as they do going forwards, so you can
-// sit at a moment, walk back through what led to it, and stop.
+// Time is a film. It runs from the moment the page opens and keeps running until you stop it; the transport at
+// the bottom is the one from a video player. ⏪ and ⏩ set the direction and go a step faster each press
+// (1x 2x 4x 8x 16x of a month every two seconds); ▶ / ⏸ stops and starts at the current speed; ⏮ and ⏭ jump to
+// the ends. Running backwards is not a rewind of the picture: cards fade in and out exactly as they do going
+// forwards, so you can sit on a month, walk back through what led to it, and stop.
 var SPEEDS = [1, 2, 4, 8, 16];
 var BASE_MONTHS_PER_SEC = 0.5;                                   // 1x: a month every two seconds
 var playDir = 0, speedIx = 0, playAcc = 0, playLast = 0;
 var playVal = document.getElementById('playVal');
-var playBtn = document.getElementById('playBtn'), revBtn = document.getElementById('revBtn'), speedBtn = document.getElementById('speedBtn');
+var playBtn = document.getElementById('playBtn'), rewBtn = document.getElementById('rewBtn'), ffBtn = document.getElementById('ffBtn');
+var toStartBtn = document.getElementById('toStartBtn'), toEndBtn = document.getElementById('toEndBtn');
 function yearsPerSecNow(){ return BASE_MONTHS_PER_SEC * SPEEDS[speedIx] / 12; }
 function showSpeed(){
-  if (speedBtn) speedBtn.textContent = SPEEDS[speedIx] + '×';
+  if (playBtn){ playBtn.innerHTML = playDir ? '&#10074;&#10074;' : '&#9654;'; playBtn.setAttribute('aria-pressed', playDir ? 'true' : 'false'); }
   if (playVal){
     var secPerMonth = 1 / (BASE_MONTHS_PER_SEC * SPEEDS[speedIx]);
-    playVal.textContent = playDir === 0 ? 'PAUSED'
-      : (playDir < 0 ? 'BACK\n' : 'ON\n') + (secPerMonth >= 1 ? 'A MONTH EVERY ' + (secPerMonth >= 10 ? Math.round(secPerMonth) : secPerMonth.toFixed(1)) + ' S'
-                                                              : Math.round(1 / secPerMonth) + ' MONTHS A SECOND');
+    var rate = secPerMonth >= 1 ? 'A MONTH / ' + (secPerMonth >= 10 ? Math.round(secPerMonth) : secPerMonth.toFixed(1)) + ' S' : Math.round(1 / secPerMonth) + ' MONTHS / S';
+    playVal.textContent = playDir === 0 ? 'PAUSED · ' + SPEEDS[speedIx] + '×' : (playDir < 0 ? '◀ ' : '▶ ') + SPEEDS[speedIx] + '× · ' + rate;
   }
 }
 function setPlayDir(dir){
   playDir = dir; playAcc = 0; playLast = performance.now();
-  if (playBtn) playBtn.setAttribute('aria-pressed', dir > 0 ? 'true' : 'false');
-  if (revBtn) revBtn.setAttribute('aria-pressed', dir < 0 ? 'true' : 'false');
   showSpeed();
+}
+// a press in the running direction goes one step faster; a press the other way turns round at 1x
+function runToward(dir){
+  if (playDir === dir) speedIx = Math.min(SPEEDS.length - 1, speedIx + 1);
+  else speedIx = 0;
+  if (dir > 0 && wi >= WINDOWS.length - 1) setWindow(0);
+  if (dir < 0 && wi <= 0) setWindow(WINDOWS.length - 1);
+  setPlayDir(dir);
 }
 if (playBtn){
   playBtn.onclick = function(){
-    if (playDir <= 0 && wi >= WINDOWS.length - 1) setWindow(0);      // at the far end: start over from the beginning
-    setPlayDir(playDir > 0 ? 0 : 1);
+    if (playDir) { setPlayDir(0); return; }
+    if (wi >= WINDOWS.length - 1) setWindow(0);                       // at the far end: start over from the beginning
+    setPlayDir(1);
   };
 }
-if (revBtn){
-  revBtn.onclick = function(){
-    if (playDir >= 0 && wi <= 0) setWindow(WINDOWS.length - 1);      // at the start: jump to the end and run back
-    setPlayDir(playDir < 0 ? 0 : -1);
-  };
-}
-if (speedBtn){
-  speedBtn.onclick = function(){ speedIx = (speedIx + 1) % SPEEDS.length; showSpeed(); };
-}
+if (rewBtn) rewBtn.onclick = function(){ runToward(-1); };
+if (ffBtn) ffBtn.onclick = function(){ runToward(1); };
+if (toStartBtn) toStartBtn.onclick = function(){ setWindow(0); };
+if (toEndBtn) toEndBtn.onclick = function(){ setWindow(WINDOWS.length - 1); };
 showSpeed();
 var playing = false;                                                // kept for the rail drag, which stops the clock
 function setPlaying(on){ if (!on) setPlayDir(0); }
@@ -1635,6 +1638,19 @@ document.getElementById('aboutClose').onclick = function(){ document.getElementB
 window.addEventListener('resize', resize);
 buildSkyStatic(); setSkyDate(new Date());
 bindWindow(); syncHeader(); placeHandle(); resize(); tick(); readHash(); resetTicker(); setTimeout(placeHandle, 60);
+// The film starts rolling on its own. A link that opens on a particular event stays paused on that moment, since
+// whoever shared it meant that month; otherwise time runs forward at 1x from wherever the page opened, and from
+// the beginning if it opened at the very end.
+if (!selected && !/[#&]e=/.test(location.hash)){
+  if (!/[#&]y=/.test(location.hash)){
+    // no month asked for: open on January 2020 and roll from there, so the first thing a visitor sees is the
+    // pandemic year arriving rather than the last frame of the film
+    var opening = WINDOWS.findIndex(function(w){ return Math.abs(w.end - 2020) < 0.02; });   // a window is named by its NOW, its end
+    if (opening >= 0) setWindow(opening);
+  }
+  if (wi >= WINDOWS.length - 1) setWindow(0);
+  setPlayDir(1);
+}
 ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added){ if (added){ bindWindow(); render(); resetTicker(); if (!selected && /[#&]e=/.test(location.hash)) readHash(); } });
 setInterval(function(){ if (!selected || !selected.date) setSkyDate(new Date()); }, 60000);
 };

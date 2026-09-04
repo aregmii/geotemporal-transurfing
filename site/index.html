@@ -41,13 +41,6 @@
         <input type="range" id="spinRange" min="0" max="100" value="0" aria-label="Globe turning speed (still by default)">
         <span class="vval" id="spinVal"></span>
       </div>
-      <div class="vctl right" id="playCtl" title="Run time backwards or forwards">
-        <span class="vlab">TIME</span>
-        <button id="revBtn" aria-pressed="false" aria-label="Run time backwards" title="Run time backwards">◀</button>
-        <button id="playBtn" aria-pressed="false" aria-label="Run time forwards" title="Run time forwards">▶</button>
-        <button id="speedBtn" class="spd" aria-label="Playback speed" title="Playback speed">1×</button>
-        <span class="vval" id="playVal"></span>
-      </div>
       <div id="tip"><div class="tt"></div><div class="ty"></div></div>
       <div class="hint">FLICK · SCROLL TO ZOOM · ← → TIME · <em>+N</em> = MORE WITHIN 250 KM</div>
       <div class="count" id="count"></div>
@@ -65,6 +58,15 @@
     <aside id="panel"></aside>
   </div>
   <div id="rail">
+    <!-- the transport: time is a film. It runs unless you stop it; the double arrows change speed a step per press. -->
+    <div class="transport" id="transport">
+      <button id="toStartBtn" title="Jump to the start" aria-label="Jump to the start">|&#9664;</button>
+      <button id="rewBtn" title="Rewind, faster each press" aria-label="Rewind">&#9664;&#9664;</button>
+      <button id="playBtn" title="Play or pause (space)" aria-label="Play or pause" aria-pressed="false">&#9654;</button>
+      <button id="ffBtn" title="Fast forward, faster each press" aria-label="Fast forward">&#9654;&#9654;</button>
+      <button id="toEndBtn" title="Jump to the end" aria-label="Jump to the end">&#9654;|</button>
+      <span class="rate" id="playVal"></span>
+    </div>
     <div class="track" id="track" tabindex="0" role="slider" aria-label="Time window"></div>
   </div>
 </div>
