@@ -28,25 +28,42 @@ function parseRow(r, i){
   return e;
 }
 function fracOfDate(iso){ var m = /^(-?\d+)-(\d\d)-(\d\d)$/.exec(iso); return +m[1] + (+m[2] - 1) / 12 + (+m[3] - 1) / 365; }
-// Event time. NOW names a month, and the globe shows what was happening in that month: a moment (a day, a
-// match, a crash) appears in its own month and is gone the month after; something that runs for months or years
-// (a war, a pandemic) stays as long as it runs — loudest when it begins, then at a background level — and goes
-// when it ends. Nothing lingers: 9/11 is on the globe in September 2001 and not in October.
-var STEP = 1 / 12;                                     // the month
+// Event time, continuously. NOW is a moment (a fractional year, nowT), and every event has a loudness at that
+// moment: a moment (a day, a match, a crash) fades in over the three days before its date, holds for a little over
+// three weeks, and fades out over a week — so 9/11 is on the globe through September 2001 and gone by
+// mid-October, and as the film runs cards rise and sink instead of popping in and out at month boundaries.
+// Something that runs for months or years (a war, a pandemic) fades in the same way, is loudest when it begins,
+// settles to a background level, and fades out when it ends.
+var STEP = 1 / 12;                                     // the month: the unit of the rail and of the data shards
 var HEADLINE_YEARS = { 1:0.5, 2:1, 3:2, 4:3 };         // how long a long-running thing stays loud after it begins
 var BACKGROUND = 0.42;
 var MOMENT = 45 / 365;                                 // shorter than this, an event is a moment
+var FADE_IN = 3 / 365, HOLD = 24 / 365, FADE_OUT = 8 / 365;
 function prominence(e, now){
-  var monthEnd = now + STEP;
-  if (e.t0 >= monthEnd) return 0;                      // not yet
-  if (e.t1 - e.t0 < MOMENT) return e.t0 >= now ? 1 : 0;   // a moment: its month, and only its month
-  if (e.t1 <= now) return 0;                           // over
-  var since = monthEnd - e.t0, H = HEADLINE_YEARS[e.w] || 1;
-  return since < H ? 1 - (1 - BACKGROUND) * (since / H) : BACKGROUND;
+  if (now < e.t0 - FADE_IN) return 0;                  // not yet
+  var rise = now < e.t0 ? (now - (e.t0 - FADE_IN)) / FADE_IN : 1;
+  if (e.t1 - e.t0 < MOMENT){                           // a moment: its three weeks, then gone
+    var since = now - e.t0;
+    if (since < 0) return rise;
+    if (since < HOLD) return 1;
+    if (since < HOLD + FADE_OUT) return 1 - (since - HOLD) / FADE_OUT;
+    return 0;
+  }
+  if (now > e.t1 + FADE_OUT) return 0;                 // over
+  var H = HEADLINE_YEARS[e.w] || 1, age = now - e.t0;
+  var level = age < H ? 1 - (1 - BACKGROUND) * (age / H) : BACKGROUND;
+  if (now > e.t1) level *= 1 - (now - e.t1) / FADE_OUT;
+  return level * rise;
+}
+// could this event be on the globe at any point during the month the window names?
+function inMonth(e, w){
+  var start = w.end, end = w.end + STEP;
+  if (e.t1 - e.t0 < MOMENT) return e.t0 - FADE_IN < end && e.t0 + HOLD + FADE_OUT > start;
+  return e.t0 - FADE_IN < end && e.t1 + FADE_OUT > start;
 }
 function inWindow(e, w){
   var era = ERAS[w.era];
-  if (era && era.slider) return prominence(e, w.end) > 0.01;                 // the slider rails follow NOW
+  if (era && era.slider) return inMonth(e, w);                              // the slider rails follow NOW
   return e.t0 < w.end && e.t1 > w.start;                                     // era tabs: anything inside the era
 }
 function fracYear(y){ return Math.round(y * 12) / 12; }
@@ -197,6 +214,7 @@ Object.keys(CATS).forEach(function(k){ ICON_URL[k] = iconCanvas(k, 64, false).to
 // ---------- state ----------
 // opening window: 2020–2025 (a slider window is keyed by its start year)
 var wi = WINDOWS.findIndex(function(w){ return w.start === 2020; });
+var nowT = 0;                                          // the moment on the globe, a fractional year; set with the window
 if (wi < 0) wi = WINDOWS.findIndex(function(w){ return w.start <= 2022 && w.end >= 2022; });
 if (wi < 0) wi = WINDOWS.length - 1;
 var selected = null, hovered = null, hoveredSky = null, idle = true, idleTimer = null;
@@ -761,19 +779,31 @@ function updateLiveGlyphs(now){
 
 var shown = [];   // events currently bound to pool holders
 var windowTotal = 0;
+var monthCands = [], prevShown = [], CAT_COLOR = {};
+function catColor(cat){ if (!CAT_COLOR[cat]) CAT_COLOR[cat] = css(CATS[cat].v); return CAT_COLOR[cat]; }
 function bindWindow(){
+  // Once per month: every event that can be on the globe at some moment of this month. Then bindNow() picks,
+  // for the moment NOW, the ones that are actually audible and gives them cards.
+  var w = WINDOWS[wi];
+  monthCands = EVENTS.filter(function(e){ return !off[e.cat] && inWindow(e, w); });
+  bindNow(true);
+}
+var lastBindT = NaN;
+function bindNow(force){
+  if (!force && nowT === lastBindT) return;
+  lastBindT = nowT;
   var w = WINDOWS[wi];
   // The noise floor: with the whole Earth in frame the smallest tier (weight 1: minor year-page items) gets no
   // card at all. Coming in past 2.5 radii lifts the floor, so a country fills in with its smaller events as you
   // approach it.
-  var far = camDist > 2.5;
-  var list = EVENTS.filter(function(e){
-    if (off[e.cat] || !inWindow(e, w)) return false;
-    if (far && e.w <= 1) return false;
-    return true;
-  });
-  var now = w.end, slider = ERAS[w.era] && ERAS[w.era].slider;
-  list.forEach(function(e){ e._p = slider ? prominence(e, now) : 1; });
+  var far = camDist > 2.5, slider = ERAS[w.era] && ERAS[w.era].slider;
+  var list = [];
+  for (var i = 0; i < monthCands.length; i++){
+    var e = monthCands[i];
+    if (far && e.w <= 1) continue;
+    e._p = slider ? prominence(e, nowT) : 1;
+    if (e._p > 0.005) list.push(e);
+  }
   // Importance first, then a real photograph: a weight-3 event with a picture never outranks a weight-4 one
   // without, but among equals the picture wins the card.
   function rank(e){ return e.w * 10 + (IMAGES[e.slug] ? 3 : 0) + e._p; }
@@ -787,18 +817,23 @@ function bindWindow(){
     var rest = shown.filter(function(e){ return pinned.indexOf(e) < 0; });
     shown = pinned.concat(rest).slice(0, Math.max(shownCap(), pinned.length));
   }
-  EVENTS.forEach(function(e){ e.holder = null; e._sx = null; });
+  for (var p = 0; p < prevShown.length; p++){ prevShown[p].holder = null; prevShown[p]._sx = null; }
+  prevShown = shown;
   shown.forEach(function(e, i){
     var h = POOL[i], u = h.userData;
+    if (u.bound === e) return;                                       // same card in the same holder: nothing to redo
+    u.bound = e;
     var tex = cardTexture(e, function(t){ if (e.holder === h){ u.card.material.map = t; u.card.material.needsUpdate = true; render(); } });
     var live = liveFor2(e);
     u.card.material.map = tex || live.tex; u.card.material.needsUpdate = true;
     u.badge.material.map = BADGE_LIVE[liveKey(e)].tex; u.badge.material.needsUpdate = true;
     u.hasPhoto = !!tex;
-    u.beam.material.color.set(css(CATS[e.cat].v));
+    u.beam.material.color.set(catColor(e.cat));
     h.position.copy(e.foot); h.quaternion.copy(e.quat);
     e.holder = h; e.stackH = 0;
   });
+  // a holder keeps its card only while that card is at its index; anything else is rebound above
+  shown.forEach(function(e, i){ e.holder = POOL[i]; });
   for (var j = shown.length; j < MAX_SHOWN; j++){ POOL[j].visible = false; }
 }
 // ---------- hot zones ----------
@@ -844,8 +879,10 @@ function updateHotZones(){
     if (_hn.z > -0.05 && g < HOT_POOL){
       var sp = hotGround[g++];
       sp.position.copy(zone.lead.normal).multiplyScalar(1.012);
-      var size = (0.30 + 0.55 * strength) * Math.max(0.5, Math.min(1.4, camDist / 3.9));
-      sp.scale.set(size, size, 1); sp.material.opacity = 0.55 + 0.45 * strength; sp.visible = true;
+      // the glow is a far-view thing: it shrinks and thins as the camera comes down, so up close the map is the map
+      var near = Math.max(0, Math.min(1, (camDist - 1.2) / 2.2));  // 0 at the closest zoom, 1 with the Earth in frame
+      var size = (0.30 + 0.55 * strength) * (0.12 + 0.88 * near) * Math.max(0.6, Math.min(1.4, camDist / 3.9));
+      sp.scale.set(size, size, 1); sp.material.opacity = (0.55 + 0.45 * strength) * (0.25 + 0.75 * near); sp.visible = true;
     } else if (l < HOT_POOL){
       var rim = Math.hypot(_hn.x, _hn.y); if (rim < 0.02) continue;      // straight behind: no direction to point to
       var sp2 = hotLimb[l++];
@@ -979,12 +1016,16 @@ function render(){
     } else u.badge.visible = false;
     u.base.scale.set(0.02, 0.02, 1);
     var dim = selected && selected.id !== e.id && ctxEls.indexOf(e) < 0;
-    var fade = 0.62 + 0.38 * e._prom;                            // headline bright, background dimmer, afterglow fading
+    // rising or sinking: a card fades in as its day approaches and out as it passes; while it is here it is bright
+    // as a headline and dimmer at the background level a long-running thing settles to
+    var vis = Math.min(1, e._prom / BACKGROUND);
+    var fade = (0.62 + 0.38 * e._prom) * vis;
     var tall = height > HOVER * 1.5;
     // with a panel open, everything but the event and its same-day partners steps back to a quarter
     u.card.material.opacity = (dim ? 0.25 : 0.96) * fade; u.badge.material.opacity = (dim ? 0.2 : 1) * fade;
-    u.beam.material.opacity = dim ? 0.05 : (tall ? 0.4 : 0.22);  // a long beam has to be seen to be believed
-    u.base.material.opacity = dim ? 0.2 : 0.9;
+    u.beam.material.opacity = (dim ? 0.05 : (tall ? 0.4 : 0.22)) * vis;  // a long beam has to be seen to be believed
+    u.base.material.opacity = (dim ? 0.2 : 0.9) * vis;
+    if (u.pile) u.pile.material.opacity = vis;
     e.pos.copy(e.normal).multiplyScalar(1.002 + height);
   }
   // heights a column climbs through, in multiples of HOVER: the second hologram over a spot stands about a card
@@ -1187,13 +1228,13 @@ function openPanel(e){
   writeHash();
   document.getElementById('pclose').onclick = closePanel;
   Array.prototype.forEach.call(p.querySelectorAll('.ew, .nb, .mw'), function(b){
-    b.onclick = function(){ var t = EVENTS[+b.dataset.id]; spinTo(t); openPanel(t); };
+    b.onclick = function(){ var t = EVENTS[+b.dataset.id]; flyTo(t, function(){ openPanel(t); }); };
   });
   resize();
 }
 function closePanel(){
   selected = null;
-  setSkyDate(monthMidDate(WINDOWS[wi].end));
+  setSkyDate(dateOfNow());
   bindWindow();                            // unpin
   document.getElementById('panel').classList.remove('on');
   resize(); writeHash();
@@ -1413,16 +1454,24 @@ if (volRange){
 
 // ---------- spin to ----------
 var spinAnim = null;
-function spinTo(e){
+function spinTo(e){ flyTo(e, null, camDist); }
+// Going to an event: the globe turns so the place comes to the middle while the camera comes down to a viewing
+// height (FLY_HEIGHT radii — about 4,000 km up, where a card is a picture and the country fills the frame), both
+// eased together over a second and a half; then the panel opens. Pulling back up is the viewer's own scroll.
+var FLY_HEIGHT = 1.62;
+function flyTo(e, done, heightOverride){
   var from = globe.quaternion.clone(), to = targetQuat(e.lat, e.lon);
-  var t0 = performance.now(), dur = 700;
+  var d0 = camDist, d1 = heightOverride != null ? heightOverride : Math.max(minCamDist, Math.min(camDist, FLY_HEIGHT));
+  var t0 = performance.now(), dur = Math.abs(d1 - d0) > 0.05 ? 1500 : 700;
   if (spinAnim) cancelAnimationFrame(spinAnim);
   (function step(t){
     var k = Math.min(1, (t - t0) / dur);
     var ease = k < 0.5 ? 2*k*k : 1 - Math.pow(-2*k + 2, 2) / 2;
     globe.quaternion.copy(from).slerp(to, ease);
+    if (d1 !== d0){ camDist = d0 + (d1 - d0) * ease; bindNow(true); }
     render();
     if (k < 1) spinAnim = requestAnimationFrame(step);
+    else if (done) done();
   })(t0);
   bumpIdle();
 }
@@ -1505,7 +1554,7 @@ canvas.addEventListener('wheel', function(ev){
   ev.preventDefault();
   camDist = Math.max(minCamDist, Math.min(140, camDist * (ev.deltaY > 0 ? 1.07 : 0.93)));   // the floor comes from the Earth texture (see minCamDist)
   hovered = null; document.getElementById('tip').classList.remove('on');
-  bindWindow(); render(); if (SOUND.on) updateSound();   // zooming does not stop the globe turning; it changes the mix
+  bindNow(true); render(); if (SOUND.on) updateSound();   // zooming does not stop the globe turning; it changes the mix
 }, { passive:false });
 
 // ---------- idle spin ----------
@@ -1613,17 +1662,42 @@ if (toEndBtn) toEndBtn.onclick = function(){ setWindow(WINDOWS.length - 1); };
 showSpeed();
 var playing = false;                                                // kept for the rail drag, which stops the clock
 function setPlaying(on){ if (!on) setPlayDir(0); }
+// The film runs continuously: NOW moves by the speed times the real seconds elapsed, like a video at 2x is
+// literally twice as fast. Cards fade in and out along the way; the month on the rail and the data shards change
+// only when NOW crosses a month boundary.
+var lastDayShown = -1;
 function tickPlay(now){
   playing = playDir !== 0;
   if (!playDir) return;
-  playAcc += (now - playLast) / 1000 * yearsPerSecNow(); playLast = now;
-  var step = ERAS[WINDOWS[wi].era].slider ? ERAS[WINDOWS[wi].era].step : (WINDOWS[wi].end - WINDOWS[wi].start);
-  while (playAcc >= step){                                          // a while loop: at 16x a frame can cross several months
-    playAcc -= step;
-    var next = wi + playDir;
-    if (next < 0 || next >= WINDOWS.length){ setPlayDir(0); return; }
-    setWindow(next);
+  var era = ERAS[WINDOWS[wi].era];
+  var dt = Math.min(0.25, (now - playLast) / 1000); playLast = now;
+  if (!era.slider){                                                 // era tabs: step, as before
+    playAcc += dt * yearsPerSecNow();
+    var step = WINDOWS[wi].end - WINDOWS[wi].start;
+    while (playAcc >= step){ playAcc -= step; var nx = wi + playDir; if (nx < 0 || nx >= WINDOWS.length){ setPlayDir(0); return; } setWindow(nx); }
+    return;
   }
+  nowT += dt * yearsPerSecNow() * playDir;
+  var first = WINDOWS[era.first].end, last = WINDOWS[era.first + era.count - 1].end + STEP;
+  if (nowT <= first){ nowT = first; setPlayDir(0); }
+  if (nowT >= last){ nowT = last - 1e-6; setPlayDir(0); }
+  var index = era.first + Math.floor((nowT - first) * 12 + 1e-7);
+  if (index !== wi) setWindow(index, true);
+  else bindNow();
+  var day = Math.floor(nowT * 365.25);
+  if (day !== lastDayShown){
+    lastDayShown = day;
+    syncHeader(); placeHandle();
+    if (!selected && day % 3 === 0) setSkyDate(dateOfNow());       // the sky keeps up, every few days
+    if (day % 7 === 0) resetTicker();                                // the line under the globe follows the week
+  }
+  render();
+}
+// the calendar date NOW names, at noon UTC
+function dateOfNow(){
+  var year = Math.floor(nowT + 1e-9), frac = nowT - year;
+  var ms = Date.UTC(year, 0, 1) + frac * (Date.UTC(year + 1, 0, 1) - Date.UTC(year, 0, 1));
+  var d = new Date(ms); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12));
 }
 
 // ---------- rail ----------
@@ -1654,7 +1728,7 @@ function placeHandle(){
   var w = WINDOWS[wi], era = ERAS[w.era];
   if (era.slider){
     var span = era.to - era.from;
-    var leftPct = (w.end - era.from) / span * 100;
+    var leftPct = (nowT - era.from) / span * 100;
     handle.style.left = leftPct + '%';
     handle.style.width = (STEP / span * 100) + '%';                                            // the month on the globe
     handle.innerHTML = '<span class="hnow' + (leftPct > 88 ? ' before' : '') + '">' + monthLabel(w.end) + '</span>';
@@ -1691,14 +1765,16 @@ window.addEventListener('keydown', function(ev){
   if (ev.key === 'Escape') closePanel();
   if (ev.key === ' ' && ev.target === document.body && playBtn){ playBtn.onclick(); ev.preventDefault(); }
 });
-function setWindow(next){
+function setWindow(next, keepNow){
   next = Math.max(0, Math.min(WINDOWS.length - 1, next));
+  if (next === wi && !keepNow){ if (nowT !== WINDOWS[wi].end){ nowT = WINDOWS[wi].end; bindNow(); syncHeader(); placeHandle(); render(); } return; }
   if (next === wi) return;
   wi = next;
+  if (!keepNow) nowT = WINDOWS[wi].end;                                          // a jump lands on the first day of the month
   hovered = null; document.getElementById('tip').classList.remove('on'); canvas.style.cursor = '';
   if (selected && !inWindow(selected, WINDOWS[wi])) closePanel();
   else if (selected) openPanel(selected);
-  if (!selected) setSkyDate(monthMidDate(WINDOWS[wi].end));                     // the sky is the sky of the month shown
+  if (!selected) setSkyDate(dateOfNow());                                          // the sky is the sky of the moment shown
   bindWindow(); syncHeader(); placeHandle(); render(); writeHash(); resetTicker();   // the globe keeps turning while the slider moves
   ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added, latest){ if (added && latest){ bindWindow(); render(); resetTicker(); } });
 }
@@ -1707,6 +1783,7 @@ function syncHeader(){
   var span = w.end - w.start;
   var stepLabel = span >= 1000000 ? (span/1000000) + ' MILLION-YEAR' : span >= 1000 ? (span/1000) + ',000-YEAR' : Math.round(span) + '-YEAR';
   var nowText = era.slider ? monthLabel(w.end) : rangeLabel(w.start, w.end);
+  if (era.slider){ var dn = dateOfNow(); nowText = dn.getUTCDate() + ' ' + MONTHS[dn.getUTCMonth()] + ' ' + dn.getUTCFullYear(); }
   document.getElementById('now').innerHTML = '<span class="nowlab">NOW</span><b>' + nowText + '</b>' +
     (era.slider ? '<span class="nowsub">new events are loud · long ones settle into the background · ended ones fade</span>' : (era.name ? '<span class="nowsub">' + era.name + ' · ' + stepLabel + ' WINDOW</span>' : ''));
   track.setAttribute('aria-valuetext', 'now ' + nowText);
@@ -1741,22 +1818,33 @@ Array.prototype.forEach.call(document.querySelectorAll('#modes button'), functio
 });
 
 // ---------- URL state: #mode=century&y=1965&e=Apollo_11 ----------
+function windowIndexFor(t){
+  var era = ERAS[0];
+  if (!era.slider) return wi;
+  var first = WINDOWS[era.first].end;
+  return Math.max(era.first, Math.min(era.first + era.count - 1, era.first + Math.floor((t - first) * 12 + 1e-7)));
+}
+// jump the clock to a moment: the month changes if it must, and NOW lands on the day
+function goToMoment(t){
+  var i = windowIndexFor(t);
+  nowT = t;
+  if (i !== wi) setWindow(i, true); else { bindNow(); syncHeader(); placeHandle(); render(); }
+}
 function writeHash(){
-  var parts = ['mode=' + mode, 'y=' + (Math.round(WINDOWS[wi].start * 100) / 100)];
+  var parts = ['mode=' + mode, 'y=' + (Math.round(nowT * 1000) / 1000)];
   if (selected) parts.push('e=' + encodeURIComponent(selected.slug));
   history.replaceState(null, '', '#' + parts.join('&'));
 }
 function readHash(){
   var h = {}; location.hash.slice(1).split('&').forEach(function(p){ var kv = p.split('='); if (kv[0]) h[kv[0]] = decodeURIComponent(kv[1] || ''); });
   if (h.mode && ERA_SETS[h.mode] && h.mode !== mode) setMode(h.mode, h.y ? +h.y : null);
-  else if (h.y){ var y = +h.y; var i = WINDOWS.findIndex(function(w){ return Math.abs(w.start - y) < 0.02; }); if (i < 0) i = WINDOWS.findIndex(function(w){ return w.start <= y && w.end > y; }); if (i >= 0 && i !== wi){ wi = i; bindWindow(); syncHeader(); placeHandle(); resetTicker(); } }
+  else if (h.y && ERAS[0].slider){ var y = +h.y; if (isFinite(y)){ var i = windowIndexFor(y); if (i !== wi){ wi = i; } nowT = Math.max(WINDOWS[wi].end, Math.min(WINDOWS[wi].end + STEP - 1e-6, y)); bindWindow(); syncHeader(); placeHandle(); resetTicker(); } }
   if (h.e){
-    var w = WINDOWS[wi];
     var matches = EVENTS.filter(function(x){ if (x.slug === h.e) return true; try { return decodeURIComponent(x.slug) === h.e; } catch (err){ return false; } });
-    var e = matches.find(function(x){ return inWindow(x, w); }) || matches[0];
+    var e = matches[0];
     if (e){
-      if (!inWindow(e, w)){ var i = WINDOWS.findIndex(function(win){ return inWindow(e, win); }); if (i >= 0) wi = i; }
-      bindWindow(); syncHeader(); placeHandle(); spinTo(e); openPanel(e);
+      goToMoment(e.t0 + 1 / 365);                                    // the day after it happened: it is on the globe, bright
+      flyTo(e, function(){ openPanel(e); });
     }
   }
 }
@@ -1785,7 +1873,7 @@ function coincidences(){
   // so the strip follows the film; each event appears in one line at most.
   // The strip is the news of NOW: only days in the two months up to the NOW mark qualify, so the line moves with
   // the film. A quiet stretch widens to six months, then to the whole window, rather than going blank.
-  var w = WINDOWS[wi], now = w.end;
+  var w = WINDOWS[wi], now = nowT;
   var reaches = [2 / 12, 6 / 12], lines = [];          // a quiet month shows fewer lines rather than old ones
   for (var r = 0; r < reaches.length && lines.length < 3; r++){
     lines = linesWithin(w, now, reaches[r]);
@@ -1796,7 +1884,7 @@ function linesWithin(w, now, reach){
   var byDay = {};
   EVENTS.forEach(function(e){
     if (!e.date || e.w < 3 || off[e.cat] || !inWindow(e, w)) return;
-    if (e.t0 >= now + STEP || now + STEP - e.t0 > reach) return;   // the month on the globe and the reach before it
+    if (e.t0 > now + 1 / 365 || now - e.t0 > reach) return;        // up to today, and the reach before it
     if (e.title.split(/\s+/).length < 3) return;                   // "Megaclite introduced" is not a line anyone can read
     if (/^\(\d+\)|^\d{4} [A-Z]{2}\d/.test(e.title)) return;         // a catalogue number is not news
     (byDay[e.date] = byDay[e.date] || []).push(e);
@@ -1804,7 +1892,7 @@ function linesWithin(w, now, reach){
   var lines = [];
   Object.keys(byDay).forEach(function(d){
     var arr = byDay[d];
-    var recency = arr[0].t0 >= now ? 3 : now - arr[0].t0 < 0.5 ? 1 : 0;   // this very month first
+    var recency = now - arr[0].t0 < 10 / 365 ? 3 : now - arr[0].t0 < 0.5 ? 1 : 0;   // the last ten days first
     for (var i = 0; i < arr.length; i++){
       var a = arr[i];
       if (a.w >= 4 && partnerQuality(a) >= 0) lines.push({ a:a, b:null, score:a.w + partnerQuality(a) + recency });   // big enough to stand alone
@@ -1854,7 +1942,7 @@ function showTicker(){
   el.innerHTML = '<span class="tk">' + dayLabel(p.a.date) + '</span>' + tickerSide(p.a) + (p.b ? '<span class="tw">while</span>' + tickerSide(p.b) : '');
   el.classList.add('on');
   Array.prototype.forEach.call(el.querySelectorAll('.ts'), function(side){
-    side.onclick = function(){ var t = EVENTS[+side.dataset.id]; spinTo(t); openPanel(t); };
+    side.onclick = function(){ var t = EVENTS[+side.dataset.id]; if (playDir) setPlayDir(0); flyTo(t, function(){ openPanel(t); }); };
   });
 }
 function resetTicker(){
@@ -1865,7 +1953,7 @@ document.getElementById('aboutCounts').textContent = EVENTS.length.toLocaleStrin
 document.getElementById('aboutBtn').onclick = function(){ document.getElementById('about').classList.toggle('on'); };
 document.getElementById('aboutClose').onclick = function(){ document.getElementById('about').classList.remove('on'); };
 window.addEventListener('resize', resize);
-buildSkyStatic(); setSkyDate(monthMidDate(WINDOWS[wi].end));
+nowT = WINDOWS[wi].end; buildSkyStatic(); setSkyDate(dateOfNow());
 bindWindow(); syncHeader(); placeHandle(); resize(); tick(); readHash(); resetTicker(); setTimeout(placeHandle, 60);
 // The film starts rolling on its own. A link that opens on a particular event stays paused on that moment, since
 // whoever shared it meant that month; otherwise time runs forward at 1x from wherever the page opened, and from
@@ -1881,7 +1969,7 @@ if (!selected && !/[#&]e=/.test(location.hash)){
   setPlayDir(1);
 }
 ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added){ if (added){ bindWindow(); render(); resetTicker(); if (!selected && /[#&]e=/.test(location.hash)) readHash(); } });
-setInterval(function(){ if (!selected) setSkyDate(monthMidDate(WINDOWS[wi].end)); }, 60000);
+setInterval(function(){ if (!selected && !playDir) setSkyDate(dateOfNow()); }, 60000);
 };
 // Load data files, then start the app.
 (function(){
