@@ -171,8 +171,12 @@ function predicateOf(title, lead) {
   return bad(pred) ? '' : pred;
 }
 // what the lead paragraph itself says about deaths and about how a crash happened
+const WORD_NUMBERS = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10, eleven:11, twelve:12, thirteen:13, fourteen:14, fifteen:15, sixteen:16, seventeen:17, eighteen:18, nineteen:19, twenty:20, thirty:30, forty:40, fifty:50, sixty:60, seventy:70, eighty:80, ninety:90, hundred:100 };
 function deathsInLead(lead) {
-  const t = String(lead).replace(/\u00a0/g, ' ');
+  // Wikipedia writes small counts as words ("ten people were killed"): turn those into digits first
+  const t = String(lead).replace(/\u00a0/g, ' ')
+    .replace(/\b(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)-(one|two|three|four|five|six|seven|eight|nine)\b/gi, (w, tens, ones) => String(WORD_NUMBERS[tens.toLowerCase()] + WORD_NUMBERS[ones.toLowerCase()]))
+    .replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)\b(?= (?:people|passengers|persons|occupants|civilians|soldiers|residents|pilgrims|students|workers|miners|deaths|fatalities|dead|lives|were|died))/gi, w => String(WORD_NUMBERS[w.toLowerCase()]));
   const both = /\ball (\d[\d,]*) passengers and (\d[\d,]*) crew/i.exec(t);
   if (both) return parseInt(both[1].replace(/,/g, ''), 10) + parseInt(both[2].replace(/,/g, ''), 10);
   const pats = [
@@ -208,22 +212,66 @@ function whatItDid(lead) {
 // Who won, taken from the lead when facts.json has no answer. Wikipedia's first sentences are formulaic about
 // results ("was won by Max Verstappen", "Argentina defeated France 4-2 on penalties"), so a small set of shapes
 // covers most finals, races and elections. Returns the whole result clause, score included, or ''.
+const NAME = "(?:the )?((?:[A-Z][\\w'’-]*|\\d+[A-Za-z][\\w'’-]*)(?: (?:[A-Z][\\w'’-]*|\\d+[A-Za-z][\\w'’-]*|de|di|van|von|of|the))*)";   // "Felipe Massa", "the 49ers", "Real Madrid"; a score is not a name   // "Felipe Massa", "the 49ers", "Real Madrid"
+const NOT_A_WINNER = /^(?:The|It|This|That|These|In|On|At|After|With|Despite|Both|Neither|Each|He|She|They|Its|His|Her|Their|A|An|By|For|Early|Voting)\b/;
 const RESULT_SHAPES = [
-  /\bwas won by ([A-Z][^.,;()]{2,48}?)(?:[.,;(]|$)/,
-  /\b([A-Z][\w'’.-]*(?: [A-Z][\w'’.-]*){0,3}) (?:won|defeated|beat) ([A-Z][\w'’.-]*(?: [A-Z][\w'’.-]*){0,3})(?: (\d+[-–]\d+(?: on penalties| after extra time)?))?/,
-  /\b([A-Z][\w'’.-]*(?: [A-Z][\w'’.-]*){0,3}) won the (?:title|race|final|match|election|championship|tournament)\b/,
-  /\b([A-Z][\w'’.-]*(?: [A-Z][\w'’.-]*){0,3}) (?:was|were) (?:re-)?elected\b/,
+  new RegExp('\\b(?:was|were) won by ' + NAME + '(?=[.,;(]|$| (?:in|for|with|by|after|on|at|and))'),
+  new RegExp('\\b' + NAME + ',? (?:who |which )?(?:would |had |went on to )?(?:defeated|defeat|beat|beating|overcame|won against) ' + NAME + '(?: again)?(?: (\\d+[-–]\\d+(?: on penalties| after extra time| in overtime)?))?'),
+  new RegExp('\\b' + NAME + ',? (?:driving|racing|riding) for [^,.]{2,40},? (?:took|won|claimed|secured|scored|achieved)[^.]{0,60}?\\b(?:victory|win)\\b'),
+  new RegExp('\\b' + NAME + ' (?:won|took|claimed) (?:the |his |her |their )?(?:\\d+-lap |race |first |second |third |fourth |fifth |\\w+th )?(?:race|title|final|match|election|championship|tournament|victory|win|gold medal|gold)\\b'),
+  new RegExp('\\b' + NAME + ' (?:was|were) (?:re-)?elected\\b'),
 ];
-function resultInLead(lead) {
-  const t = String(lead || '').replace(/ /g, ' ').replace(/\s+/g, ' ');
-  const first = t.split(/(?<=[a-z0-9\)])\.\s+(?=[A-Z])/).slice(0, 2).join('. ');
-  for (let i = 0; i < RESULT_SHAPES.length; i++) {
-    const m = RESULT_SHAPES[i].exec(first);
+function cleanLead(lead) { return String(lead || '').replace(/ /g, ' ').replace(/\s+/g, ' '); }
+function sentencesOf(lead) { return cleanLead(lead).split(/(?<=[a-z0-9\)”"])\.\s+(?=[A-Z])/); }
+function firstMatch(re, lead) {
+  const parts = sentencesOf(lead);
+  for (let k = 0; k < parts.length; k++) {
+    const m = re.exec(parts[k]);
     if (!m) continue;
-    if (i === 0) return m[1].trim() + ' wins';
-    if (i === 1) return (m[1] + ' beat ' + m[2] + (m[3] ? ' ' + m[3].replace(/-/g, '–') : '')).trim();
-    return m[1].trim() + (i === 3 ? ' elected' : ' wins');
+    // "the ticket of Donald Trump and JD Vance defeated the Democratic ticket": a name that is the tail of a list,
+    // or a party's ticket, is not the winner
+    if (/\band $/.test(parts[k].slice(0, m.index)) || /^ (?:ticket|candidate|party|nominee)\b/.test(parts[k].slice(m.index + m[0].length))) continue;
+    return m;
   }
+  return null;
+}
+function resultInLead(lead) {
+  // The result is often in the third or fourth sentence ("Felipe Massa, driving for Ferrari, took ... his first
+  // race victory"; "the Chiefs would defeat the 49ers again 25–22"), so every sentence of the lead is tried,
+  // one at a time so a name can never run across a full stop.
+  for (let i = 0; i < RESULT_SHAPES.length; i++) {
+    const m = firstMatch(RESULT_SHAPES[i], lead);
+    if (!m) continue;
+    const a = m[1].trim().replace(/[.,;]+$/, '');
+    if (NOT_A_WINNER.test(a) || a.length < 3) continue;
+    if (i === 0) return a + ' wins';
+    if (i === 1) {
+      const b = m[2].trim().replace(/[.,;]+$/, '');
+      if (NOT_A_WINNER.test(b) || b.length < 4) continue;              // "Iv" is a name the summary cut short
+      return (a + ' beat ' + b + (m[3] ? ' ' + m[3].replace(/-/g, '–') : '')).trim();
+    }
+    return a + (i === 4 ? ' elected' : ' wins');
+  }
+  return '';
+}
+// With no result in the lead, who was in it: "contested by Argentina and defending champions France" -> "Argentina v France"
+function contestants(lead) {
+  const m = firstMatch(new RegExp('\\b(?:contested|played) (?:by|between) ' + NAME + ' and (?:(?:the )?(?:defending |reigning )?champions? )?' + NAME), lead)
+        || firstMatch(new RegExp('\\bbetween (?:the )?(?:[A-Z][\\w ()]*? champion )?' + NAME + ' and (?:the )?(?:[A-Z][\\w ()]*? champion )?(?:and defending [A-Z][\\w ]*? champion )?' + NAME), lead);
+  if (!m || NOT_A_WINNER.test(m[1]) || NOT_A_WINNER.test(m[2])) return '';
+  const a = m[1].trim().replace(/[.,;]+$/, ''), b = m[2].trim().replace(/[.,;]+$/, '');
+  if (a.length < 3 || b.length < 4) return '';
+  return a + ' v ' + b;
+}
+// An election with no result in the lead still has a country and a purpose: "Germany votes for the 16th Bundestag"
+function electionLine(lead) {
+  const t = cleanLead(lead);
+  const where = /\b(?:were|was) held in (?:the )?([A-Z][\w'’.-]*(?: (?:[A-Z][\w'’.-]*|of|the|and))*)/.exec(t);
+  if (!where) return '';
+  const what = /\bto elect (?:all |a |the )?(?:\d+ )?(?:members (?:of|to) )?((?:the )?[^.,;]{3,40}?)(?=[.,;]| in accordance| following| under| after| on \d| to serve| for a| for the|$)/.exec(t);
+  const kind = /\b(presidential|parliamentary|general|federal|legislative|local|mayoral|gubernatorial|senate|state)\b/i.exec(t);
+  if (what) return where[1] + ' votes for ' + what[1].replace(/\s+$/, '');
+  if (kind) return where[1] + ' votes' + (/presidential/i.test(kind[1]) ? ' for president' : '');
   return '';
 }
 // Year-page rows are already sentences an editor wrote, but some run to forty words and two clauses. Keep the
@@ -292,6 +340,9 @@ function headline(row) {
   if (/final|cup|championship|grand prix|super bowl|open\b|masters|derby|\brace\b|bowl|series|tournament|olympic|games\b|election|referendum|primary|leadership contest/.test(lower)) {
     const res = resultInLead(lead);
     if (res) return title.replace(/^the /i, '') + ': ' + res;
+    if (/election/.test(lower)) { const line = electionLine(lead); if (line) return line + ' — ' + title.replace(/^the /i, ''); }
+    const who = contestants(lead);
+    if (who) return title.replace(/^the /i, '') + ': ' + who;
   }
   if (f.magnitude && /earthquake/.test(lower)) return 'M' + f.magnitude + ' ' + title + (f.deaths ? ', ' + fmtNum(f.deaths) + ' killed' : '');
   if (f.deaths && /flight|crash|air|ferry|sinking|disaster|derail|collision/.test(lower)) return title + (/flight/.test(lower) ? (/shot down|shootdown/i.test(lead) ? ' shot down, ' : ' crashes, ') : ': ') + fmtNum(f.deaths) + ' killed';
@@ -339,6 +390,19 @@ let demoted = 0;
 for (const r of out) {
   if (/^discovery of /i.test(r[0]) && SMALL_BODY.test(r[8] || '') && r[6] > 1) { r[6] = 1; demoted++; }
 }
+// Hand-set weights win over the sitelink rank: boost.json names the events everyone remembers (9/11, the 2004
+// tsunami, COVID-19, the Ukraine invasion, World Cup finals) so they are never outranked by a routine race.
+// In the other direction, a Formula One race is never more than weight 3 and a sub-event of a games or a
+// championship ("Fencing at the 2020 Summer Olympics – men's team foil") never more than 2.
+let boost = {};
+try { boost = JSON.parse(fs.readFileSync(require('path').join(__dirname, 'boost.json'), 'utf8')); } catch (e) { /* optional */ }
+let boosted = 0, capped = 0;
+for (const r of out) {
+  const slug = r[9];
+  if (slug && typeof boost[slug] === 'number') { if (r[6] !== boost[slug]) boosted++; r[6] = boost[slug]; continue; }
+  if (/\bGrand Prix\b/i.test(r[13] || r[0]) && r[6] > 3) { r[6] = 3; capped++; }
+  if (/ – | at the \d{4} (?:Summer|Winter) (?:Olympics|Paralympics)/.test(r[13] || r[0]) && r[6] > 2) { r[6] = 2; capped++; }
+}
 out.sort((a, b) => a[3] - b[3]);
 fs.writeFileSync(outPath, JSON.stringify(out));
-console.log('curated', out.length - wikidataKept, '| wikidata kept', wikidataKept, 'dropped as duplicate', wikidataDropped, 'dropped as not-an-event', notEvents, 'routine launches', routineLaunches, 'catalogue objects', catalogObjects, 'deaths folded into assassinations', mergedDeaths, 'small bodies demoted', demoted, '| total', out.length);
+console.log('curated', out.length - wikidataKept, '| wikidata kept', wikidataKept, 'dropped as duplicate', wikidataDropped, 'dropped as not-an-event', notEvents, 'routine launches', routineLaunches, 'catalogue objects', catalogObjects, 'deaths folded into assassinations', mergedDeaths, 'small bodies demoted', demoted, 'boosted', boosted, 'capped', capped, '| total', out.length);

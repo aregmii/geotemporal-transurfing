@@ -82,8 +82,18 @@ def query_batch(slugs):
                         pass
                 if val("start") and val("startPrec") == "11" and not f.get("start"):
                     f["start"] = val("start").split("T")[0]
-                if val("end") and val("endPrec") == "11" and not f.get("end"):
-                    f["end"] = val("end").split("T")[0]
+                # An end date is worth having at month or year precision too: a war that "ended in 2021" must
+                # stay on the globe until 2021, not vanish the month it began. Month precision -> the 28th of
+                # that month, year precision -> 31 December, so the event lasts to the end of what is known.
+                if val("end") and not f.get("end"):
+                    end_precision = val("endPrec")
+                    end_date = val("end").split("T")[0]
+                    if end_precision == "11":
+                        f["end"] = end_date
+                    elif end_precision == "10":
+                        f["end"] = end_date[:7] + "-28"
+                    elif end_precision == "9":
+                        f["end"] = end_date[:4] + "-12-31"
             os.makedirs(CACHE_DIR, exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(out, f)

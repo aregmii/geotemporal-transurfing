@@ -19,6 +19,7 @@ const events = JSON.stringify(rowsKept);
 const PHOTO_BUDGET = 4.2 * 1048576;
 const borders = fs.readFileSync(path.join(site, 'assets/countries-110m.json'), 'utf8');
 const skyLabels = fs.readFileSync(path.join(site, 'assets/skylabels.json'), 'utf8');
+const skyFacts = fs.existsSync(path.join(site, 'data/skyfacts.json')) ? fs.readFileSync(path.join(site, 'data/skyfacts.json'), 'utf8') : '{}';
 const skyImage = 'data:image/jpeg;base64,' + fs.readFileSync(path.join(site, 'assets/sky.jpg')).toString('base64');
 const astro = fs.readFileSync(path.join(site, 'vendor/astronomy.browser.min.js'), 'utf8');
 const earth = 'data:image/jpeg;base64,' + fs.readFileSync(path.join(site, 'assets/earth.jpg')).toString('base64');
@@ -80,7 +81,7 @@ html = html.replace('<script src="app.js"></script>',
   '<script id="pg-events" type="application/json">' + events + '</script>\n' +
   '<script id="pg-images" type="application/json">' + JSON.stringify(manifest) + '</script>\n' +
   '<script id="pg-borders" type="application/json">' + borders + '</script>\n' +
-  '<script>window.__GT = { events: JSON.parse(document.getElementById("pg-events").textContent), images: JSON.parse(document.getElementById("pg-images").textContent), borders: JSON.parse(document.getElementById("pg-borders").textContent), skyLabels: ' + skyLabels + ', skyImage: ' + JSON.stringify(skyImage) + ', earth: ' + JSON.stringify(earth) + ', imgDir: "", media: ' + JSON.stringify(mediaOut) + ', mediaDir: "", links: ' + JSON.stringify(links) + ' };</script>\n' +
+  '<script>window.__GT = { events: JSON.parse(document.getElementById("pg-events").textContent), images: JSON.parse(document.getElementById("pg-images").textContent), borders: JSON.parse(document.getElementById("pg-borders").textContent), skyLabels: ' + skyLabels + ', skyFacts: ' + skyFacts + ', skyImage: ' + JSON.stringify(skyImage) + ', earth: ' + JSON.stringify(earth) + ', imgDir: "", media: ' + JSON.stringify(mediaOut) + ', mediaDir: "", links: ' + JSON.stringify(links) + ' };</script>\n' +
   '<script>\n' + app + '\n</script>');
 fs.writeFileSync(out, html);
 console.log('playground: ' + Object.keys(manifest).length + ' photos (' + (bytes / 1048576).toFixed(1) + ' MB), ' + Object.keys(mediaOut).length + ' clips (' + (mediaBytes / 1048576).toFixed(1) + ' MB), file ' + (html.length / 1048576).toFixed(1) + ' MB -> ' + out);

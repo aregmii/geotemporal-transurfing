@@ -72,7 +72,7 @@ canvas.drag{cursor:grabbing}
 #tip{
   position:absolute; pointer-events:none; z-index:5; opacity:0; transition:opacity .12s;
   background:var(--panel); border:1px solid var(--rule); border-radius:6px;
-  padding:6px 10px; box-shadow:var(--shadow); max-width:240px; line-height:1.35;
+  padding:6px 10px; box-shadow:var(--shadow); max-width:300px; line-height:1.35;
   transform:translate(-50%,-150%);
 }
 #tip.on{opacity:1}

@@ -199,7 +199,8 @@ Object.keys(CATS).forEach(function(k){ ICON_URL[k] = iconCanvas(k, 64, false).to
 var wi = WINDOWS.findIndex(function(w){ return w.start === 2020; });
 if (wi < 0) wi = WINDOWS.findIndex(function(w){ return w.start <= 2022 && w.end >= 2022; });
 if (wi < 0) wi = WINDOWS.length - 1;
-var selected = null, hovered = null, idle = true, idleTimer = null;
+var selected = null, hovered = null, hoveredSky = null, idle = true, idleTimer = null;
+function agoText(ly){ return ly >= 1000000 ? (ly / 1000000).toFixed(1) + ' MILLION YEARS AGO' : ly >= 2 ? Math.round(ly).toLocaleString() + ' YEARS AGO' : 'ABOUT A YEAR AGO'; }
 var off = { con:false, cul:false, sci:false, dis:false };
 var camDist = 3.9;
 
@@ -302,22 +303,32 @@ function buildSkyStatic(){
   SKYLABELS.stars.forEach(function(st){
     var ll = skyLonLat(st[1], st[2], 0);
     var text = st[0].toUpperCase() + ' · STAR' + (st[4] ? ' · ' + fmtLy(st[4]) : '');
-    LABEL_CANDIDATES.push({ text:text, pos:toVec(ll[0], ll[1], SKY_R - 20), prio: 6 - st[3] });
+    LABEL_CANDIDATES.push({ text:text, pos:toVec(ll[0], ll[1], SKY_R - 20), prio: 6 - st[3], name:st[0], kind:'star', ly:st[4] });
   });
   SKYLABELS.dsos.forEach(function(d){
     var ll = skyLonLat(d[1], d[2], 0);
     var text = d[0].toUpperCase() + ' · ' + String(d[4]).toUpperCase() + (d[5] ? ' · ' + fmtLy(d[5]) : '');
-    LABEL_CANDIDATES.push({ text:text, pos:toVec(ll[0], ll[1], SKY_R - 20), prio: 5.5 - (d[3] || 5) });
+    LABEL_CANDIDATES.push({ text:text, pos:toVec(ll[0], ll[1], SKY_R - 20), prio: 5.5 - (d[3] || 5), name:d[0], kind:String(d[4]), ly:d[5] });
   });
   SKYLABELS.constellations.forEach(function(cn){
     var ll = skyLonLat(cn[1], cn[2], 0);
-    LABEL_CANDIDATES.push({ text:cn[0].toUpperCase(), pos:toVec(ll[0], ll[1], SKY_R - 20), prio: cn[3] === 1 ? 2.5 : cn[3] === 2 ? 1.5 : 0.5, dim:true });
+    LABEL_CANDIDATES.push({ text:cn[0].toUpperCase(), pos:toVec(ll[0], ll[1], SKY_R - 20), prio: cn[3] === 1 ? 2.5 : cn[3] === 2 ? 1.5 : 0.5, dim:true, name:cn[0], kind:'constellation' });
   });
   for (var li = 0; li < LABEL_POOL_SIZE; li++){
     var lb = makeTextSprite('', 0.026); lb.visible = false; sky.add(lb); LABEL_POOL.push(lb);
   }
 }
 var LABEL_CANDIDATES = [], LABEL_POOL = [], LABEL_POOL_SIZE = 14, LABEL_TEX = {};
+var SKY_ON_SCREEN = [];                          // the labels drawn this frame, with screen positions, for hover
+var SKYFACTS = window.__GT.skyFacts || {};
+function skyLabelAt(mx, my){
+  // the label text sits just under its point (centre.y = 1.7 of a 0.026-high sprite): a band about 22 px high
+  for (var i = 0; i < SKY_ON_SCREEN.length; i++){
+    var c = SKY_ON_SCREEN[i];
+    if (Math.abs(mx - c._sx) < 90 && my > c._sy - 6 && my < c._sy + 30) return c;
+  }
+  return null;
+}
 function fmtLy(ly){ return ly >= 1000000 ? (ly / 1000000).toFixed(1) + ' M LY' : ly >= 1000 ? Math.round(ly / 100) / 10 + ' K LY' : ly + ' LY'; }
 function labelTexture(text, dim){
   var key = (dim ? 'd:' : 'b:') + text;
@@ -333,10 +344,11 @@ function pickSkyLabels(){
   if (!LABEL_CANDIDATES.length) return;
   var earthPx = Math.asin(Math.min(1, 1 / camDist)) / (camera.fov * DEG / 2) * (H / 2);
   var cx = W / 2, cy = H / 2, chosen = [];
-  var bodies = [{ obj:moonMesh, text:'MOON · ' + Math.round(moonMesh.position.length() * 6371).toLocaleString() + ' KM', prio:99 },
-                { obj:sunSprite, text:'SUN · 150 M KM · ½° WIDE FROM HERE, AS IT IS FROM EARTH', prio:98 }];
-  Object.keys(planetSprites).forEach(function(n){ bodies.push({ obj:planetSprites[n], text:n.toUpperCase() + ' · PLANET', prio:90 }); });
-  var all = bodies.map(function(b){ return { text:b.text, pos:b.obj.position, prio:b.prio }; }).concat(LABEL_CANDIDATES);
+  var bodies = [{ obj:moonMesh, text:'MOON · ' + Math.round(moonMesh.position.length() * 6371).toLocaleString() + ' KM', prio:99, name:'Moon', kind:'moon' },
+                { obj:sunSprite, text:'SUN · 150 M KM · ½° WIDE FROM HERE, AS IT IS FROM EARTH', prio:98, name:'Sun', kind:'star' }];
+  Object.keys(planetSprites).forEach(function(n){ bodies.push({ obj:planetSprites[n], text:n.toUpperCase() + ' · PLANET', prio:90, name:n, kind:'planet' }); });
+  var all = bodies.map(function(b){ return { text:b.text, pos:b.obj.position, prio:b.prio, name:b.name, kind:b.kind }; }).concat(LABEL_CANDIDATES);
+  SKY_ON_SCREEN = [];
   for (var i = 0; i < all.length; i++){
     var c = all[i];
     _lw.copy(c.pos).applyEuler(sky.rotation).applyQuaternion(globe.quaternion);
@@ -356,6 +368,7 @@ function pickSkyLabels(){
     for (var u = 0; u < used.length; u++){ if (Math.abs(used[u].x - c2._sx) < 150 && Math.abs(used[u].y - c2._sy) < 22){ ok = false; break; } }
     if (!ok) continue;
     used.push({ x:c2._sx, y:c2._sy });
+    SKY_ON_SCREEN.push(c2);
     var lb = LABEL_POOL[n++];
     lb.material.map = labelTexture(c2.text, !!c2.dim); lb.material.needsUpdate = true;
     lb.scale.set(0.026 * 12, 0.026, 1);
@@ -364,6 +377,32 @@ function pickSkyLabels(){
   for (; n < LABEL_POOL_SIZE; n++) LABEL_POOL[n].visible = false;
 }
 
+// Where the viewer is: the point on the Earth straight below the camera, the height above it, and the moment.
+// The camera sits on +Z looking at the origin, so the point below it is world (0,0,1) taken back into the globe's
+// own frame. Written on every frame the view changes.
+var skyDateText = '', viewpointLast = '';
+var _below = new THREE.Vector3(), _qInv = new THREE.Quaternion();
+function latLonOf(v){
+  var lat = Math.asin(Math.max(-1, Math.min(1, v.y))) / DEG;
+  var lon = Math.atan2(v.z, -v.x) / DEG - 180;
+  if (lon < -180) lon += 360; if (lon > 180) lon -= 360;
+  return [lat, lon];
+}
+function writeViewpoint(){
+  _qInv.copy(globe.quaternion).invert();
+  _below.set(0, 0, 1).applyQuaternion(_qInv);
+  var ll = latLonOf(_below);
+  var km = Math.round((camDist - 1) * 6371);
+  var height = km >= 100000 ? Math.round(km / 1000).toLocaleString() + ',000 KM' : km.toLocaleString() + ' KM';
+  var where = Math.abs(ll[0]).toFixed(1) + '°' + (ll[0] >= 0 ? 'N' : 'S') + ' ' + Math.abs(ll[1]).toFixed(1) + '°' + (ll[1] >= 0 ? 'E' : 'W');
+  var text = 'YOU · ' + height + ' ABOVE ' + where + ' · ' + skyDateText;
+  if (text !== viewpointLast){ viewpointLast = text; document.getElementById('skyDate').textContent = text; }
+}
+function monthMidDate(fracYearValue){
+  var year = Math.floor(fracYearValue + 1e-6), month = Math.round((fracYearValue - year) * 12);
+  if (month > 11){ month = 0; year++; }
+  return new Date(Date.UTC(year, month, 15, 12, 0, 0));
+}
 function setSkyDate(date){
   if (typeof Astronomy === 'undefined'){ return; }
   skyDate = date;
@@ -381,7 +420,8 @@ function setSkyDate(date){
   var sunWorld = sun.v.clone().applyEuler(sky.rotation).applyQuaternion(globe.quaternion).normalize();
   sunLight.position.copy(sunWorld.multiplyScalar(50));
   Object.keys(planetSprites).forEach(function(name){ var v = place(name, SKY_R - 10).v; planetSprites[name].position.copy(v); });
-  document.getElementById('skyDate').textContent = 'SKY FOR ' + date.toISOString().slice(0, 10) + ' ' + date.toISOString().slice(11, 16) + ' UTC';
+  skyDateText = 'SKY FOR ' + date.toISOString().slice(0, 10) + ' ' + date.toISOString().slice(11, 16) + ' UTC';
+  writeViewpoint();
 }
 function updateSunLight(){
   // the Sun sprite lives in the sky group (a child of the globe); re-derive the world-space light direction after any spin
@@ -420,7 +460,6 @@ RING_DASH = new THREE.CanvasTexture(ringCanvas(128, true));
 
 var markers = new THREE.Group(); globe.add(markers);
 var MAX_SHOWN = 400;
-var PHOTO_BOOST = 1.6;                         // 4^0.7 / 3^0.7 = 1.22, so this lifts a photo one weight class and a bit
 function shownCap(){ return Math.round(Math.max(90, Math.min(MAX_SHOWN, 90 * Math.pow(3.9 / camDist, 2)))); }
 
 // Each event is a hologram: a translucent light beam rising from the exact spot, with the event's image floating
@@ -724,14 +763,20 @@ var shown = [];   // events currently bound to pool holders
 var windowTotal = 0;
 function bindWindow(){
   var w = WINDOWS[wi];
-  var list = EVENTS.filter(function(e){ return !off[e.cat] && inWindow(e, w); });
+  // The noise floor: with the whole Earth in frame the smallest tier (weight 1: minor year-page items) gets no
+  // card at all. Coming in past 2.5 radii lifts the floor, so a country fills in with its smaller events as you
+  // approach it.
+  var far = camDist > 2.5;
+  var list = EVENTS.filter(function(e){
+    if (off[e.cat] || !inWindow(e, w)) return false;
+    if (far && e.w <= 1) return false;
+    return true;
+  });
   var now = w.end, slider = ERAS[w.era] && ERAS[w.era].slider;
   list.forEach(function(e){ e._p = slider ? prominence(e, now) : 1; });
-  // What gets a card: loudness now, weighted by importance (w^0.7). A fresh small event beats a faded big one,
-  // which is what "the news at this moment" means; a war at its background level still outranks minor items.
-  // A real photograph is worth more on the globe than a glyph: an event with one ranks as if it were about one
-  // weight class bigger, so most of the cards in view are pictures of the thing itself.
-  function rank(e){ return Math.pow(e.w, 0.7) * e._p * (IMAGES[e.slug] ? PHOTO_BOOST : 1); }
+  // Importance first, then a real photograph: a weight-3 event with a picture never outranks a weight-4 one
+  // without, but among equals the picture wins the card.
+  function rank(e){ return e.w * 10 + (IMAGES[e.slug] ? 3 : 0) + e._p; }
   list.sort(function(a, b){ return (rank(b) - rank(a)) || (b.t0 - a.t0); });
   windowTotal = list.length;
   shown = list.slice(0, shownCap());
@@ -755,6 +800,63 @@ function bindWindow(){
     e.holder = h; e.stackH = 0;
   });
   for (var j = shown.length; j < MAX_SHOWN; j++){ POOL[j].visible = false; }
+}
+// ---------- hot zones ----------
+// Where the month's events pile up, the ground glows: one warm halo per cluster of events within HOT_KM of each
+// other, sized by the weight it holds. A cluster on the far side of the Earth cannot be seen, so its light is
+// put on the limb in its direction instead, fainter the further round it is — from over the Pacific you see
+// North America's light on the edge and roll toward it.
+var HOT_KM = 1500, HOT_POOL = 48;
+var GLOW_TEX = (function(){
+  var c = document.createElement('canvas'); c.width = c.height = 128; var g = c.getContext('2d');
+  var grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grad.addColorStop(0, 'rgba(255,200,110,.95)'); grad.addColorStop(0.3, 'rgba(255,170,80,.45)'); grad.addColorStop(0.65, 'rgba(255,140,60,.12)'); grad.addColorStop(1, 'rgba(255,120,40,0)');
+  g.fillStyle = grad; g.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+})();
+var hotGround = [], hotLimb = [];
+for (var hi = 0; hi < HOT_POOL; hi++){
+  var gs = new THREE.Sprite(new THREE.SpriteMaterial({ map:GLOW_TEX, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, depthTest:true }));
+  gs.visible = false; gs.renderOrder = 1; globe.add(gs); hotGround.push(gs);
+  var ls = new THREE.Sprite(new THREE.SpriteMaterial({ map:GLOW_TEX, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, depthTest:false }));
+  ls.visible = false; ls.renderOrder = 2; scene.add(ls); hotLimb.push(ls);
+}
+var _hn = new THREE.Vector3();
+function updateHotZones(){
+  var zones = [];
+  for (var i = 0; i < shown.length; i++){
+    var e = shown[i];
+    if (!e.holder) continue;
+    var heat = e.w * e.w * (0.5 + 0.5 * (e._p == null ? 1 : e._p));
+    var placed = false;
+    for (var z = 0; z < zones.length; z++){
+      if (kmApart(zones[z].lead, e) < HOT_KM){ zones[z].heat += heat; zones[z].n++; placed = true; break; }
+    }
+    if (!placed) zones.push({ lead:e, heat:heat, n:1 });
+  }
+  zones.sort(function(a, b){ return b.heat - a.heat; });
+  var g = 0, l = 0;
+  for (var k = 0; k < zones.length && (g < HOT_POOL || l < HOT_POOL); k++){
+    var zone = zones[k];
+    if (zone.heat < 12) continue;                                        // one small event is not a hot zone
+    var strength = Math.min(1, Math.sqrt(zone.heat) / 10);
+    _hn.copy(zone.lead.normal).applyQuaternion(globe.quaternion);
+    if (_hn.z > -0.05 && g < HOT_POOL){
+      var sp = hotGround[g++];
+      sp.position.copy(zone.lead.normal).multiplyScalar(1.012);
+      var size = (0.30 + 0.55 * strength) * Math.max(0.5, Math.min(1.4, camDist / 3.9));
+      sp.scale.set(size, size, 1); sp.material.opacity = 0.55 + 0.45 * strength; sp.visible = true;
+    } else if (l < HOT_POOL){
+      var rim = Math.hypot(_hn.x, _hn.y); if (rim < 0.02) continue;      // straight behind: no direction to point to
+      var sp2 = hotLimb[l++];
+      sp2.position.set(_hn.x / rim * 1.0, _hn.y / rim * 1.0, 0.05);
+      var behind = -_hn.z;                                               // 0 at the limb, 1 straight behind
+      var size2 = (0.35 + 0.5 * strength) * (1 - 0.45 * behind);
+      sp2.scale.set(size2, size2, 1); sp2.material.opacity = (0.5 + 0.5 * strength) * (1 - 0.6 * behind); sp2.visible = true;
+    }
+  }
+  for (; g < HOT_POOL; g++) hotGround[g].visible = false;
+  for (; l < HOT_POOL; l++) hotLimb[l].visible = false;
 }
 var selRing = new THREE.Sprite(new THREE.SpriteMaterial({ map:RING_TEX, transparent:true, depthTest:false }));
 selRing.visible = false; selRing.renderOrder = 5; globe.add(selRing);
@@ -935,6 +1037,7 @@ function render(){
   }
   window.__borders.visible = WINDOWS[wi].start >= 1900;
   camera.position.z = camDist;
+  writeViewpoint();
   // The near clipping plane has to stay in front of the Earth's surface, which sits camDist - 1 away. At the old
   // fixed 0.1 anything closer than 1.1 sliced the planet open and left you looking at stars. It is only pulled in
   // when it has to be, because a very small near plane costs depth precision everywhere else.
@@ -954,6 +1057,7 @@ function render(){
     r.visible = worldNormal(e).z > 0.12;
   });
 
+  updateHotZones();
   updateSunLight();
   pickSkyLabels();
   renderer.render(scene, camera);
@@ -1089,7 +1193,7 @@ function openPanel(e){
 }
 function closePanel(){
   selected = null;
-  setSkyDate(new Date());
+  setSkyDate(monthMidDate(WINDOWS[wi].end));
   bindWindow();                            // unpin
   document.getElementById('panel').classList.remove('on');
   resize(); writeHash();
@@ -1174,6 +1278,43 @@ function updateAmbient(eventLoudness){
   SOUND.ambient.out.gain.setTargetAtTime(level, SOUND.ctx.currentTime, 0.9);
   SOUND.ambient.filter.frequency.setTargetAtTime(420 + far * 900, SOUND.ctx.currentTime, 1.2);
 }
+// Now and then, far out, a short phrase over the drone: a slow rising line on an organ-like tone, written for
+// this and nothing else. It plays only when the Earth is small in the frame and no event is audible, roughly once
+// a minute, so most of the time space is silent.
+var MOTIF = [[220, 0], [261.63, 2.0], [329.63, 4.0], [392.0, 6.2], [440, 8.0], [329.63, 11.5]];   // A3 C4 E4 G4 A4 E4, seconds
+var motifTimer = null, motifLastFar = 0;
+function playMotif(){
+  var c = SOUND.ctx, t0 = c.currentTime;
+  var out = c.createGain(); out.gain.value = 0.0; out.connect(masterGain());
+  var far = Math.max(0, Math.min(1, (camDist - 4) / 8));
+  out.gain.setTargetAtTime(0.10 * far, t0, 1.5);
+  out.gain.setTargetAtTime(0, t0 + 13.5, 2.5);
+  for (var i = 0; i < MOTIF.length; i++){
+    var freq = MOTIF[i][0], at = t0 + MOTIF[i][1];
+    var voice = c.createGain(); voice.gain.value = 0; voice.connect(out);
+    var partials = [1, 2, 3, 4], levels = [0.5, 0.25, 0.12, 0.05];
+    for (var p = 0; p < partials.length; p++){
+      var osc = c.createOscillator(); osc.type = 'sine'; osc.frequency.value = freq * partials[p];
+      var g = c.createGain(); g.gain.value = levels[p]; osc.connect(g); g.connect(voice);
+      osc.start(at); osc.stop(at + 6);
+    }
+    voice.gain.setTargetAtTime(1, at, 0.9);           // slow organ swell
+    voice.gain.setTargetAtTime(0, at + 3.2, 1.2);
+  }
+  setTimeout(function(){ out.disconnect(); }, 18000);
+}
+function scheduleMotif(){
+  clearTimeout(motifTimer);
+  motifTimer = setTimeout(function(){
+    if (SOUND.on && SOUND.ctx && camDist > 5 && !anyEventAudible()) playMotif();
+    scheduleMotif();
+  }, 45000 + Math.random() * 45000);
+}
+function anyEventAudible(){
+  var keys = Object.keys(SOUND.nodes);
+  for (var i = 0; i < keys.length; i++){ var n = SOUND.nodes[keys[i]]; if (n.playing && n.gain.gain.value > 0.05) return true; }
+  return false;
+}
 var SOUND_MAX = 3, SOUND_QUIET_PX = 45, SOUND_FULL_PX = 220;   // card width on screen: silent below, full above (a big card at max zoom is ~280 px)
 // Everything audible — the clips and the space pad — runs through one gain, so the slider in the header is a
 // real volume control rather than a mute switch pretending to be one.
@@ -1244,14 +1385,16 @@ function setSound(on){
     if (!SOUND.ctx) SOUND.ctx = new (window.AudioContext || window.webkitAudioContext)();
     if (SOUND.ctx.state === 'suspended') SOUND.ctx.resume();
     updateSound();
+    scheduleMotif();
   } else {
+    clearTimeout(motifTimer);
     Object.keys(SOUND.nodes).forEach(function(k){ var n = SOUND.nodes[k]; n.el.pause(); n.playing = false; n.gain.gain.value = 0; });
     if (SOUND.ambient) SOUND.ambient.out.gain.setTargetAtTime(0, SOUND.ctx.currentTime, 0.3);
   }
 }
 // Sharing a moment: the URL hash already carries the mode, the month and the open event, so the address bar is
 // the share button. The header button is gone — it was taking a slot next to the categories to do what Cmd-L does.
-window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtShown = function(){ return shown; }; window.__cgtImages = IMAGES; window.__cgtOpen = openPanel; window.__cgtContext = contextFor; window.__cgtTickNext = function(){ tickerIndex++; showTicker(); }; window.__cgtSpin = function(e){ globe.quaternion.copy(targetQuat(e.lat, e.lon)); }; window.__cgtCam = function(){ return camDist.toFixed(2); }; window.__cgtNow = function(){ return WINDOWS[wi].end; }; window.__cgtGoto = function(y){ var i = WINDOWS.findIndex(function(w){ return Math.abs(w.end - y) < 0.05; }); if (i >= 0) setWindow(i); };   // debugging hooks
+window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtShown = function(){ return shown; }; window.__cgtImages = IMAGES; window.__cgtOpen = openPanel; window.__cgtContext = contextFor; window.__cgtTickNext = function(){ tickerIndex++; showTicker(); }; window.__cgtSky = function(){ return SKY_ON_SCREEN; }; window.__cgtMotif = playMotif; window.__cgtSpin = function(e){ globe.quaternion.copy(targetQuat(e.lat, e.lon)); }; window.__cgtCam = function(){ return camDist.toFixed(2); }; window.__cgtNow = function(){ return WINDOWS[wi].end; }; window.__cgtGoto = function(y){ var i = WINDOWS.findIndex(function(w){ return Math.abs(w.end - y) < 0.05; }); if (i >= 0) setWindow(i); };   // debugging hooks
 var soundBtn = document.getElementById('soundBtn');
 if (soundBtn){
   soundBtn.onclick = function(){ setSound(!SOUND.on); };
@@ -1313,6 +1456,22 @@ canvas.addEventListener('pointermove', function(ev){
   }
   var mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
   var hit = pick(mx, my);
+  if (!hit){
+    var sky = skyLabelAt(mx, my);
+    if (sky !== hoveredSky){
+      hoveredSky = sky;
+      var stip = document.getElementById('tip');
+      if (sky){
+        var fact = SKYFACTS[sky.name] || '';
+        var line = sky.kind === 'constellation' ? 'CONSTELLATION' : sky.kind.toUpperCase() + (sky.ly ? ' · ' + fmtLy(sky.ly) + ' AWAY — YOU SEE IT AS IT WAS ' + agoText(sky.ly) : '');
+        stip.querySelector('.tt').textContent = sky.name + (fact ? ' — ' + fact : '');
+        stip.querySelector('.ty').textContent = line;
+        stip.style.left = sky._sx + 'px'; stip.style.top = (sky._sy + 44) + 'px';
+        stip.classList.add('on'); canvas.style.cursor = 'help';
+      } else if (!hovered){ stip.classList.remove('on'); canvas.style.cursor = ''; }
+    }
+    if (sky) return;
+  } else if (hoveredSky){ hoveredSky = null; }
   if (hit !== hovered){
     hovered = hit;
     var tip = document.getElementById('tip');
@@ -1539,6 +1698,7 @@ function setWindow(next){
   hovered = null; document.getElementById('tip').classList.remove('on'); canvas.style.cursor = '';
   if (selected && !inWindow(selected, WINDOWS[wi])) closePanel();
   else if (selected) openPanel(selected);
+  if (!selected) setSkyDate(monthMidDate(WINDOWS[wi].end));                     // the sky is the sky of the month shown
   bindWindow(); syncHeader(); placeHandle(); render(); writeHash(); resetTicker();   // the globe keeps turning while the slider moves
   ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added, latest){ if (added && latest){ bindWindow(); render(); resetTicker(); } });
 }
@@ -1704,7 +1864,7 @@ document.getElementById('aboutCounts').textContent = EVENTS.length.toLocaleStrin
 document.getElementById('aboutBtn').onclick = function(){ document.getElementById('about').classList.toggle('on'); };
 document.getElementById('aboutClose').onclick = function(){ document.getElementById('about').classList.remove('on'); };
 window.addEventListener('resize', resize);
-buildSkyStatic(); setSkyDate(new Date());
+buildSkyStatic(); setSkyDate(monthMidDate(WINDOWS[wi].end));
 bindWindow(); syncHeader(); placeHandle(); resize(); tick(); readHash(); resetTicker(); setTimeout(placeHandle, 60);
 // The film starts rolling on its own. A link that opens on a particular event stays paused on that moment, since
 // whoever shared it meant that month; otherwise time runs forward at 1x from wherever the page opened, and from
@@ -1720,16 +1880,17 @@ if (!selected && !/[#&]e=/.test(location.hash)){
   setPlayDir(1);
 }
 ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added){ if (added){ bindWindow(); render(); resetTicker(); if (!selected && /[#&]e=/.test(location.hash)) readHash(); } });
-setInterval(function(){ if (!selected || !selected.date) setSkyDate(new Date()); }, 60000);
+setInterval(function(){ if (!selected) setSkyDate(monthMidDate(WINDOWS[wi].end)); }, 60000);
 };
 // Load data files, then start the app.
 (function(){
   if (window.__GT){ window.__gtStart(); return; }   // playground build: data already inlined
   function get(url){ return fetch(url).then(function(r){ if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); }); }
   Promise.all([ get('data/events.json'), get('data/images.json'), get('assets/countries-110m.json'), get('assets/skylabels.json'),
-                get('data/media.json').catch(function(){ return {}; }), get('data/index.json').catch(function(){ return null; }), get('data/links.json').catch(function(){ return []; }) ])
+                get('data/media.json').catch(function(){ return {}; }), get('data/index.json').catch(function(){ return null; }), get('data/links.json').catch(function(){ return []; }),
+                get('data/skyfacts.json').catch(function(){ return {}; }) ])
     .then(function(res){
-      window.__GT = { events:res[0], images:res[1], borders:res[2], skyLabels:res[3], media:res[4], shards: res[5] && res[5].years ? { years:res[5].years, dir:'data/y/' } : null, links:res[6] };
+      window.__GT = { events:res[0], images:res[1], borders:res[2], skyLabels:res[3], media:res[4], shards: res[5] && res[5].years ? { years:res[5].years, dir:'data/y/' } : null, links:res[6], skyFacts:res[7] };
       window.__gtStart();
     })
     .catch(function(err){ document.getElementById('note').textContent = 'COULD NOT LOAD DATA — ' + err.message; console.error(err); });

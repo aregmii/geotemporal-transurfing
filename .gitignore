@@ -21,3 +21,7 @@ pipeline/headlines.json
 pipeline/yearpages_cache/
 pipeline/events_yearpages.json
 pipeline/earth_cache/
+
+# transfer bundles Claude drops in while syncing to this machine
+.gt-sync*.tgz
+.gt*.tgz
