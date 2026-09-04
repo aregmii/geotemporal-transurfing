@@ -1608,7 +1608,7 @@ function partnerQuality(e){
   // signs of a weak line; a real photograph is a sign of a real event
   var q = IMAGES[e.slug] ? 2 : 0;
   if (kindOf(e) === KIND_DEFAULT[e.cat]) q -= 2;
-  if (/ — /.test(e.title)) q -= 2;
+  if (/ — | – /.test(e.title)) q -= 2;                // "name — description", or a sub-event ("Fencing at the Olympics – men's foil")
   if (/: [a-z]/.test(e.title)) q -= 1.5;           // "2006 Turkish Grand Prix: Formula One motor race" is a label, not news
   return q;
 }
@@ -1617,13 +1617,27 @@ function coincidences(){
   // Y" — or one thing alone when it is big enough to carry the line (9/11 needs no partner). Only the same day
   // qualifies; a consequence years later belongs to the panel's links, not here. Lines close to NOW come first,
   // so the strip follows the film; each event appears in one line at most.
+  // The strip is the news of NOW: only days in the two months up to the NOW mark qualify, so the line moves with
+  // the film. A quiet stretch widens to six months, then to the whole window, rather than going blank.
   var w = WINDOWS[wi], now = w.end;
+  var reaches = [2 / 12, 6 / 12, now - w.start], lines = [];
+  for (var r = 0; r < reaches.length && lines.length < 3; r++){
+    lines = linesWithin(w, now, reaches[r]);
+  }
+  return lines;
+}
+function linesWithin(w, now, reach){
   var byDay = {};
-  EVENTS.forEach(function(e){ if (e.date && e.w >= 3 && !off[e.cat] && inWindow(e, w)) (byDay[e.date] = byDay[e.date] || []).push(e); });
+  EVENTS.forEach(function(e){
+    if (!e.date || e.w < 3 || off[e.cat] || !inWindow(e, w)) return;
+    if (e.t0 > now || now - e.t0 > reach) return;
+    if (e.title.split(/\s+/).length < 3) return;                   // "Megaclite introduced" is not a line anyone can read
+    (byDay[e.date] = byDay[e.date] || []).push(e);
+  });
   var lines = [];
   Object.keys(byDay).forEach(function(d){
     var arr = byDay[d];
-    var recency = Math.abs(now - arr[0].t0) < 0.5 ? 3 : Math.abs(now - arr[0].t0) < 2 ? 1 : 0;
+    var recency = now - arr[0].t0 < 1 / 12 ? 3 : now - arr[0].t0 < 0.5 ? 1 : 0;
     for (var i = 0; i < arr.length; i++){
       var a = arr[i];
       if (a.w >= 4 && partnerQuality(a) >= 0) lines.push({ a:a, b:null, score:a.w + partnerQuality(a) + recency });   // big enough to stand alone
@@ -1661,7 +1675,10 @@ function shortTitle(e){
 }
 var tickerPairs = [], tickerIndex = 0, tickerTimer = null;
 function tickerSide(e){
-  return '<span class="ts" data-id="' + e.id + '">' + shortTitle(e) + (e.place ? ' <em>' + e.place + '</em>' : '') + '</span>';
+  // the place is added only when the headline does not already say it
+  var t = shortTitle(e);
+  var place = e.place && t.toLowerCase().indexOf(e.place.toLowerCase().split(/[ ,(]/)[0]) < 0 ? e.place : '';
+  return '<span class="ts" data-id="' + e.id + '">' + t + (place ? '<em>' + place + '</em>' : '') + '</span>';
 }
 function showTicker(){
   var el = document.getElementById('ticker');
