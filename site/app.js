@@ -416,6 +416,7 @@ RING_DASH = new THREE.CanvasTexture(ringCanvas(128, true));
 
 var markers = new THREE.Group(); globe.add(markers);
 var MAX_SHOWN = 400;
+var PHOTO_BOOST = 1.6;                         // 4^0.7 / 3^0.7 = 1.22, so this lifts a photo one weight class and a bit
 function shownCap(){ return Math.round(Math.max(90, Math.min(MAX_SHOWN, 90 * Math.pow(3.9 / camDist, 2)))); }
 
 // Each event is a hologram: a translucent light beam rising from the exact spot, with the event's image floating
@@ -724,9 +725,19 @@ function bindWindow(){
   list.forEach(function(e){ e._p = slider ? prominence(e, now) : 1; });
   // What gets a card: loudness now, weighted by importance (w^0.7). A fresh small event beats a faded big one,
   // which is what "the news at this moment" means; a war at its background level still outranks minor items.
-  list.sort(function(a, b){ return (Math.pow(b.w, 0.7) * b._p - Math.pow(a.w, 0.7) * a._p) || (b.t0 - a.t0); });
+  // A real photograph is worth more on the globe than a glyph: an event with one ranks as if it were about one
+  // weight class bigger, so most of the cards in view are pictures of the thing itself.
+  function rank(e){ return Math.pow(e.w, 0.7) * e._p * (IMAGES[e.slug] ? PHOTO_BOOST : 1); }
+  list.sort(function(a, b){ return (rank(b) - rank(a)) || (b.t0 - a.t0); });
   windowTotal = list.length;
   shown = list.slice(0, shownCap());
+  // While a panel is open, the event and its "meanwhile" partners always have a card, whatever their rank,
+  // so the pairing the panel lists is the pairing the globe shows.
+  if (selected){
+    var pinned = [selected].concat(contextFor(selected)).filter(function(e){ return !off[e.cat] && inWindow(e, w); });
+    var rest = shown.filter(function(e){ return pinned.indexOf(e) < 0; });
+    shown = pinned.concat(rest).slice(0, Math.max(shownCap(), pinned.length));
+  }
   EVENTS.forEach(function(e){ e.holder = null; e._sx = null; });
   shown.forEach(function(e, i){
     var h = POOL[i], u = h.userData;
@@ -743,7 +754,7 @@ function bindWindow(){
 }
 var selRing = new THREE.Sprite(new THREE.SpriteMaterial({ map:RING_TEX, transparent:true, depthTest:false }));
 selRing.visible = false; selRing.renderOrder = 5; globe.add(selRing);
-var ctxRings = [0,1,2].map(function(){
+var ctxRings = [0,1,2,3,4,5].map(function(){
   var r = new THREE.Sprite(new THREE.SpriteMaterial({ map:RING_DASH, transparent:true, depthTest:false, opacity:0.9 }));
   r.visible = false; r.renderOrder = 5; globe.add(r); return r;
 });
@@ -864,9 +875,10 @@ function render(){
     var dim = selected && selected.id !== e.id && ctxEls.indexOf(e) < 0;
     var fade = 0.62 + 0.38 * e._prom;                            // headline bright, background dimmer, afterglow fading
     var tall = height > HOVER * 1.5;
-    u.card.material.opacity = (dim ? 0.45 : 0.96) * fade; u.badge.material.opacity = (dim ? 0.35 : 1) * fade;
-    u.beam.material.opacity = dim ? 0.08 : (tall ? 0.4 : 0.22);  // a long beam has to be seen to be believed
-    u.base.material.opacity = dim ? 0.3 : 0.9;
+    // with a panel open, everything but the event and its same-day partners steps back to a quarter
+    u.card.material.opacity = (dim ? 0.25 : 0.96) * fade; u.badge.material.opacity = (dim ? 0.2 : 1) * fade;
+    u.beam.material.opacity = dim ? 0.05 : (tall ? 0.4 : 0.22);  // a long beam has to be seen to be believed
+    u.base.material.opacity = dim ? 0.2 : 0.9;
     e.pos.copy(e.normal).multiplyScalar(1.002 + height);
   }
   // heights a column climbs through, in multiples of HOVER: the second hologram over a spot stands about a card
@@ -956,37 +968,48 @@ function pick(mx, my){
   return best;
 }
 function spanYears(e){ return e.t1 - e.t0; }
+function dayOrdinal(iso){
+  // exact day count for CE dates ("2001-09-11" -> days since epoch); null for anything else
+  var m = iso && iso.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (!m) return null;
+  return Math.round(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000);
+}
+var MEANWHILE_MAX = 6, MEANWHILE_APART_KM = 1200, MEANWHILE_DAYS = 3;
+var meanwhileCache = { key:null, list:[] };
 function contextFor(e){
-  // "Concurrent events elsewhere" compares like with like:
-  //  - a moment (a day or a few) is paired with other dated moments within a month, same day first;
-  //  - something that ran for months or years (a war, a pandemic) is paired with other long-running things that
-  //    overlapped it in time, ranked by how long they overlapped;
-  //  - the same kind of event (a death with a death, a war with a war) ranks higher.
-  // Nothing is padded with unrelated events: if there is no real neighbour, the section stays empty.
-  var here = e.normal, LONG = 45 / 365;
-  var w = WINDOWS[wi];
-  var pool = EVENTS.filter(function(o){ return o.id !== e.id && o.slug !== e.slug && inWindow(o, w) && here.angleTo(o.normal) > 0.45; });
-  var mine = kindOf(e), out = [];
-  if (spanYears(e) >= LONG){
-    pool.forEach(function(o){
-      if (spanYears(o) < LONG) return;
-      var overlap = Math.min(e.t1, o.t1) - Math.max(e.t0, o.t0);
-      if (overlap <= 0) return;
-      o._gap = null; o._overlap = overlap;
-      out.push({ e:o, score: overlap / Math.max(spanYears(e), spanYears(o)) * 3 + o.w * 0.5 + (kindOf(o) === mine ? 1.5 : 0) });
-    });
-  } else if (e.date){
-    var d0 = dayNumber(e.date);
-    pool.forEach(function(o){
-      if (!o.date || spanYears(o) >= LONG) return;
-      var gap = Math.abs(dayNumber(o.date) - d0);
-      if (gap > 31) return;
-      o._gap = Math.round(gap); o._overlap = null;
-      out.push({ e:o, score: (31 - gap) / 31 * 3 + o.w * 0.5 + (kindOf(o) === mine ? 1.5 : 0) });
-    });
+  // "Meanwhile": what else happened on the very same day, in other parts of the world. The anchor is the
+  // event's date — for something that ran for months or years, the day it began. Picks are the biggest events of
+  // that day, spread out so no two stand within MEANWHILE_APART_KM of each other or of the event itself; when the
+  // day has fewer than three, events one to three days either side fill in, each labelled with its gap. Nothing
+  // further away in time is ever shown: a two-year overlap is not "at the same time".
+  var key = e.id + '|' + EVENTS.length + '|' + Object.keys(off).filter(function(k){ return off[k]; }).join(',');
+  if (meanwhileCache.key === key) return meanwhileCache.list;
+  var out = [];
+  var day0 = dayOrdinal(e.date);
+  if (day0 != null){
+    var cands = [];
+    for (var i = 0; i < EVENTS.length; i++){
+      var o = EVENTS[i];
+      if (o.id === e.id || o.slug === e.slug || !o.date || off[o.cat]) continue;
+      var od = dayOrdinal(o.date); if (od == null) continue;
+      var gap = od - day0; if (gap < -MEANWHILE_DAYS || gap > MEANWHILE_DAYS) continue;
+      if (kmApart(e, o) < MEANWHILE_APART_KM) continue;
+      cands.push({ e:o, gap:gap, score:(gap === 0 ? 100 : 0) + o.w * 10 + (IMAGES[o.slug] ? 3 : 0) + (o.date === e.date ? 0 : -Math.abs(gap)) });
+    }
+    cands.sort(function(a, b){ return b.score - a.score; });
+    var sameDay = 0;
+    for (var c = 0; c < cands.length && out.length < MEANWHILE_MAX; c++){
+      var x = cands[c];
+      if (x.gap !== 0 && (sameDay >= 3 || x.e.w < 3 || out.length >= 5)) break;   // neighbouring days fill in only when the day is thin, and only with events that matter
+      var crowded = false;
+      for (var p = 0; p < out.length; p++) if (kmApart(out[p], x.e) < MEANWHILE_APART_KM){ crowded = true; break; }
+      if (crowded) continue;
+      x.e._gap = x.gap;
+      out.push(x.e);
+      if (x.gap === 0) sameDay++;
+    }
   }
-  out.sort(function(a, b){ return b.score - a.score; });
-  return out.slice(0, 4).map(function(x){ return x.e; });
+  meanwhileCache = { key:key, list:out };
+  return out;
 }
 
 // ---------- panel ----------
@@ -1007,6 +1030,7 @@ function tinyDesc(e){
 function openPanel(e){
   selected = e;
   setSkyDate(skyDateFor(e));
+  bindWindow(); render();                  // pin the event and its same-day partners onto the globe, then lay out
   var p = document.getElementById('panel');
   var ctxEls = contextFor(e);
   var when = whenLabel(e);
@@ -1037,23 +1061,23 @@ function openPanel(e){
     });
     html += '</div></div>';
   }
-  // concurrent events elsewhere: small moving pictures of what else was going on, ranked by days apart
+  // meanwhile: the same day, elsewhere on the globe — "while this was happening here, that was happening there".
+  // Place leads each row, so the pairing reads as geography; the same events are lit up on the globe.
   if (ctxEls.length){
-    html += '<div class="concurrent"><p>' + (spanYears(e) >= 45 / 365 ? 'Running at the same time elsewhere' : 'Concurrent events elsewhere') + '</p><div class="crow">';
+    var began = spanYears(e) >= 45 / 365 || e.endDate;
+    html += '<div class="concurrent meanwhile"><p>' + (began ? 'The day it began, elsewhere' : 'Meanwhile, elsewhere') + ' · ' + dayLabel(e.date) + '</p>';
     ctxEls.forEach(function(o){
       var thumb = IMAGES[o.slug] ? '<img class="kb" src="' + IMG_DIR + IMAGES[o.slug].file + '" alt="">' : '<img class="ic" src="' + ICON_URL[o.cat] + '" alt="">';
-      var gapText = o._gap != null ? (o._gap === 0 ? 'same day' : o._gap === 1 ? '1 day apart' : o._gap + ' days apart')
-                  : o._overlap != null ? 'overlapped ' + (o._overlap >= 1 ? Math.round(o._overlap) + ' year' + (Math.round(o._overlap) === 1 ? '' : 's') : Math.max(1, Math.round(o._overlap * 12)) + ' months') + ' · ' + whenLabel(o)
-                  : (o.date ? dayLabel(o.date) : yearLabel(o.start));
-      html += '<button class="nb" data-id="' + o.id + '">' + thumb + '<b>' + o.title + '</b><span>' + o.place + ' · ' + gapText + '</span></button>';
+      var gapText = o._gap === 0 ? 'same day' : Math.abs(o._gap) + (Math.abs(o._gap) === 1 ? ' day ' : ' days ') + (o._gap > 0 ? 'later' : 'earlier');
+      html += '<button class="mw" data-id="' + o.id + '">' + thumb + '<span class="mwt">' + (o.place ? '<em>' + o.place + '</em>' : '') + '<i>' + gapText + '</i><b>' + o.title + '</b></span></button>';
     });
-    html += '</div></div>';
+    html += '</div>';
   }
   p.innerHTML = html;
   p.classList.add('on');
   writeHash();
   document.getElementById('pclose').onclick = closePanel;
-  Array.prototype.forEach.call(p.querySelectorAll('.ew, .nb'), function(b){
+  Array.prototype.forEach.call(p.querySelectorAll('.ew, .nb, .mw'), function(b){
     b.onclick = function(){ var t = EVENTS[+b.dataset.id]; spinTo(t); openPanel(t); };
   });
   resize();
@@ -1061,6 +1085,7 @@ function openPanel(e){
 function closePanel(){
   selected = null;
   setSkyDate(new Date());
+  bindWindow();                            // unpin
   document.getElementById('panel').classList.remove('on');
   resize(); writeHash();
 }
@@ -1221,7 +1246,7 @@ function setSound(on){
 }
 // Sharing a moment: the URL hash already carries the mode, the month and the open event, so the address bar is
 // the share button. The header button is gone — it was taking a slot next to the categories to do what Cmd-L does.
-window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtCam = function(){ return camDist.toFixed(2); }; window.__cgtNow = function(){ return WINDOWS[wi].end; }; window.__cgtGoto = function(y){ var i = WINDOWS.findIndex(function(w){ return Math.abs(w.end - y) < 0.05; }); if (i >= 0) setWindow(i); };   // debugging hooks
+window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtShown = function(){ return shown; }; window.__cgtImages = IMAGES; window.__cgtOpen = openPanel; window.__cgtContext = contextFor; window.__cgtSpin = function(e){ globe.quaternion.copy(targetQuat(e.lat, e.lon)); }; window.__cgtCam = function(){ return camDist.toFixed(2); }; window.__cgtNow = function(){ return WINDOWS[wi].end; }; window.__cgtGoto = function(y){ var i = WINDOWS.findIndex(function(w){ return Math.abs(w.end - y) < 0.05; }); if (i >= 0) setWindow(i); };   // debugging hooks
 var soundBtn = document.getElementById('soundBtn');
 if (soundBtn){
   soundBtn.onclick = function(){ setSound(!SOUND.on); };
@@ -1577,56 +1602,61 @@ function family(e){ return e.title.toLowerCase().replace(/^(launch|death|birth|d
 var REL_TEXT = { P1542:'led to', P828:'was caused by', P1536:'triggered', P1478:'was triggered by', P1479:'fed', P155:'followed', P156:'was followed by', P361:'was part of', P527:'included' };
 var LINKS_BY_SLUG = {};
 LINKS.forEach(function(l){ (LINKS_BY_SLUG[l[0]] = LINKS_BY_SLUG[l[0]] || []).push(l); });
+var TICKER_APART_KM = 2500;
 function coincidences(){
-  var w = WINDOWS[wi];
-  var inWin = EVENTS.filter(function(e){ return inWindow(e, w); });
-  var bySlug = {};
-  inWin.forEach(function(e){ if (!bySlug[e.slug]) bySlug[e.slug] = e; });
-  var pairs = [], seen = {};
-  // 1. consequences: pairs Wikidata links by cause / effect / part-of, both ends in this window
-  inWin.forEach(function(a){
-    (LINKS_BY_SLUG[a.slug] || []).forEach(function(l){
-      var b = bySlug[l[2]];
-      if (!b || b === a || !REL_TEXT[l[1]]) return;
-      if (family(a) === family(b) || (a.place && a.place === b.place) || /^launch of/i.test(a.title) && /^launch of/i.test(b.title)) return;   // a mission and its own rover is not a consequence
-      var key = a.slug < b.slug ? a.slug + '|' + b.slug : b.slug + '|' + a.slug;
-      if (seen[key]) return; seen[key] = true;
-      var far = a.normal.angleTo(b.normal) > 0.6;
-      pairs.push({ a:a, b:b, rel:REL_TEXT[l[1]], gap:null, score:10 + a.w + b.w + (far ? 2 : 0) + (a.date && b.date ? 1 : 0) });
-    });
-  });
-  // 2. same day, different sides of the world — people and science first
+  // The strip under the globe pairs two things that happened on the same calendar day in two distant parts of the
+  // world: "while A in Rome, B in Tokyo". Only same-day pairs qualify — a consequence years later is a different
+  // idea and belongs to the panel's links, not here. Pairs close to NOW come first, so the strip follows the film;
+  // each event appears in one pair at most, and both sides must be events that matter (weight 3 or 4).
+  var w = WINDOWS[wi], now = w.end;
   var byDay = {};
-  inWin.forEach(function(e){ if (e.date) (byDay[e.date] = byDay[e.date] || []).push(e); });
+  EVENTS.forEach(function(e){ if (e.date && e.w >= 3 && !off[e.cat] && inWindow(e, w)) (byDay[e.date] = byDay[e.date] || []).push(e); });
+  var pairs = [];
   Object.keys(byDay).forEach(function(d){
     var arr = byDay[d];
+    if (arr.length < 2) return;
+    var recency = Math.abs(now - arr[0].t0) < 0.5 ? 3 : Math.abs(now - arr[0].t0) < 2 ? 1 : 0;
     for (var i = 0; i < arr.length; i++) for (var j = i + 1; j < arr.length; j++){
       var a = arr[i], b = arr[j];
-      if (a.normal.angleTo(b.normal) < 0.6) continue;
+      if (a.slug === b.slug || kmApart(a, b) < TICKER_APART_KM) continue;
       if (family(a) === family(b)) continue;
       if (/^launch of/i.test(a.title) && /^launch of/i.test(b.title)) continue;
-      var human = /^(birth|death) of /i, sci = function(e){ return e.cat === 'sci'; };
-      var bonus = (human.test(a.title) || human.test(b.title) ? 1.5 : 0) + (sci(a) || sci(b) ? 1 : 0) + (a.cat !== b.cat ? 0.5 : 0);
-      pairs.push({ a:a, b:b, rel:null, gap:0, score:a.w + b.w + bonus });
+      // real photographs on both sides first; an event no rule can name (a franchise, a festival) and a headline
+      // that is only "name — description" are both signs of a weak partner
+      var quality = 0;
+      [a, b].forEach(function(e){
+        quality += IMAGES[e.slug] ? 3 : 0;
+        if (kindOf(e) === KIND_DEFAULT[e.cat]) quality -= 2;
+        if (/ — /.test(e.title)) quality -= 1;
+      });
+      pairs.push({ a:a, b:b, gap:0, score:a.w + b.w + quality + recency + (a.cat !== b.cat ? 0.5 : 0) });
     }
   });
   pairs.sort(function(p, q){ return q.score - p.score; });
-  return pairs.slice(0, 14);
+  var used = {}, out = [];
+  for (var k = 0; k < pairs.length && out.length < 14; k++){
+    var p = pairs[k];
+    if (used[p.a.id] || used[p.b.id]) continue;
+    used[p.a.id] = used[p.b.id] = true;
+    out.push(p);
+  }
+  return out;
 }
 function shortTitle(e){ return e.title.length <= 64 ? e.title : e.name; }   // the ticker wants a line, not a paragraph
 var tickerPairs = [], tickerIndex = 0, tickerTimer = null;
+function tickerSide(e){
+  var thumb = IMAGES[e.slug] ? '<img src="' + IMG_DIR + IMAGES[e.slug].file + '" alt="">' : '<img class="ic" src="' + ICON_URL[e.cat] + '" alt="">';
+  return '<span class="ts" data-id="' + e.id + '">' + thumb + '<span><em>' + e.place + '</em>' + shortTitle(e) + '</span></span>';
+}
 function showTicker(){
   var el = document.getElementById('ticker');
   if (!tickerPairs.length){ el.classList.remove('on'); return; }
   var p = tickerPairs[tickerIndex % tickerPairs.length];
-  if (p.rel){
-    var whenA = p.a.date ? dayLabel(p.a.date) : yearLabel(p.a.start);
-    el.innerHTML = '<span class="tk">' + whenA + '</span> ' + shortTitle(p.a) + ' <em>' + p.a.place + '</em> — ' + p.rel + ' — ' + shortTitle(p.b) + ' <em>' + p.b.place + (p.b.date ? ' · ' + dayLabel(p.b.date) : '') + '</em>';
-  } else {
-    el.innerHTML = '<span class="tk">' + dayLabel(p.a.date) + '</span> While ' + shortTitle(p.a) + ' <em>' + p.a.place + '</em> — ' + shortTitle(p.b) + ' <em>' + p.b.place + '</em>';
-  }
+  el.innerHTML = '<span class="tk">' + dayLabel(p.a.date) + '</span>' + tickerSide(p.a) + '<span class="tw">while</span>' + tickerSide(p.b);
   el.classList.add('on');
-  el.onclick = function(){ spinTo(p.a); openPanel(p.a); };
+  Array.prototype.forEach.call(el.querySelectorAll('.ts'), function(side){
+    side.onclick = function(){ var t = EVENTS[+side.dataset.id]; spinTo(t); openPanel(t); };
+  });
 }
 function resetTicker(){
   tickerPairs = coincidences(); tickerIndex = 0; showTicker();

@@ -8,6 +8,9 @@ For every event in range that has a Commons lead image (recorded by fetch_summar
   1. Ask the Commons API, 50 files at a time, for the license and author (extmetadata) and a thumbnail URL.
   2. Keep only files under a licence that allows reuse: Creative Commons, public domain, CC0, GFDL.
   3. Download the thumbnail, re-encode to JPEG (TARGET_WIDTH px wide), and write it to --img-dir as <sha1>.jpg.
+  4. (--article-images, on by default) For every event of weight 2 or more that still has no photo — the lead image
+     was missing or not freely licensed — ask en.wikipedia for the other images in the article and keep the first
+     one Commons licenses for reuse. Icons, flags, maps and logos are skipped by name.
 Writes the manifest --out: { wikipedia_slug: { file, author, license, licenseUrl, source, filePage } }.
 Cached per file in img_cache/, safe to interrupt and re-run; already-written images are skipped.
 
@@ -124,6 +127,121 @@ def summary_thumbnail(slug):
     return thumb
 
 
+WIKIPEDIA_API = "https://en.wikipedia.org/w/api.php"
+# file names that are decoration, not a photograph of the thing
+NOT_A_PHOTO = re.compile(r"(\bflag|icon|logo|\bmap\b|_map|map_|seal_of|coat[_ ]of[_ ]arms|symbol|emblem|wiki|commons|ambox|question|padlock|pictogram|"
+                         r"disambig|button|banner|locator|location|orthographic|blank|chart|graph|diagram|"
+                         r"\.svg$|\.gif$|\.ogg$|\.ogv$|\.webm$|\.pdf$|\.tif$)", re.IGNORECASE)
+
+
+def article_image_candidates(slugs):
+    # en.wikipedia: the files used in each article, 50 articles per request; returns { slug: [file names] }.
+    titles = "|".join([urllib.parse.unquote(slug).replace("_", " ") for slug in slugs])
+    params = {"action": "query", "format": "json", "titles": titles, "prop": "images", "imlimit": "max", "redirects": "1"}
+    response = requests.get(WIKIPEDIA_API, params=params, headers={"User-Agent": USER_AGENT}, timeout=60)
+    response.raise_for_status()
+    body = response.json().get("query", {})
+    # map normalised / redirected titles back to the slugs asked for
+    back = {}
+    for slug in slugs:
+        back[urllib.parse.unquote(slug).replace("_", " ")] = slug
+    for entry in body.get("normalized", []) + body.get("redirects", []):
+        if entry.get("from") in back:
+            back[entry.get("to")] = back[entry.get("from")]
+    result = {}
+    for page_id in body.get("pages", {}):
+        page = body["pages"][page_id]
+        slug = back.get(page.get("title"))
+        if slug is None:
+            continue
+        names = []
+        for image in page.get("images", []):
+            title = image.get("title", "")
+            name = title[len("File:"):] if title.startswith("File:") else title
+            if NOT_A_PHOTO.search(name):
+                continue
+            names.append(name)
+        result[slug] = names[:6]
+    time.sleep(PAUSE_SECONDS)
+    return result
+
+
+def article_images_pass(rows, year_from, output, img_dir):
+    # Rows in range, weight 2 or more, still without a photo: try the other images in their Wikipedia article.
+    # Slugs that yield nothing are remembered in the cache so the next run does not ask again.
+    pending = []
+    seen = {}
+    for row in rows:
+        if row[4] < year_from or len(row) < 10 or not row[9] or row[6] < 2:
+            continue
+        slug = row[9]
+        if slug in output or slug in seen:
+            continue
+        seen[slug] = True
+        pending.append(slug)
+    tried_path = os.path.join(CACHE_DIR, "article_images_tried.json")
+    tried = {}
+    if os.path.exists(tried_path):
+        with open(tried_path, "r", encoding="utf-8") as tried_file:
+            tried = json.load(tried_file)
+    pending = [slug for slug in pending if slug not in tried]
+    print("article images: " + str(len(pending)) + " events without a photo to look up", file=sys.stderr)
+    kept = 0
+    for start in range(0, len(pending), 50):
+        batch = pending[start:start + 50]
+        try:
+            candidates = article_image_candidates(batch)
+        except requests.RequestException as error:
+            print("  article lookup failed: " + str(error), file=sys.stderr)
+            continue
+        names = []
+        for slug in batch:
+            for name in candidates.get(slug, []):
+                if name not in names:
+                    names.append(name)
+        info_by_name = {}
+        for name_start in range(0, len(names), 50):
+            try:
+                info_by_name.update(lookup_batch(names[name_start:name_start + 50]))
+            except requests.RequestException as error:
+                print("  commons lookup failed: " + str(error), file=sys.stderr)
+        for slug in batch:
+            tried[slug] = True
+            for name in candidates.get(slug, []):
+                info = info_by_name.get(name)
+                if info is None or not info.get("thumburl") or not ALLOWED_LICENSE.search(info["license"] or ""):
+                    continue
+                if not (info["thumburl"].lower().endswith(".jpg") or info["thumburl"].lower().endswith(".jpeg") or ".jpg" in info["thumburl"].lower()):
+                    continue
+                raw = download(info["thumburl"])
+                if raw is None:
+                    continue
+                file_name = hashlib.sha1(name.encode("utf-8")).hexdigest()[:16] + ".jpg"
+                file_path = os.path.join(img_dir, file_name)
+                if not os.path.exists(file_path):
+                    try:
+                        jpeg_bytes = encode_image(raw)
+                    except Exception as error:
+                        print("  could not encode " + name + ": " + str(error), file=sys.stderr)
+                        continue
+                    with open(file_path, "wb") as image_file:
+                        image_file.write(jpeg_bytes)
+                output[slug] = {
+                    "file": file_name,
+                    "author": info["author"][:120],
+                    "license": info["license"],
+                    "licenseUrl": info["licenseUrl"],
+                    "source": name,
+                    "filePage": "https://commons.wikimedia.org/wiki/File:" + urllib.parse.quote(name.replace(" ", "_")),
+                }
+                kept += 1
+                break
+        with open(tried_path, "w", encoding="utf-8") as tried_file:
+            json.dump(tried, tried_file)
+        print("  " + str(min(start + 50, len(pending))) + "/" + str(len(pending)) + " articles — " + str(kept) + " new photos", file=sys.stderr)
+    return kept
+
+
 def download(url):
     response = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=60)
     time.sleep(PAUSE_SECONDS)
@@ -139,6 +257,7 @@ def main():
     parser.add_argument("--out", default="images.json", help="manifest path")
     parser.add_argument("--img-dir", dest="img_dir", default="img", help="directory to write <sha1>.jpg files into")
     parser.add_argument("--slugs", default=None, help="JSON list of Wikipedia slugs to look up directly (thumbnail via the REST summary endpoint)")
+    parser.add_argument("--no-article-images", dest="article_images", action="store_false", help="skip the pass that looks for other freely licensed images in the article when the lead image cannot be used")
     arguments = parser.parse_args()
 
     if not HAVE_PIL:
@@ -250,6 +369,11 @@ def main():
         with open(arguments.out, "w", encoding="utf-8") as out_file:
             json.dump(output, out_file)
         print(str(min(start + 50, len(pending))) + "/" + str(len(pending)) + " processed — kept " + str(len(output)) + ", licence rejected " + str(rejected_license) + ", failed " + str(failed), file=sys.stderr)
+
+    if arguments.article_images:
+        article_images_pass(rows, arguments.year_from, output, arguments.img_dir)
+        with open(arguments.out, "w", encoding="utf-8") as out_file:
+            json.dump(output, out_file)
 
     total_bytes = 0
     for slug in output:
