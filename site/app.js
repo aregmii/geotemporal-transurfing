@@ -432,8 +432,10 @@ for (var pi = 0; pi < MAX_SHOWN; pi++){
   badge.renderOrder = 3; badge.visible = false;
   var pile = new THREE.Sprite(new THREE.SpriteMaterial({ transparent:true, depthTest:false, depthWrite:false }));
   pile.renderOrder = 4; pile.visible = false;
-  holder.add(beam); holder.add(base); holder.add(card); holder.add(badge); holder.add(pile);
-  holder.visible = false; holder.userData = { beam:beam, base:base, card:card, badge:badge, pile:pile };
+  var stem = new THREE.Sprite(new THREE.SpriteMaterial({ map:STEM_TEX, transparent:true, depthTest:false, depthWrite:false, blending:THREE.AdditiveBlending }));
+  stem.renderOrder = 2; stem.visible = false; stem.center.set(0.5, 0);   // grows upward from where it is put
+  holder.add(beam); holder.add(base); holder.add(card); holder.add(badge); holder.add(pile); holder.add(stem);
+  holder.visible = false; holder.userData = { beam:beam, base:base, card:card, badge:badge, pile:pile, stem:stem };
   POOL.push(holder); markers.add(holder);
 }
 
@@ -441,7 +443,22 @@ for (var pi = 0; pi < MAX_SHOWN; pi++){
 // screen. Raising it along the surface normal instead would do almost nothing at the middle of the disc, where
 // the normal points at the camera; a screen-space climb stacks a crowded city into a readable column everywhere.
 // Stacking is tried first because a column still shows every event where it happened — folding loses one.
-var STACK = [0, 1.12, 2.24, 3.36, 4.48];
+//
+// The climb is kept short on purpose. A card has to read as standing on its own piece of ground: at four card
+// heights it was landing out among the stars, with nothing to say which country it belonged to. Two steps is
+// enough to unstack a crowded city, and a card that climbs gets a stem drawn back down to its spot.
+var STACK = [0, 0.92, 1.84, 2.76, 3.68];
+
+// The stem: a screen-aligned line from the top of the beam to the bottom of a card that has climbed, so the card
+// is visibly tied to the ground it stands on rather than floating.
+var STEM_TEX = (function(){
+  var c = document.createElement('canvas'); c.width = 4; c.height = 64;
+  var ctx = c.getContext('2d');
+  var g = ctx.createLinearGradient(0, 64, 0, 0);
+  g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(255,255,255,.12)');
+  ctx.fillStyle = g; ctx.fillRect(1, 0, 2, 64);
+  return new THREE.CanvasTexture(c);
+})();
 
 // The chip a card wears when other events folded into it: "+7". One texture per count, built once and reused.
 var PILE_TEX = {};
@@ -765,6 +782,11 @@ function render(){
   var pxPerUnit = cardPixels();
   var placed = [];      // {x, y, hw, hh} of cards already laid out this frame, in px
   var hiddenCount = 0;
+  // The Earth's silhouette in pixels. The camera sits on +Z looking at the origin, so the globe's centre is the
+  // centre of the canvas; the edge is where the line of sight grazes a sphere of radius 1 at camDist away.
+  // A card may climb only while it stays inside this circle — past it, it is standing on stars.
+  var globeCX = W / 2, globeCY = H / 2;
+  var limbPx = (H / 2) * Math.tan(Math.asin(Math.min(0.999, 1 / camDist))) / Math.tan(camera.fov * DEG / 2);
   // lay out by importance so the biggest events claim their spot first
   list.forEach(function(e){
     var h = e.holder; if (!h) return;
@@ -785,8 +807,11 @@ function render(){
     var baseX = (_v.x + 1) / 2 * W, baseY = (1 - _v.y) / 2 * H;
     var sx = baseX, sy = baseY;
     for (var li = 0; li < STACK.length; li++){
-      lvl = li;
-      sy = baseY - STACK[li] * hhPx * 2;
+      var tryY = baseY - STACK[li] * hhPx * 2;
+      // a climb that would put the card outside the Earth's edge is not taken: the card would read as floating
+      // in space with nothing to say where it happened
+      if (li > 0 && Math.hypot(sx - globeCX, tryY - globeCY) + hhPx * 0.55 > limbPx) break;
+      lvl = li; sy = tryY;
       free = true;
       if (isSel) break;
       for (var i = 0; i < placed.length; i++){
@@ -804,7 +829,7 @@ function render(){
         if (d2 < hostD){ hostD = d2; host = q; }
       }
       if (host) host.folded.push(e);
-      u.card.visible = false; u.beam.visible = false; u.badge.visible = false; u.pile.visible = false;
+      u.card.visible = false; u.beam.visible = false; u.badge.visible = false; u.pile.visible = false; u.stem.visible = false;
       u.base.visible = true; u.base.scale.set(0.03, 0.03, 1);
       e._sx = null; e.stackH = 0; e.pos.copy(e.foot); hiddenCount++;
       return;
@@ -819,6 +844,16 @@ function render(){
     u.card.position.set(0, height, 0);
     u.card.scale.set(cw, chh, 1);
     u.card.center.set(0.5, 0.5 - up);
+    // a card that climbed gets a line back down to the top of its beam, so it still reads as standing somewhere.
+    // One card height on screen is chh world units, so a climb of `up` card heights spans up*chh minus the half
+    // card height already occupied by the card itself.
+    var stemLen = up * chh - chh * 0.5;
+    if (stemLen > chh * 0.04){
+      u.stem.visible = true;
+      u.stem.position.set(0, height, 0);
+      u.stem.scale.set(chh * 0.09, stemLen, 1);
+      u.stem.material.color.set(css(CATS[e.cat].v));
+    } else u.stem.visible = false;
     if (u.hasPhoto && MEDIA[e.slug] == null){
       var bs = chh * 0.34;
       u.badge.visible = true; u.badge.position.set(0, height, 0); u.badge.scale.set(bs, bs, 1);
