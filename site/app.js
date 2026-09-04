@@ -330,7 +330,7 @@ function pickSkyLabels(){
   var earthPx = Math.asin(Math.min(1, 1 / camDist)) / (camera.fov * DEG / 2) * (H / 2);
   var cx = W / 2, cy = H / 2, chosen = [];
   var bodies = [{ obj:moonMesh, text:'MOON · ' + Math.round(moonMesh.position.length() * 6371).toLocaleString() + ' KM', prio:99 },
-                { obj:sunSprite, text:'SUN · 150 M KM', prio:98 }];
+                { obj:sunSprite, text:'SUN · 150 M KM · ½° WIDE FROM HERE, AS IT IS FROM EARTH', prio:98 }];
   Object.keys(planetSprites).forEach(function(n){ bodies.push({ obj:planetSprites[n], text:n.toUpperCase() + ' · PLANET', prio:90 }); });
   var all = bodies.map(function(b){ return { text:b.text, pos:b.obj.position, prio:b.prio }; }).concat(LABEL_CANDIDATES);
   for (var i = 0; i < all.length; i++){
@@ -430,19 +430,37 @@ var BASE_TEX = (function(){
   var g = ctx.createRadialGradient(32, 32, 2, 32, 32, 30); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(0.35, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
 })();
+var STEM_TEX = (function(){
+  // a bright core inside a dark halo, so the line reads over desert and ocean alike
+  var c = document.createElement('canvas'); c.width = 8; c.height = 64;
+  var ctx = c.getContext('2d');
+  ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(1, 0, 6, 64);
+  var g = ctx.createLinearGradient(0, 64, 0, 0);          // brightest at the ground, easing toward the card
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(1, 'rgba(255,255,255,.55)');
+  ctx.fillStyle = g; ctx.fillRect(3, 0, 2, 64);
+  return new THREE.CanvasTexture(c);
+})();
 var POOL = [];
 for (var pi = 0; pi < MAX_SHOWN; pi++){
   var holder = new THREE.Group();
   var beam = new THREE.Mesh(BEAM_GEO, new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0.22, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide }));
   var base = new THREE.Sprite(new THREE.SpriteMaterial({ map:BASE_TEX, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending }));
   base.scale.set(0.03, 0.03, 1);
-  var card = new THREE.Sprite(new THREE.SpriteMaterial({ map:SPRITE_TEX.con, transparent:true, depthTest:true, depthWrite:false }));
+  // depthTest off: a card fanned out from its anchor sits over ground that can be nearer the camera than the
+  // anchor is, and with the test on the Earth would hide it. The front-side check already keeps cards off the
+  // far hemisphere, which is all the depth test was buying.
+  var card = new THREE.Sprite(new THREE.SpriteMaterial({ map:SPRITE_TEX.con, transparent:true, depthTest:false, depthWrite:false }));
   var badge = new THREE.Sprite(new THREE.SpriteMaterial({ map:SPRITE_TEX.con, transparent:true, depthTest:false, depthWrite:false }));
   badge.renderOrder = 3; badge.visible = false;
   var pile = new THREE.Sprite(new THREE.SpriteMaterial({ transparent:true, depthTest:false, depthWrite:false }));
   pile.renderOrder = 4; pile.visible = false;
-  holder.add(beam); holder.add(base); holder.add(card); holder.add(badge); holder.add(pile);
-  holder.visible = false; holder.userData = { beam:beam, base:base, card:card, badge:badge, pile:pile };
+  // the projection line for a card that fans out from a shared spot: anchored at its foot (centre.y = 0), grown
+  // along its own +y and rotated to point at the card
+  var stem = new THREE.Sprite(new THREE.SpriteMaterial({ map:STEM_TEX, transparent:true, depthTest:false, depthWrite:false }));
+  stem.renderOrder = 1; stem.visible = false; stem.center.set(0.5, 0);
+  card.renderOrder = 2;
+  holder.add(beam); holder.add(base); holder.add(stem); holder.add(card); holder.add(badge); holder.add(pile);
+  holder.visible = false; holder.userData = { beam:beam, base:base, card:card, badge:badge, pile:pile, stem:stem };
   POOL.push(holder); markers.add(holder);
 }
 
@@ -797,76 +815,126 @@ function render(){
   var globeCX = W / 2, globeCY = H / 2;
   var limbPx = (H / 2) * Math.tan(Math.asin(Math.min(0.999, 1 / camDist))) / Math.tan(camera.fov * DEG / 2);
   // lay out by importance so the biggest events claim their spot first
+  // ---- pass 1: measure every event and group the ones that stand on the same ground ----
+  // The list is in importance order, so the first event at a place leads its group and the anchor is its spot.
+  var groups = [];
   list.forEach(function(e){
     var h = e.holder; if (!h) return;
     var front = worldNormal(e).z > 0.12;
     h.visible = front;
-    e.folded = null;
-    if (!front){ e._sx = null; behind++; return; }
-    var prom = e._p == null ? 1 : e._p;              // loudness now; `p` below is a placed-card rectangle
+    e.folded = null; e._sx = null;
+    if (!front){ behind++; return; }
+    var prom = e._p == null ? 1 : e._p;              // loudness now
     var scale = e.size * zoomBoost * (0.80 + 0.20 * prom);
-    var cw = CARD_W * scale, chh = CARD_H * scale;
-    var hwPx = cw * pxPerUnit / CARD_H * 0.5, hhPx = chh * pxPerUnit / CARD_H * 0.5;
-    // The card sits directly over its own spot, and stays there. Two tests decide whether it is drawn:
-    // it must fit inside the Earth's silhouette, and it must not land on a card already placed.
-    var height = HOVER, free = true;
-    var isSel = selected && selected.id === e.id;
-    _v.copy(e.normal).multiplyScalar(1.002 + height).applyQuaternion(globe.quaternion).project(camera);
-    var sx = (_v.x + 1) / 2 * W, sy = (1 - _v.y) / 2 * H;
-    if (!isSel){
-      // the whole card, not just its middle, has to be over the Earth — a card hanging off the edge reads as
-      // floating in space and says nothing about where the event happened
-      if (Math.hypot(sx - globeCX, sy - globeCY) + hhPx * 0.55 > limbPx) free = false;
-      for (var i = 0; free && i < placed.length; i++){
-        var p = placed[i];
-        if (Math.abs(p.x - sx) < p.hw + hwPx && Math.abs(p.y - sy) < p.hh + hhPx) free = false;
-      }
+    e._cw = CARD_W * scale; e._chh = CARD_H * scale; e._prom = prom;
+    e._hw = e._cw * pxPerUnit / CARD_H * 0.5; e._hh = e._chh * pxPerUnit / CARD_H * 0.5;
+    _v.copy(e.normal).multiplyScalar(1.002 + HOVER).applyQuaternion(globe.quaternion).project(camera);
+    e._bx = (_v.x + 1) / 2 * W; e._by = (1 - _v.y) / 2 * H;
+    for (var g = 0; g < groups.length; g++){
+      if (kmApart(groups[g].leader, e) < FOLD_KM){ groups[g].members.push(e); return; }
     }
-    var u = h.userData;
-    if (!free){
-      // Fold into the closest card within FOLD_KM on the ground, so "+14" always means "fourteen more events
-      // within 250 km of this one" — the same claim at every zoom level. Anything further keeps its own dot.
-      var host = null, hostKm = FOLD_KM;
-      for (var k = 0; k < placed.length; k++){
-        var q = placed[k], km = kmApart(q.e, e);
-        if (km < hostKm){ hostKm = km; host = q; }
-      }
-      if (host) host.folded.push(e);
-      u.card.visible = false; u.beam.visible = false; u.badge.visible = false; u.pile.visible = false;
-      u.base.visible = true; u.base.scale.set(0.03, 0.03, 1);
-      e._sx = null; e.stackH = 0; e.pos.copy(e.foot); hiddenCount++;
-      return;
+    groups.push({ leader:e, members:[] });
+  });
+
+  // ---- pass 2: lay each group out as projections from one piece of ground ----
+  // The leader stands straight over the anchor. The others fan out around it on a ring, each on its own beam
+  // back down to the same spot, so two events in Moldova are two holograms rising from Moldova rather than one
+  // card with a number on it. A ring slot is taken only if it is over the Earth and clear of every card already
+  // placed; what finds no slot folds into the leader's +N. Zoomed out the ring has no room and everything folds;
+  // zoomed in it opens up. Same rule, no mode switch.
+  function hide(e){
+    var u = e.holder.userData;
+    u.card.visible = false; u.beam.visible = false; u.badge.visible = false; u.pile.visible = false; u.stem.visible = false;
+    u.base.visible = true; u.base.scale.set(0.03, 0.03, 1);
+    e._sx = null; e.stackH = 0; e.pos.copy(e.foot); hiddenCount++;
+  }
+  function clear(sx, sy, hw, hh, isSel){
+    if (isSel) return true;
+    if (Math.hypot(sx - globeCX, sy - globeCY) + hh * 0.55 > limbPx) return false;
+    for (var i = 0; i < placed.length; i++){
+      var p = placed[i];
+      if (Math.abs(p.x - sx) < p.hw + hw && Math.abs(p.y - sy) < p.hh + hh) return false;
     }
-    placed.push({ x:sx, y:sy, hw:hwPx, hh:hhPx, e:e, folded:[] });
-    e._sx = sx; e._sy = sy; e._px = hwPx * 2; e.stackH = height;
-    u.card.visible = true; u.beam.visible = true; u.base.visible = true;
-    u.beam.scale.set(1, height, 1);
+    return true;
+  }
+  function show(e, offX, offY, group){
+    // offX/offY: where the card sits relative to its anchor, in screen pixels (down is positive)
+    var u = e.holder.userData, cw = e._cw, chh = e._chh, height = HOVER;
+    var sx = e._bx + offX, sy = e._by + offY;
+    var worldPerPx = chh / (e._hh * 2), offWX = offX * worldPerPx, offWY = offY * worldPerPx;
+    placed.push({ x:sx, y:sy, hw:e._hw, hh:e._hh, e:e, folded:group.folded });
+    e._sx = sx; e._sy = sy; e._px = e._hw * 2; e.stackH = height; e._offWX = offWX; e._offWY = offWY;
+    u.card.visible = true; u.base.visible = true;
     u.card.position.set(0, height, 0);
     u.card.scale.set(cw, chh, 1);
-    u.card.center.set(0.5, 0.5);
+    // a sprite's centre is the point drawn at its position: shifting it by the offset (in the sprite's own
+    // units) moves the whole card across the screen while its anchor stays on the ground
+    u.card.center.set(0.5 - offWX / cw, 0.5 + offWY / chh);
+    var lifted = offX !== 0 || offY !== 0;
+    u.beam.visible = !lifted; u.beam.scale.set(1, height, 1);
+    if (lifted){
+      // the projection: a line from the ground point to the card, rotated to point at it
+      var len = Math.hypot(offX, offY) * worldPerPx;
+      u.stem.visible = true;
+      u.stem.position.set(0, height, 0);
+      u.stem.scale.set(chh * 0.16, len, 1);
+      u.stem.material.rotation = Math.atan2(-offX, -offY);
+      u.stem.material.color.set(css(CATS[e.cat].v));
+    } else u.stem.visible = false;
     if (u.hasPhoto && MEDIA[e.slug] == null){
       var bs = chh * 0.34;
       u.badge.visible = true; u.badge.position.set(0, height, 0); u.badge.scale.set(bs, bs, 1);
-      u.badge.center.set(0.5 + (cw / 2 - bs * 0.62) / bs, 0.5 + (chh / 2 - bs * 0.62) / bs);
+      u.badge.center.set(0.5 + (cw / 2 - bs * 0.62) / bs - offWX / bs, 0.5 + (chh / 2 - bs * 0.62) / bs + offWY / bs);
     } else u.badge.visible = false;
     u.base.scale.set(0.02, 0.02, 1);
     var dim = selected && selected.id !== e.id && ctxEls.indexOf(e) < 0;
-    var fade = 0.62 + 0.38 * prom;                              // headline bright, background dimmer, afterglow fading
+    var fade = 0.62 + 0.38 * e._prom;                            // headline bright, background dimmer, afterglow fading
     u.card.material.opacity = (dim ? 0.45 : 0.96) * fade; u.badge.material.opacity = (dim ? 0.35 : 1) * fade;
-    u.beam.material.opacity = dim ? 0.08 : 0.22;
+    u.beam.material.opacity = dim ? 0.08 : 0.22; u.stem.material.opacity = dim ? 0.3 : 0.95;
     u.base.material.opacity = dim ? 0.3 : 0.9;
     e.pos.copy(e.normal).multiplyScalar(1.002 + height);
+  }
+  var RING = 8;
+  groups.forEach(function(group){
+    var L = group.leader;
+    group.folded = [];
+    var leaderSel = selected && selected.id === L.id;
+    if (!clear(L._bx, L._by, L._hw, L._hh, leaderSel)){
+      // the anchor itself is covered: fold the whole group into whatever card is standing there, if it is close
+      var host = null, hostKm = FOLD_KM;
+      for (var k = 0; k < placed.length; k++){ var km = kmApart(placed[k].e, L); if (km < hostKm){ hostKm = km; host = placed[k]; } }
+      hide(L); if (host) host.folded.push(L);
+      group.members.forEach(function(m){ hide(m); if (host) host.folded.push(m); });
+      return;
+    }
+    show(L, 0, 0, group);
+    // ring slots start on the side facing the globe's centre, so the fan opens over the Earth
+    var toCentre = Math.atan2(globeCY - L._by, globeCX - L._bx);
+    group.members.forEach(function(m){
+      var radius = Math.hypot(m._hw * 2, m._hh * 2) * 1.05 + Math.hypot(L._hw, L._hh) * 0.35;
+      var sel = selected && selected.id === m.id, done = false;
+      for (var slot = 0; slot < RING && !done; slot++){
+        // alternate left and right of the inward direction: 0, +45, -45, +90, -90 ...
+        var turn = (Math.ceil(slot / 2) * (slot % 2 ? 1 : -1)) * (Math.PI * 2 / RING);
+        var a = toCentre + turn;
+        var offX = Math.cos(a) * radius, offY = Math.sin(a) * radius;
+        if (clear(m._bx + offX, m._by + offY, m._hw, m._hh, sel)){ show(m, offX, offY, group); done = true; }
+      }
+      if (!done){ hide(m); group.folded.push(m); }
+    });
   });
-  // Every card has claimed its place, so the counts are final: a card that absorbed others wears a "+N" chip,
-  // and openPanel lists them under "Also on this spot".
+
+  // Every card has claimed its place, so the counts are final: a group's leader wears the "+N" chip for whatever
+  // found no slot, and openPanel lists them.
   var foldedCount = 0;
   for (var pj = 0; pj < placed.length; pj++){
     var pl = placed[pj], pe = pl.e, ph = pe.holder;
     pe.folded = pl.folded;
-    foldedCount += pl.folded.length;
     if (!ph) continue;
     var pu = ph.userData;
-    if (!pl.folded.length){ pu.pile.visible = false; continue; }
+    var isLeader = groups.some(function(gr){ return gr.leader === pe; });
+    if (!isLeader || !pl.folded.length){ pu.pile.visible = false; continue; }
+    foldedCount += pl.folded.length;
     var cw2 = pu.card.scale.x, ch2 = pu.card.scale.y;
     var chipH = ch2 * 0.30, chipW = chipH * 2;
     pu.pile.material.map = pileTexture(pl.folded.length); pu.pile.material.needsUpdate = true;
@@ -874,8 +942,8 @@ function render(){
     pu.pile.position.set(0, pe.stackH, 0);
     pu.pile.scale.set(chipW, chipH, 1);
     // bottom-right corner of the card (larger centre.x moves the sprite left, larger centre.y moves it down)
-    pu.pile.center.set(0.5 - (cw2 / 2 - chipW * 0.5 - cw2 * 0.04) / chipW,
-                       0.5 + (ch2 / 2 - chipH * 0.5 - ch2 * 0.05) / chipH);
+    pu.pile.center.set(0.5 - (cw2 / 2 - chipW * 0.5 - cw2 * 0.04) / chipW - (pe._offWX || 0) / chipW,
+                       0.5 + (ch2 / 2 - chipH * 0.5 - ch2 * 0.05) / chipH + (pe._offWY || 0) / chipH);
   }
   window.__borders.visible = WINDOWS[wi].start >= 1900;
   camera.position.z = camDist;
@@ -901,12 +969,9 @@ function render(){
   updateSunLight();
   pickSkyLabels();
   renderer.render(scene, camera);
+  // one line: what is on screen out of what is in the window. The rest was true and nobody read it.
   document.getElementById('count').innerHTML =
-    (windowTotal > list.length ? 'TOP ' + list.length + ' OF ' + windowTotal + ' EVENTS IN THIS WINDOW — ZOOM IN FOR MORE' : list.length + ' EVENT' + (list.length === 1 ? '' : 'S') + ' IN THIS WINDOW') +
-    (foldedCount ? '<br>' + foldedCount + ' MORE WITHIN 250 KM OF A CARD — THE <em>+N</em> CARDS LIST THEM' : '') +
-    (hiddenCount - foldedCount > 0 ? '<br>' + (hiddenCount - foldedCount) + ' WAITING FOR ROOM — ZOOM IN' : '') +
-    (behind ? '<br>' + behind + ' ON THE FAR SIDE — KEEP SPINNING' : '') +
-    (list.length < 4 ? '<br><em>SPARSE — THE PLACEHOLDER DATA THINS OUT HERE</em>' : '');
+    (windowTotal > list.length ? 'TOP ' + list.length + ' OF ' + windowTotal + ' — ZOOM IN FOR MORE' : list.length + ' EVENT' + (list.length === 1 ? '' : 'S') + ' THIS MONTH');
 }
 
 function pick(mx, my){
