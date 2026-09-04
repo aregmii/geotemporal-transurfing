@@ -323,6 +323,11 @@ function addsSomething(title, short) {
   const repeated = content.filter(w => inTitle.has(w)).length;
   return repeated / content.length < 0.6;
 }
+// Wikidata names a winner the long way ("Argentina men's national football team"); a headline says "Argentina"
+function shortName(name) {
+  return String(name).replace(/\s+(?:men's|women's)?\s*national (?:football|basketball|cricket|rugby union|rugby league|ice hockey|hockey|volleyball|handball|baseball)? ?team$/i, '')
+                     .replace(/\s+national team$/i, '').replace(/\s+\(.*\)$/, '').trim();
+}
 function headline(row) {
   const title = row[0], slug = row[9], lead = row[8] || '', f = facts[slug] || {};
   if (written[slug]) return written[slug];
@@ -333,8 +338,8 @@ function headline(row) {
     if (how) return title + ' ' + how + (deaths ? ', ' + fmtNum(deaths) + ' killed' : '');
   }
   if (deaths && /attack|bombing|bombings|shooting|massacre|stampede|crush|fire|flood|floods|cyclone|hurricane|typhoon|storm|tsunami|explosion|landslide|heat wave|avalanche|earthquake|crash|collapse|sinking|derailment|collision|accident|disaster/.test(lower) && !f.magnitude) return title + ': ' + fmtNum(deaths) + ' killed';
-  if (f.winner && /final|cup|championship|grand prix|super bowl|open|masters|derby|race|bowl|series|tournament|olympic|games\b/.test(lower)) return f.winner + ' wins ' + title.replace(/^the /i, '');
-  if (f.elected && /election/.test(lower)) return f.elected + ' wins ' + title.replace(/^the /i, '');
+  if (f.winner && /final|cup|championship|grand prix|super bowl|open|masters|derby|race|bowl|series|tournament|olympic|games\b/.test(lower)) return shortName(f.winner) + ' wins ' + title.replace(/^the /i, '');
+  if (f.elected && /election/.test(lower)) return shortName(f.elected) + ' wins ' + title.replace(/^the /i, '');
   if (f.winner && /battle|siege|war\b/.test(lower)) return title + ': ' + f.winner + ' victorious';
   // facts.json had no result: read one out of the lead before falling back to "what this thing was"
   if (/final|cup|championship|grand prix|super bowl|open\b|masters|derby|\brace\b|bowl|series|tournament|olympic|games\b|election|referendum|primary|leadership contest/.test(lower)) {
