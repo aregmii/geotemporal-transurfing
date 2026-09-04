@@ -187,8 +187,11 @@ function deathsInLead(lead) {
   return null;
 }
 function crashPhrase(lead) {
-  const m = /\b(crashed|crash-landed|was shot down|shot down|broke up|disappeared|collided|ditched|exploded|ran off the runway|overran|struck)(?: (?:into|in|on|near|over|off|with|shortly after|during|while|at) [^.,;]{3,50})?/i.exec(String(lead).replace(/\u00a0/g, ' '));
+  const text = String(lead).replace(/\u00a0/g, ' ');
+  const m = /\b(crashed|crash-landed|was shot down|shot down|broke up|disappeared|collided|ditched|exploded|ran off the runway|overran|struck)(?: (?:into|in|on|near|over|off|with|shortly after|during|while|at) [^.,;]{3,50})?/i.exec(text);
   if (!m) return null;
+  // the 50-character cap can land inside a word ("... in New Y|ork City"): drop the partial word
+  if (/\w/.test(text.charAt(m.index + m[0].length)) && /\s\S+$/.test(m[0])) m[0] = m[0].replace(/\s+\S*$/, '');
   // stop before a date or a death count: those are said separately
   return m[0].replace(/^was /, '').replace(/\s+(?:on|at|in) \d.*$/, '').replace(/\s+(?:killing|with|carrying).*$/, '').replace(/\s+(?:near|in) [A-Z][^ ]* in [A-Z].*$/, '').trim();
 }
@@ -201,6 +204,76 @@ function whatItDid(lead) {
   let m = /\b(replaced|replaces|superseded|ended|ends|banned|bans|outlawed|created|creates|established|establishes|founded|abolished|granted|guarantees|guaranteed|required|requires|committed|commits|allowed|allows|limited|limits|set|sets|introduced|introduces|renamed|merged|split|opened|closed|recognised|recognized|awarded|honoured|honored)\b\s+(.{8,90}?)(?:[,.;]|$)/i.exec(first);
   if (m) return (m[1].replace(/s$|es$/, '').replace(/^(ban)$/, 'banned') + ' ' + m[2]).trim();
   return '';
+}
+// Who won, taken from the lead when facts.json has no answer. Wikipedia's first sentences are formulaic about
+// results ("was won by Max Verstappen", "Argentina defeated France 4-2 on penalties"), so a small set of shapes
+// covers most finals, races and elections. Returns the whole result clause, score included, or ''.
+const RESULT_SHAPES = [
+  /\bwas won by ([A-Z][^.,;()]{2,48}?)(?:[.,;(]|$)/,
+  /\b([A-Z][\w'’.-]*(?: [A-Z][\w'’.-]*){0,3}) (?:won|defeated|beat) ([A-Z][\w'’.-]*(?: [A-Z][\w'’.-]*){0,3})(?: (\d+[-–]\d+(?: on penalties| after extra time)?))?/,
+  /\b([A-Z][\w'’.-]*(?: [A-Z][\w'’.-]*){0,3}) won the (?:title|race|final|match|election|championship|tournament)\b/,
+  /\b([A-Z][\w'’.-]*(?: [A-Z][\w'’.-]*){0,3}) (?:was|were) (?:re-)?elected\b/,
+];
+function resultInLead(lead) {
+  const t = String(lead || '').replace(/ /g, ' ').replace(/\s+/g, ' ');
+  const first = t.split(/(?<=[a-z0-9\)])\.\s+(?=[A-Z])/).slice(0, 2).join('. ');
+  for (let i = 0; i < RESULT_SHAPES.length; i++) {
+    const m = RESULT_SHAPES[i].exec(first);
+    if (!m) continue;
+    if (i === 0) return m[1].trim() + ' wins';
+    if (i === 1) return (m[1] + ' beat ' + m[2] + (m[3] ? ' ' + m[3].replace(/-/g, '–') : '')).trim();
+    return m[1].trim() + (i === 3 ? ' elected' : ' wins');
+  }
+  return '';
+}
+// Year-page rows are already sentences an editor wrote, but some run to forty words and two clauses. Keep the
+// first independent clause and cap the length; a card has room for about a dozen words.
+function trimSentence(text) {
+  let s = String(text || '').replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
+  s = s.split(/;\s+/)[0];
+  s = s.replace(/\.\s*$/, '');
+  const words = s.split(' ');
+  if (words.length <= 16) return s;
+  // cut at the last comma inside the first sixteen words, so the clause still reads whole
+  const head = words.slice(0, 16).join(' ');
+  const comma = head.lastIndexOf(',');
+  return (comma > 30 ? head.slice(0, comma) : head.replace(/[,\s]+$/, '')) + '…';
+}
+// Last pass over every generated headline: no dangling function word before an ellipsis ("reduced from…"), no
+// doubled punctuation, and a hard cap so a card never has to shrink its type to fit.
+const DANGLING = /\s+(?:with|from|of|in|to|as|and|for|by|at|on|into|over|after|before|between|against|the|a|an|its|his|her|their|that|which|who)$/i;
+function polish(text) {
+  let s = String(text || '').replace(/\s+/g, ' ').trim();
+  s = s.replace(/\s*[,;:]\s*…$/, '…').replace(/…+$/, '…');
+  if (/…$/.test(s)) {
+    let body = s.slice(0, -1).replace(/[,\s]+$/, '');
+    while (DANGLING.test(body)) body = body.replace(DANGLING, '');
+    s = body.replace(/[,\s]+$/, '') + '…';
+  } else if (s.length > 104) {
+    let body = s.slice(0, 104).replace(/\s+\S*$/, '');
+    while (DANGLING.test(body)) body = body.replace(DANGLING, '');
+    s = body.replace(/[,\s]+$/, '') + '…';
+  }
+  return s;
+}
+// Wikidata's one-line description is worth appending only when it tells the reader something the title does not.
+// "EuroBasket 2003 Women — 2003 edition of EuroBasket Women" restates the name; "2003 Vuelta a España — cycling
+// race" names the category the icon already shows. Both are worse than the bare title, so both are refused.
+function addsSomething(title, short) {
+  const s = short.trim();
+  if (/^(?:the\s+)?(?:\d+(?:st|nd|rd|th)|\d{4}|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|[a-z]+th)\s+(?:edition|season|running|instal?ment)\b/i.test(s)) return false;
+  const words = s.split(/\s+/);
+  // a bare category: no proper noun, no number, only a few words ("cycling race", "judo competition")
+  if (words.length <= 4 && !/\d/.test(s) && !words.some(w => /^[A-Z]/.test(w))) return false;
+  const inTitle = new Set(title.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/));
+  const content = words.map(w => w.toLowerCase().replace(/[^a-z0-9]/g, '')).filter(w => w.length > 3);
+  if (!content.length) return false;
+  // a suffix that opens by repeating the title ("2003 FIFA Confederations Cup Final — 2003 FIFA Confederations
+  // Cup association football match") is a restatement however it ends
+  const opening = content.slice(0, 3);
+  if (opening.length === 3 && opening.every(w => inTitle.has(w))) return false;
+  const repeated = content.filter(w => inTitle.has(w)).length;
+  return repeated / content.length < 0.6;
 }
 function headline(row) {
   const title = row[0], slug = row[9], lead = row[8] || '', f = facts[slug] || {};
@@ -215,6 +288,11 @@ function headline(row) {
   if (f.winner && /final|cup|championship|grand prix|super bowl|open|masters|derby|race|bowl|series|tournament|olympic|games\b/.test(lower)) return f.winner + ' wins ' + title.replace(/^the /i, '');
   if (f.elected && /election/.test(lower)) return f.elected + ' wins ' + title.replace(/^the /i, '');
   if (f.winner && /battle|siege|war\b/.test(lower)) return title + ': ' + f.winner + ' victorious';
+  // facts.json had no result: read one out of the lead before falling back to "what this thing was"
+  if (/final|cup|championship|grand prix|super bowl|open\b|masters|derby|\brace\b|bowl|series|tournament|olympic|games\b|election|referendum|primary|leadership contest/.test(lower)) {
+    const res = resultInLead(lead);
+    if (res) return title.replace(/^the /i, '') + ': ' + res;
+  }
   if (f.magnitude && /earthquake/.test(lower)) return 'M' + f.magnitude + ' ' + title + (f.deaths ? ', ' + fmtNum(f.deaths) + ' killed' : '');
   if (f.deaths && /flight|crash|air|ferry|sinking|disaster|derail|collision/.test(lower)) return title + (/flight/.test(lower) ? (/shot down|shootdown/i.test(lead) ? ' shot down, ' : ' crashes, ') : ': ') + fmtNum(f.deaths) + ' killed';
   if (f.deaths && /attack|bombing|shooting|massacre|stampede|fire|flood|cyclone|hurricane|typhoon|storm|tsunami|explosion|landslide|heat wave|avalanche/.test(lower)) return title + ': ' + fmtNum(f.deaths) + ' killed';
@@ -232,7 +310,7 @@ function headline(row) {
   // no lead paragraph, only Wikidata's one-line description ("North American trade bloc"): use it rather than
   // leaving a bare name that says nothing
   const short = String(lead || '').trim();
-  if (short && short.length < 90 && !/^no description/i.test(short) && title.toLowerCase().indexOf(short.toLowerCase()) < 0) {
+  if (short && short.length < 90 && !/^no description/i.test(short) && title.toLowerCase().indexOf(short.toLowerCase()) < 0 && addsSomething(title, short)) {
     return title + ' — ' + short.charAt(0).toLowerCase() + short.slice(1);
   }
   return title;
@@ -241,7 +319,9 @@ for (const r of out) {
   const f = facts[r[9]] || {};
   while (r.length < 14) r.push(null);
   r[13] = r[0];                                   // the article name, for search and for the panel
-  if (!r._curated && !r._yearpage) r[0] = written[r[9]] ? written[r[9]] : headline(r);   // year-page rows already read as headlines
+  // year-page rows already read as headlines — they only need shortening
+  if (r._yearpage) r[0] = polish(trimSentence(r[0]));
+  else if (!r._curated) r[0] = polish(written[r[9]] ? written[r[9]] : headline(r));
   delete r._curated; delete r._yearpage;
   if (!r[10] && f.start) r[10] = f.start;         // exact start when the class query only had a year
   r[12] = f.end && f.end !== r[10] ? f.end : null; // exact end: the event persists over its whole span
@@ -250,6 +330,15 @@ for (const r of out) {
 // Weight by rank among Wikidata rows: top 8% -> 4, next 17% -> 3, next 30% -> 2, rest 1.
 const wd = out.filter(r => r._sitelinks !== undefined).sort((a, b) => b._sitelinks - a._sitelinks);
 wd.forEach((r, i) => { const q = i / wd.length; r[6] = q < 0.08 ? 4 : q < 0.25 ? 3 : q < 0.55 ? 2 : 1; delete r._sitelinks; });
+// Sitelinks count how many Wikipedias carry an article, which for bot-created astronomy stubs says nothing about
+// whether the discovery was news: every language has "Euporie", so fifteen small moons of Jupiter were taking
+// weight-4 cards away from events people remember. Demote a discovery whose own lead calls the thing a satellite,
+// a minor planet or an asteroid. Comets, dwarf planets and exoplanets are left alone — those get reported.
+const SMALL_BODY = /\b(natural satellite|irregular satellite|moon of (?:Jupiter|Saturn|Uranus|Neptune)|minor planet|asteroid|trans-Neptunian object|main-belt)\b/i;
+let demoted = 0;
+for (const r of out) {
+  if (/^discovery of /i.test(r[0]) && SMALL_BODY.test(r[8] || '') && r[6] > 1) { r[6] = 1; demoted++; }
+}
 out.sort((a, b) => a[3] - b[3]);
 fs.writeFileSync(outPath, JSON.stringify(out));
-console.log('curated', out.length - wikidataKept, '| wikidata kept', wikidataKept, 'dropped as duplicate', wikidataDropped, 'dropped as not-an-event', notEvents, 'routine launches', routineLaunches, 'catalogue objects', catalogObjects, 'deaths folded into assassinations', mergedDeaths, '| total', out.length);
+console.log('curated', out.length - wikidataKept, '| wikidata kept', wikidataKept, 'dropped as duplicate', wikidataDropped, 'dropped as not-an-event', notEvents, 'routine launches', routineLaunches, 'catalogue objects', catalogObjects, 'deaths folded into assassinations', mergedDeaths, 'small bodies demoted', demoted, '| total', out.length);

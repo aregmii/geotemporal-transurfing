@@ -43,6 +43,8 @@ VIDEO_EXT = (".webm", ".ogv", ".mp4", ".mpg", ".mpeg", ".gif")   # a gif is re-e
 HAVE_FFMPEG = shutil.which("ffmpeg") is not None
 MAX_RAW_BYTES = 80 * 1024 * 1024     # skip originals bigger than this (a 2 GB documentary is not a hologram)
 MAX_OUT_BYTES = 1500 * 1024          # clips already packed bigger than this are re-packed with the current settings
+HARD_MAX_OUT_BYTES = 3 * 1024 * 1024 # nothing over this ships: Cloudflare Pages refuses files over 25 MB, and a
+                                     # card a few hundred pixels wide never needs more than a couple of megabytes
 
 
 def strip_tags(text):
@@ -179,8 +181,16 @@ def kind_of(filename):
 
 
 def pack(raw_path, out_path, kind, seconds):
-    """Cut to `seconds` and re-encode small with ffmpeg (opus 40 kbps mono / vp9 360p); copy through without it."""
+    """Cut to `seconds` and re-encode small with ffmpeg (opus 40 kbps mono / vp9 240p).
+
+    Without ffmpeg the original is copied through, but only if it is already under HARD_MAX_OUT_BYTES. An earlier
+    run on a machine with no ffmpeg copied whole originals and left 37 MB clips in the repository; Cloudflare Pages
+    refuses anything over 25 MB, so a clip that big is not a clip the site can serve. Skipping it and reporting the
+    skip is better than shipping a file that fails to deploy.
+    """
     if not HAVE_FFMPEG:
+        if os.path.getsize(raw_path) > HARD_MAX_OUT_BYTES:
+            raise ValueError("original is " + str(os.path.getsize(raw_path) // 1048576) + " MB and ffmpeg is not installed to shrink it")
         shutil.copyfile(raw_path, out_path)
         return
     if kind == "audio":
@@ -191,6 +201,11 @@ def pack(raw_path, out_path, kind, seconds):
         # small on purpose: the clip plays inside a hologram card a few hundred pixels wide, and hundreds of clips ship with the site
         cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", raw_path, "-t", str(seconds), "-vf", "scale=-2:240,fps=15", "-c:v", "libvpx-vp9", "-b:v", "300k", "-c:a", "libopus", "-b:a", "40k", "-ac", "1", out_path]
     subprocess.run(cmd, check=True)
+    # a long source at a high frame rate can still land over the cap: cut it in half and encode it harder, once
+    if os.path.exists(out_path) and os.path.getsize(out_path) > HARD_MAX_OUT_BYTES and kind != "audio":
+        second_pass = ["ffmpeg", "-y", "-loglevel", "error", "-i", raw_path, "-t", str(max(10, seconds // 2)),
+                       "-vf", "scale=-2:240,fps=12", "-c:v", "libvpx-vp9", "-b:v", "180k", "-an", out_path]
+        subprocess.run(second_pass, check=True)
 
 
 def main():
