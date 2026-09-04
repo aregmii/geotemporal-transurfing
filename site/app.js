@@ -1246,7 +1246,7 @@ function setSound(on){
 }
 // Sharing a moment: the URL hash already carries the mode, the month and the open event, so the address bar is
 // the share button. The header button is gone — it was taking a slot next to the categories to do what Cmd-L does.
-window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtShown = function(){ return shown; }; window.__cgtImages = IMAGES; window.__cgtOpen = openPanel; window.__cgtContext = contextFor; window.__cgtSpin = function(e){ globe.quaternion.copy(targetQuat(e.lat, e.lon)); }; window.__cgtCam = function(){ return camDist.toFixed(2); }; window.__cgtNow = function(){ return WINDOWS[wi].end; }; window.__cgtGoto = function(y){ var i = WINDOWS.findIndex(function(w){ return Math.abs(w.end - y) < 0.05; }); if (i >= 0) setWindow(i); };   // debugging hooks
+window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtShown = function(){ return shown; }; window.__cgtImages = IMAGES; window.__cgtOpen = openPanel; window.__cgtContext = contextFor; window.__cgtTickNext = function(){ tickerIndex++; showTicker(); }; window.__cgtSpin = function(e){ globe.quaternion.copy(targetQuat(e.lat, e.lon)); }; window.__cgtCam = function(){ return camDist.toFixed(2); }; window.__cgtNow = function(){ return WINDOWS[wi].end; }; window.__cgtGoto = function(y){ var i = WINDOWS.findIndex(function(w){ return Math.abs(w.end - y) < 0.05; }); if (i >= 0) setWindow(i); };   // debugging hooks
 var soundBtn = document.getElementById('soundBtn');
 if (soundBtn){
   soundBtn.onclick = function(){ setSound(!SOUND.on); };
@@ -1603,56 +1603,71 @@ var REL_TEXT = { P1542:'led to', P828:'was caused by', P1536:'triggered', P1478:
 var LINKS_BY_SLUG = {};
 LINKS.forEach(function(l){ (LINKS_BY_SLUG[l[0]] = LINKS_BY_SLUG[l[0]] || []).push(l); });
 var TICKER_APART_KM = 2500;
+function partnerQuality(e){
+  // an event no rule can name (a franchise, a festival) and a headline that is only "name — description" are both
+  // signs of a weak line; a real photograph is a sign of a real event
+  var q = IMAGES[e.slug] ? 2 : 0;
+  if (kindOf(e) === KIND_DEFAULT[e.cat]) q -= 2;
+  if (/ — /.test(e.title)) q -= 2;
+  if (/: [a-z]/.test(e.title)) q -= 1.5;           // "2006 Turkish Grand Prix: Formula One motor race" is a label, not news
+  return q;
+}
 function coincidences(){
-  // The strip under the globe pairs two things that happened on the same calendar day in two distant parts of the
-  // world: "while A in Rome, B in Tokyo". Only same-day pairs qualify — a consequence years later is a different
-  // idea and belongs to the panel's links, not here. Pairs close to NOW come first, so the strip follows the film;
-  // each event appears in one pair at most, and both sides must be events that matter (weight 3 or 4).
+  // The line under the globe: one calendar day, two things from two distant parts of the world — "28 Dec · X, while
+  // Y" — or one thing alone when it is big enough to carry the line (9/11 needs no partner). Only the same day
+  // qualifies; a consequence years later belongs to the panel's links, not here. Lines close to NOW come first,
+  // so the strip follows the film; each event appears in one line at most.
   var w = WINDOWS[wi], now = w.end;
   var byDay = {};
   EVENTS.forEach(function(e){ if (e.date && e.w >= 3 && !off[e.cat] && inWindow(e, w)) (byDay[e.date] = byDay[e.date] || []).push(e); });
-  var pairs = [];
+  var lines = [];
   Object.keys(byDay).forEach(function(d){
     var arr = byDay[d];
-    if (arr.length < 2) return;
     var recency = Math.abs(now - arr[0].t0) < 0.5 ? 3 : Math.abs(now - arr[0].t0) < 2 ? 1 : 0;
-    for (var i = 0; i < arr.length; i++) for (var j = i + 1; j < arr.length; j++){
-      var a = arr[i], b = arr[j];
-      if (a.slug === b.slug || kmApart(a, b) < TICKER_APART_KM) continue;
-      if (family(a) === family(b)) continue;
-      if (/^launch of/i.test(a.title) && /^launch of/i.test(b.title)) continue;
-      // real photographs on both sides first; an event no rule can name (a franchise, a festival) and a headline
-      // that is only "name — description" are both signs of a weak partner
-      var quality = 0;
-      [a, b].forEach(function(e){
-        quality += IMAGES[e.slug] ? 3 : 0;
-        if (kindOf(e) === KIND_DEFAULT[e.cat]) quality -= 2;
-        if (/ — /.test(e.title)) quality -= 1;
-      });
-      pairs.push({ a:a, b:b, gap:0, score:a.w + b.w + quality + recency + (a.cat !== b.cat ? 0.5 : 0) });
+    for (var i = 0; i < arr.length; i++){
+      var a = arr[i];
+      if (a.w >= 4 && partnerQuality(a) >= 0) lines.push({ a:a, b:null, score:a.w + partnerQuality(a) + recency });   // big enough to stand alone
+      for (var j = i + 1; j < arr.length; j++){
+        var b = arr[j];
+        if (a.slug === b.slug || kmApart(a, b) < TICKER_APART_KM) continue;
+        if (family(a) === family(b)) continue;
+        if (/^launch of/i.test(a.title) && /^launch of/i.test(b.title)) continue;
+        var quality = partnerQuality(a) + partnerQuality(b);
+        if (quality < -1) continue;
+        lines.push({ a:a, b:b, score:a.w + b.w + quality + recency + (a.cat !== b.cat ? 0.5 : 0) + 1 });   // a pair is the point; it edges out a solo of equal weight
+      }
     }
   });
-  pairs.sort(function(p, q){ return q.score - p.score; });
-  var used = {}, out = [];
-  for (var k = 0; k < pairs.length && out.length < 14; k++){
-    var p = pairs[k];
-    if (used[p.a.id] || used[p.b.id]) continue;
-    used[p.a.id] = used[p.b.id] = true;
+  lines.sort(function(p, q){ return q.score - p.score; });
+  // one event per line at most, and no more than three lines led by the same kind of thing, or the strip
+  // becomes a season of motor races
+  var used = {}, perKind = {}, out = [];
+  for (var k = 0; k < lines.length && out.length < 14; k++){
+    var p = lines[k];
+    if (used[p.a.id] || (p.b && used[p.b.id])) continue;
+    var ka = kindOf(p.a), kb = p.b ? kindOf(p.b) : null;
+    if ((perKind[ka] || 0) >= 3 || (kb && (perKind[kb] || 0) >= 3)) continue;
+    used[p.a.id] = true; if (p.b) used[p.b.id] = true;
+    perKind[ka] = (perKind[ka] || 0) + 1; if (kb && kb !== ka) perKind[kb] = (perKind[kb] || 0) + 1;
     out.push(p);
   }
   return out;
 }
-function shortTitle(e){ return e.title.length <= 64 ? e.title : e.name; }   // the ticker wants a line, not a paragraph
+function shortTitle(e){
+  // one line's worth: the headline cut at a word boundary
+  var t = e.title.length <= 72 ? e.title : e.name;
+  if (t.length > 72) t = t.slice(0, 72).replace(/\s+\S*$/, '') + '…';
+  return t;
+}
 var tickerPairs = [], tickerIndex = 0, tickerTimer = null;
 function tickerSide(e){
-  var thumb = IMAGES[e.slug] ? '<img src="' + IMG_DIR + IMAGES[e.slug].file + '" alt="">' : '<img class="ic" src="' + ICON_URL[e.cat] + '" alt="">';
-  return '<span class="ts" data-id="' + e.id + '">' + thumb + '<span><em>' + e.place + '</em>' + shortTitle(e) + '</span></span>';
+  return '<span class="ts" data-id="' + e.id + '">' + shortTitle(e) + (e.place ? ' <em>' + e.place + '</em>' : '') + '</span>';
 }
 function showTicker(){
   var el = document.getElementById('ticker');
   if (!tickerPairs.length){ el.classList.remove('on'); return; }
   var p = tickerPairs[tickerIndex % tickerPairs.length];
-  el.innerHTML = '<span class="tk">' + dayLabel(p.a.date) + '</span>' + tickerSide(p.a) + '<span class="tw">while</span>' + tickerSide(p.b);
+  el.innerHTML = '<span class="tk">' + dayLabel(p.a.date) + '</span>' + tickerSide(p.a) + (p.b ? '<span class="tw">while</span>' + tickerSide(p.b) : '');
   el.classList.add('on');
   Array.prototype.forEach.call(el.querySelectorAll('.ts'), function(side){
     side.onclick = function(){ var t = EVENTS[+side.dataset.id]; spinTo(t); openPanel(t); };

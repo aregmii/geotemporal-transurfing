@@ -157,19 +157,16 @@ canvas.drag{cursor:grabbing}
 :focus-visible{outline:2px solid var(--hi); outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
-/* the strip under the globe: two things from the same day, two parts of the world, side by side — "A while B" */
-.ticker{position:absolute; left:50%; bottom:12px; transform:translateX(-50%); max-width:min(640px, 50%); z-index:4; display:none;
-  background:rgba(13,17,27,.82); border:1px solid var(--rule); border-radius:12px; padding:6px 12px 6px 10px; font-size:11.5px; line-height:1.3;
-  color:var(--ink-2); backdrop-filter:blur(6px); align-items:center; gap:10px}
+/* the line under the globe: "28 Dec 2004 · X, while Y" — text only, one line, the globe stays in view */
+.ticker{position:absolute; left:50%; bottom:12px; transform:translateX(-50%); max-width:min(760px, 56%); z-index:4; display:none;
+  background:rgba(13,17,27,.82); border:1px solid var(--rule); border-radius:20px; padding:6px 14px; font-size:12px; line-height:1.35;
+  color:var(--ink); backdrop-filter:blur(6px); align-items:baseline; gap:9px; white-space:nowrap}
 .ticker.on{display:flex}
-.ticker .tk{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--dis); white-space:nowrap}
+.ticker .tk{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--dis); flex:0 0 auto}
 .ticker .tw{font-family:Fraunces,Georgia,serif; font-style:italic; font-size:13px; color:var(--ink-3); flex:0 0 auto}
-.ticker .ts{display:flex; align-items:center; gap:7px; min-width:0; flex:1 1 0; cursor:pointer; color:var(--ink)}
+.ticker .ts{min-width:0; overflow:hidden; text-overflow:ellipsis; cursor:pointer}
 .ticker .ts:hover{color:var(--hi)}
-.ticker .ts img{width:44px; height:32px; object-fit:cover; border-radius:4px; background:var(--panel-2); flex:0 0 auto}
-.ticker .ts img.ic{object-fit:contain; padding:6px; opacity:.6}
-.ticker .ts > span{display:block; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.ticker .ts em{display:block; font-style:normal; font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3)}
+.ticker .ts em{font-style:normal; font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-left:2px}
 
 /* vertical controls on the globe: spin speed (left), time playback (right) */
 .vctl{position:absolute; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; align-items:center; gap:8px; z-index:4;
