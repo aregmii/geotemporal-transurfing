@@ -1,5 +1,5 @@
 """
-Geotemporal Transfusing — the few structured facts that turn an article name into a headline, from Wikidata.
+Geotemporal Transurfing — the few structured facts that turn an article name into a headline, from Wikidata.
 
 Run:   python3 fetch_facts.py ../site/data/events.json --out facts.json
 Needs: pip install requests
@@ -23,7 +23,7 @@ import urllib.parse
 
 import requests
 
-USER_AGENT = "GeotemporalTransfusing/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
+USER_AGENT = "GeotemporalTransurfing/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
 WDQS = "https://query.wikidata.org/sparql"
 CACHE_DIR = "facts_cache"
 BATCH = 60

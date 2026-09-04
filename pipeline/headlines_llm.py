@@ -1,5 +1,5 @@
 """
-Geotemporal Transfusing — write one-line headlines with Claude (optional step).
+Geotemporal Transurfing — write one-line headlines with Claude (optional step).
 
 Run:   ANTHROPIC_API_KEY=sk-... python3 headlines_llm.py ../site/data/events.json --out headlines.json
        (or put the key in pipeline/.env as ANTHROPIC_API_KEY=...; refresh.sh runs this step only when a key is present)

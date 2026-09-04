@@ -1,5 +1,5 @@
 """
-Geotemporal Transfusing — find, licence-check and pack one audio or video clip per major event.
+Geotemporal Transurfing — find, licence-check and pack one audio or video clip per major event.
 
 Run:   python3 fetch_media.py ../site/data/events.json --from 1926 --min-weight 3 --media-dir ../site/media --out ../site/data/media.json
 Needs: pip install requests        optional: ffmpeg on PATH (clips are then cut to --seconds and re-encoded small)
@@ -32,7 +32,7 @@ import urllib.parse
 
 import requests
 
-USER_AGENT = "GeotemporalTransfusing/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
+USER_AGENT = "GeotemporalTransurfing/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 WDQS = "https://query.wikidata.org/sparql"
 CACHE_DIR = "media_cache"

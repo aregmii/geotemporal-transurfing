@@ -1,4 +1,4 @@
-# Contributing to Geotemporal Transfusing
+# Contributing to Geotemporal Transurfing
 
 Thanks for looking. This is a small, dependency-light project on purpose: the app is three files, the pipeline is one script per data source, and everything the page shows is a file in `site/`. Most contributions fall into one of four kinds.
 

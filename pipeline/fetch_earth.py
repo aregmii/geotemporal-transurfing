@@ -1,5 +1,5 @@
 """
-Geotemporal Transfusing — fetch a higher-resolution Earth for site/assets/earth.jpg.
+Geotemporal Transurfing — fetch a higher-resolution Earth for site/assets/earth.jpg.
 
 Run:   python3 fetch_earth.py            (writes ../site/assets/earth.jpg at 5400x2700)
        python3 fetch_earth.py --width 4096 --quality 80
@@ -28,7 +28,7 @@ from PIL import Image
 SOURCE_URL = ("https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/"
               "bmng-topography-bathymetry/december/world.topo.bathy.200412.3x5400x2700.jpg")
 CACHE_DIR = "earth_cache"
-USER_AGENT = "GeotemporalTransfusing/0.6 (https://github.com/aregmii/geotemporal-transfusing) requests"
+USER_AGENT = "GeotemporalTransurfing/0.6 (https://github.com/aregmii/geotemporal-transurfing) requests"
 
 
 def download(url, path):

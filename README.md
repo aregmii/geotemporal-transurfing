@@ -1,4 +1,4 @@
-# Geotemporal Transfusing
+# Geotemporal Transurfing
 
 Spin the Earth, slide to a month, click an event: a photograph, a headline, and what else was happening in the world at that moment.
 

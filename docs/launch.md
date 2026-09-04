@@ -1,6 +1,6 @@
 # Launch notes
 
-Working notes for sharing Geotemporal Transfusing. Facts about each channel were checked on 3 Sep 2026 where a link is given; anything without a link is experience, not a rule.
+Working notes for sharing Geotemporal Transurfing. Facts about each channel were checked on 3 Sep 2026 where a link is given; anything without a link is experience, not a rule.
 
 ## What has to be true before posting
 
@@ -15,7 +15,7 @@ Working notes for sharing Geotemporal Transfusing. Facts about each channel were
 | Channel | Why | Gate | How to post |
 |---|---|---|---|
 | **LinkedIn** (your network) | Where the career upside is; visual posts with a native video do best in your own feed | None | Native MP4 upload (not a YouTube link), first line is the hook, the URL in the first comment *and* in the text (LinkedIn de-prioritises external links less than it used to, but a comment link is the habit people expect), 3–5 hashtags at the end |
-| **Show HN** (news.ycombinator.com) | The one place a link with no marketing can reach 50k developers in a day; no karma requirement, just an account | Must be something people can try; no signups, no landing page ([Show HN rules](https://news.ycombinator.com/showhn.html)) | Title "Show HN: Geotemporal Transfusing – spin the Earth, slide through time, hear what was happening"; post the site URL, then add a first comment explaining the data (Wikidata + Wikipedia + Commons, the sky is real, the licences) and what you would like feedback on. Post Tue–Thu, 8–10 am US Eastern |
+| **Show HN** (news.ycombinator.com) | The one place a link with no marketing can reach 50k developers in a day; no karma requirement, just an account | Must be something people can try; no signups, no landing page ([Show HN rules](https://news.ycombinator.com/showhn.html)) | Title "Show HN: Geotemporal Transurfing – spin the Earth, slide through time, hear what was happening"; post the site URL, then add a first comment explaining the data (Wikidata + Wikipedia + Commons, the sky is real, the licences) and what you would like feedback on. Post Tue–Thu, 8–10 am US Eastern |
 | **r/InternetIsBeautiful** | Made for exactly this: interactive sites people play with | Reddit blocks new accounts by karma/age in many subs; this one filters heavily by account age (direct rule fetch was blocked from here — read the sidebar before posting) | Title is the site, not you; no "I made"; post the URL; answer every comment for the first hour |
 | **r/dataisbeautiful** | Big; likes maps and time | OC posts must state tool and data source in a comment ([wiki](https://en.wikipedia.org/wiki/R/dataisbeautiful)) | Post the GIF as media with `[OC]` in the title, source + tool in the first comment, link in that comment |
 | **r/webdev** | Developers who might contribute | Self-promotion only on **Showoff Saturday**, technical focus ([r/webdev guide](https://www.redditgrowthdb.com/database/subreddits/webdev)) | Saturday; lead with the technical angle (three.js, no build step, sky from the Yale catalogue, 1 MB of data per window) |

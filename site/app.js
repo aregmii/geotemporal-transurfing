@@ -430,37 +430,21 @@ var BASE_TEX = (function(){
   var g = ctx.createRadialGradient(32, 32, 2, 32, 32, 30); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(0.35, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
 })();
-var STEM_TEX = (function(){
-  // a bright core inside a dark halo, so the line reads over desert and ocean alike
-  var c = document.createElement('canvas'); c.width = 8; c.height = 64;
-  var ctx = c.getContext('2d');
-  ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(1, 0, 6, 64);
-  var g = ctx.createLinearGradient(0, 64, 0, 0);          // brightest at the ground, easing toward the card
-  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(1, 'rgba(255,255,255,.55)');
-  ctx.fillStyle = g; ctx.fillRect(3, 0, 2, 64);
-  return new THREE.CanvasTexture(c);
-})();
 var POOL = [];
 for (var pi = 0; pi < MAX_SHOWN; pi++){
   var holder = new THREE.Group();
   var beam = new THREE.Mesh(BEAM_GEO, new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0.22, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide }));
   var base = new THREE.Sprite(new THREE.SpriteMaterial({ map:BASE_TEX, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending }));
   base.scale.set(0.03, 0.03, 1);
-  // depthTest off: a card fanned out from its anchor sits over ground that can be nearer the camera than the
-  // anchor is, and with the test on the Earth would hide it. The front-side check already keeps cards off the
-  // far hemisphere, which is all the depth test was buying.
-  var card = new THREE.Sprite(new THREE.SpriteMaterial({ map:SPRITE_TEX.con, transparent:true, depthTest:false, depthWrite:false }));
+  // depthTest on: a card is a real object at a real height above its point, and the Earth's limb should hide it
+  // the moment it goes round the back — the same way it hides the beam it stands on.
+  var card = new THREE.Sprite(new THREE.SpriteMaterial({ map:SPRITE_TEX.con, transparent:true, depthTest:true, depthWrite:false }));
   var badge = new THREE.Sprite(new THREE.SpriteMaterial({ map:SPRITE_TEX.con, transparent:true, depthTest:false, depthWrite:false }));
   badge.renderOrder = 3; badge.visible = false;
   var pile = new THREE.Sprite(new THREE.SpriteMaterial({ transparent:true, depthTest:false, depthWrite:false }));
   pile.renderOrder = 4; pile.visible = false;
-  // the projection line for a card that fans out from a shared spot: anchored at its foot (centre.y = 0), grown
-  // along its own +y and rotated to point at the card
-  var stem = new THREE.Sprite(new THREE.SpriteMaterial({ map:STEM_TEX, transparent:true, depthTest:false, depthWrite:false }));
-  stem.renderOrder = 1; stem.visible = false; stem.center.set(0.5, 0);
-  card.renderOrder = 2;
-  holder.add(beam); holder.add(base); holder.add(stem); holder.add(card); holder.add(badge); holder.add(pile);
-  holder.visible = false; holder.userData = { beam:beam, base:base, card:card, badge:badge, pile:pile, stem:stem };
+  holder.add(beam); holder.add(base); holder.add(card); holder.add(badge); holder.add(pile);
+  holder.visible = false; holder.userData = { beam:beam, base:base, card:card, badge:badge, pile:pile };
   POOL.push(holder); markers.add(holder);
 }
 
@@ -836,17 +820,22 @@ function render(){
     groups.push({ leader:e, members:[] });
   });
 
-  // ---- pass 2: lay each group out as projections from one piece of ground ----
-  // The leader stands straight over the anchor. The others fan out around it on a ring, each on its own beam
-  // back down to the same spot, so two events in Moldova are two holograms rising from Moldova rather than one
-  // card with a number on it. A ring slot is taken only if it is over the Earth and clear of every card already
-  // placed; what finds no slot folds into the leader's +N. Zoomed out the ring has no room and everything folds;
-  // zoomed in it opens up. Same rule, no mode switch.
+  // ---- pass 2: lay each group out as holograms rising from their own ground ----
+  // Every card stands on a vertical beam over its own point — the surface normal, straight up from the ground
+  // in 3D — never offset across the screen. When events share a spot, the first stands at the usual height and
+  // the next ones rise higher on longer beams, each still exactly over its own coordinates, so a country with
+  // three things going on shows three holograms at three heights. Seen from straight above they line up and the
+  // ones behind fold into +N; tilt the view or come round the side and the column opens out, which is how a
+  // real column of objects behaves. Nothing is ever drawn anywhere but above where it happened.
   function hide(e){
     var u = e.holder.userData;
-    u.card.visible = false; u.beam.visible = false; u.badge.visible = false; u.pile.visible = false; u.stem.visible = false;
+    u.card.visible = false; u.beam.visible = false; u.badge.visible = false; u.pile.visible = false;
     u.base.visible = true; u.base.scale.set(0.03, 0.03, 1);
     e._sx = null; e.stackH = 0; e.pos.copy(e.foot); hiddenCount++;
+  }
+  function screenAt(e, height){
+    _v.copy(e.normal).multiplyScalar(1.002 + height).applyQuaternion(globe.quaternion).project(camera);
+    return [(_v.x + 1) / 2 * W, (1 - _v.y) / 2 * H];
   }
   function clear(sx, sy, hw, hh, isSel){
     if (isSel) return true;
@@ -857,71 +846,54 @@ function render(){
     }
     return true;
   }
-  function show(e, offX, offY, group){
-    // offX/offY: where the card sits relative to its anchor, in screen pixels (down is positive)
-    var u = e.holder.userData, cw = e._cw, chh = e._chh, height = HOVER;
-    var sx = e._bx + offX, sy = e._by + offY;
-    var worldPerPx = chh / (e._hh * 2), offWX = offX * worldPerPx, offWY = offY * worldPerPx;
+  function show(e, height, sx, sy, group){
+    var u = e.holder.userData, cw = e._cw, chh = e._chh;
     placed.push({ x:sx, y:sy, hw:e._hw, hh:e._hh, e:e, folded:group.folded });
-    e._sx = sx; e._sy = sy; e._px = e._hw * 2; e.stackH = height; e._offWX = offWX; e._offWY = offWY;
-    u.card.visible = true; u.base.visible = true;
+    e._sx = sx; e._sy = sy; e._px = e._hw * 2; e.stackH = height;
+    u.card.visible = true; u.base.visible = true; u.beam.visible = true;
+    u.beam.scale.set(1, height, 1);                              // the beam runs from the ground to the card
     u.card.position.set(0, height, 0);
     u.card.scale.set(cw, chh, 1);
-    // a sprite's centre is the point drawn at its position: shifting it by the offset (in the sprite's own
-    // units) moves the whole card across the screen while its anchor stays on the ground
-    u.card.center.set(0.5 - offWX / cw, 0.5 + offWY / chh);
-    var lifted = offX !== 0 || offY !== 0;
-    u.beam.visible = !lifted; u.beam.scale.set(1, height, 1);
-    if (lifted){
-      // the projection: a line from the ground point to the card, rotated to point at it
-      var len = Math.hypot(offX, offY) * worldPerPx;
-      u.stem.visible = true;
-      u.stem.position.set(0, height, 0);
-      u.stem.scale.set(chh * 0.16, len, 1);
-      u.stem.material.rotation = Math.atan2(-offX, -offY);
-      u.stem.material.color.set(css(CATS[e.cat].v));
-    } else u.stem.visible = false;
+    u.card.center.set(0.5, 0.5);
     if (u.hasPhoto && MEDIA[e.slug] == null){
       var bs = chh * 0.34;
       u.badge.visible = true; u.badge.position.set(0, height, 0); u.badge.scale.set(bs, bs, 1);
-      u.badge.center.set(0.5 + (cw / 2 - bs * 0.62) / bs - offWX / bs, 0.5 + (chh / 2 - bs * 0.62) / bs + offWY / bs);
+      u.badge.center.set(0.5 + (cw / 2 - bs * 0.62) / bs, 0.5 + (chh / 2 - bs * 0.62) / bs);
     } else u.badge.visible = false;
     u.base.scale.set(0.02, 0.02, 1);
     var dim = selected && selected.id !== e.id && ctxEls.indexOf(e) < 0;
     var fade = 0.62 + 0.38 * e._prom;                            // headline bright, background dimmer, afterglow fading
+    var tall = height > HOVER * 1.5;
     u.card.material.opacity = (dim ? 0.45 : 0.96) * fade; u.badge.material.opacity = (dim ? 0.35 : 1) * fade;
-    u.beam.material.opacity = dim ? 0.08 : 0.22; u.stem.material.opacity = dim ? 0.3 : 0.95;
+    u.beam.material.opacity = dim ? 0.08 : (tall ? 0.4 : 0.22);  // a long beam has to be seen to be believed
     u.base.material.opacity = dim ? 0.3 : 0.9;
     e.pos.copy(e.normal).multiplyScalar(1.002 + height);
   }
-  var RING = 8;
+  // heights a column climbs through, in multiples of HOVER: the second hologram over a spot stands about a card
+  // height above the first, and so on; past the last one the rest fold
+  var LEVELS = [1, 2.6, 4.2, 5.8, 7.4, 9.0];
   groups.forEach(function(group){
     var L = group.leader;
     group.folded = [];
-    var leaderSel = selected && selected.id === L.id;
-    if (!clear(L._bx, L._by, L._hw, L._hh, leaderSel)){
-      // the anchor itself is covered: fold the whole group into whatever card is standing there, if it is close
-      var host = null, hostKm = FOLD_KM;
-      for (var k = 0; k < placed.length; k++){ var km = kmApart(placed[k].e, L); if (km < hostKm){ hostKm = km; host = placed[k]; } }
-      hide(L); if (host) host.folded.push(L);
-      group.members.forEach(function(m){ hide(m); if (host) host.folded.push(m); });
-      return;
-    }
-    show(L, 0, 0, group);
-    // ring slots start on the side facing the globe's centre, so the fan opens over the Earth
-    var toCentre = Math.atan2(globeCY - L._by, globeCX - L._bx);
-    group.members.forEach(function(m){
-      var radius = Math.hypot(m._hw * 2, m._hh * 2) * 1.05 + Math.hypot(L._hw, L._hh) * 0.35;
-      var sel = selected && selected.id === m.id, done = false;
-      for (var slot = 0; slot < RING && !done; slot++){
-        // alternate left and right of the inward direction: 0, +45, -45, +90, -90 ...
-        var turn = (Math.ceil(slot / 2) * (slot % 2 ? 1 : -1)) * (Math.PI * 2 / RING);
-        var a = toCentre + turn;
-        var offX = Math.cos(a) * radius, offY = Math.sin(a) * radius;
-        if (clear(m._bx + offX, m._by + offY, m._hw, m._hh, sel)){ show(m, offX, offY, group); done = true; }
+    var members = [L].concat(group.members), level = 0;
+    for (var m = 0; m < members.length; m++){
+      var e = members[m], sel = selected && selected.id === e.id, done = false;
+      for (; level < LEVELS.length && !done; level++){
+        var height = HOVER * LEVELS[level];
+        var at = screenAt(e, height);
+        if (clear(at[0], at[1], e._hw, e._hh, sel)){ show(e, height, at[0], at[1], group); done = true; }
       }
-      if (!done){ hide(m); group.folded.push(m); }
-    });
+      if (!done){
+        if (m === 0){
+          // even the leader has no room: the group folds into whatever card is standing there, if it is close
+          var host = null, hostKm = FOLD_KM;
+          for (var k = 0; k < placed.length; k++){ var km = kmApart(placed[k].e, L); if (km < hostKm){ hostKm = km; host = placed[k]; } }
+          members.forEach(function(x){ hide(x); if (host) host.folded.push(x); });
+          return;
+        }
+        hide(e); group.folded.push(e);
+      }
+    }
   });
 
   // Every card has claimed its place, so the counts are final: a group's leader wears the "+N" chip for whatever
@@ -942,8 +914,8 @@ function render(){
     pu.pile.position.set(0, pe.stackH, 0);
     pu.pile.scale.set(chipW, chipH, 1);
     // bottom-right corner of the card (larger centre.x moves the sprite left, larger centre.y moves it down)
-    pu.pile.center.set(0.5 - (cw2 / 2 - chipW * 0.5 - cw2 * 0.04) / chipW - (pe._offWX || 0) / chipW,
-                       0.5 + (ch2 / 2 - chipH * 0.5 - ch2 * 0.05) / chipH + (pe._offWY || 0) / chipH);
+    pu.pile.center.set(0.5 - (cw2 / 2 - chipW * 0.5 - cw2 * 0.04) / chipW,
+                       0.5 + (ch2 / 2 - chipH * 0.5 - ch2 * 0.05) / chipH);
   }
   window.__borders.visible = WINDOWS[wi].start >= 1900;
   camera.position.z = camDist;
@@ -1374,12 +1346,13 @@ function tick(){
   if (SOUND.on) updateSound();
   if (liveClips){ updateLive(); if (!selected) render(); }
   if (!dragging){
-    // the globe always turns. A flick throws it faster (in either direction); it eases back to the set speed and
-    // keeps turning the way it was thrown, rather than stopping and resuming the default spin.
+    // The globe moves when you move it. A flick carries on with momentum and settles; it does not resume a
+    // spin of its own. The SPIN slider still exists for anyone who wants the old always-turning behaviour —
+    // at zero, which is the default, the target is rest.
     if (Math.abs(velX) > 1e-6) spinDir = velX < 0 ? -1 : 1;
     var target = spinDir * spinSpeed;
-    velX = target + (velX - target) * 0.965;
-    velY *= 0.965;
+    velX = target + (velX - target) * 0.955;
+    velY *= 0.955;
     if (Math.abs(velX) > 1e-7 || Math.abs(velY) > 0.0003){
       qTmp.setFromAxisAngle(AY, velX); qTmp2.setFromAxisAngle(AX, velY);
       globe.quaternion.premultiply(qTmp).premultiply(qTmp2);
@@ -1397,10 +1370,10 @@ function setSpin(v){
   spinSpeed = spinFromSlider(v);
   var secPerTurn = spinSpeed > 0 ? (2 * Math.PI / spinSpeed) / 60 : 0;
   spinVal.textContent = spinSpeed === 0 ? 'STILL' : 'ONE TURN\nIN ' + (secPerTurn >= 60 ? Math.round(secPerTurn / 60) + ' MIN' : Math.round(secPerTurn) + ' S');
-  try { localStorage.setItem('gt-spin', String(v)); } catch (e) {}
+  try { localStorage.setItem('gt-spin-v2', String(v)); } catch (e) {}
 }
 if (spinRange){
-  var savedSpin = null; try { savedSpin = localStorage.getItem('gt-spin'); } catch (e) {}
+  var savedSpin = null; try { savedSpin = localStorage.getItem('gt-spin-v2'); } catch (e) {}   // 'STILL' unless the person chose otherwise
   if (savedSpin !== null) spinRange.value = savedSpin;
   spinRange.oninput = function(){ setSpin(+spinRange.value); };
   setSpin(+spinRange.value);

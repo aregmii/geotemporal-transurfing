@@ -1,5 +1,5 @@
 """
-Geotemporal Transfusing — "whatever was in the news": events from Wikipedia's year-by-country pages.
+Geotemporal Transurfing — "whatever was in the news": events from Wikipedia's year-by-country pages.
 
 Run:   python3 fetch_year_pages.py --from 2000 --to 2026 --out events_yearpages.json
 Needs: pip install requests
@@ -33,7 +33,7 @@ import urllib.parse
 
 import requests
 
-USER_AGENT = "GeotemporalTransfusing/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
+USER_AGENT = "GeotemporalTransurfing/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
 API = "https://en.wikipedia.org/w/api.php"
 CACHE_DIR = "yearpages_cache"
 PAUSE_SECONDS = 0.15
