@@ -72,6 +72,7 @@ canvas.drag{cursor:grabbing}
 .hint{left:16px; bottom:12px; max-width:22%; font-size:9.5px; opacity:.7}
 .count{right:16px; bottom:12px; text-align:right; max-width:22%; font-size:9.5px; opacity:.7}
 .count em{font-style:normal; color:var(--dis)}
+.hint em{font-style:normal; color:var(--dis)}
 .credit{right:20px; top:14px; font-size:9.5px; text-align:right; opacity:.8}
 .skydate{right:20px; top:14px; font-size:9.5px; text-align:right; opacity:.7}
 .about-btn{position:absolute; right:20px; bottom:58px; width:26px; height:26px; border-radius:50%; border:1px solid var(--rule); background:rgba(13,17,27,.8); color:var(--ink-3); font:500 12px "IBM Plex Mono",monospace; cursor:pointer}

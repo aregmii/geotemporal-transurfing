@@ -445,6 +445,16 @@ for (var pi = 0; pi < MAX_SHOWN; pi++){
 // want the same pixels the less important one folds into the more important one's +N chip, where it is one click
 // away and still labelled with its own place.
 
+// How close an event has to be, on the ground, before another card may stand for it. Screen distance was the
+// wrong measure: at low zoom it swallowed half a continent, and what a "+14" meant changed every time you
+// scrolled. Kilometres do not move. Anything further away keeps its own dot and waits for you to zoom in.
+var FOLD_KM = 250;
+var EARTH_KM = 6371;
+function kmApart(a, b){
+  var d = Math.max(-1, Math.min(1, a.normal.dot(b.normal)));
+  return Math.acos(d) * EARTH_KM;
+}
+
 // The chip a card wears when other events folded into it: "+7". One texture per count, built once and reused.
 var PILE_TEX = {};
 function pileTexture(count){
@@ -763,10 +773,12 @@ function render(){
   var list = shown;
   var ctxEls = selected ? contextFor(selected) : [];
   var behind = 0;
-  // Cards are small when the whole Earth is in frame and grow as you come in. Since a card never moves off its
-  // own spot any more, size is the only thing that decides how many fit: small cards let a continent show a
-  // dozen at once, and zooming in trades that count for a card you can actually read.
-  var zoomBoost = Math.max(0.66, Math.min(1.3, 3.05 / camDist));
+  // A card's size is set in world units, so left alone it grows on screen exactly as fast as the Earth does and
+  // zooming in reveals nothing — the same cards, larger. Scaling the world size with camDist cancels that out:
+  // the card stays about the same number of pixels while the ground beneath it spreads apart, so coming in on a
+  // country pulls its events out of one another. The exponent leaves cards a little larger up close, where you
+  // are reading them, than they are with the whole Earth in frame.
+  var zoomBoost = Math.max(0.22, Math.min(1.15, 0.86 * Math.pow(camDist / 3.9, 0.85)));
   var pxPerUnit = cardPixels();
   var placed = [];      // {x, y, hw, hh} of cards already laid out this frame, in px
   var hiddenCount = 0;
@@ -803,11 +815,12 @@ function render(){
     }
     var u = h.userData;
     if (!free){
-      // fold into the nearest card already on screen, so the event is one click away rather than gone
-      var host = null, hostD = Infinity;
+      // Fold into the closest card within FOLD_KM on the ground, so "+14" always means "fourteen more events
+      // within 250 km of this one" — the same claim at every zoom level. Anything further keeps its own dot.
+      var host = null, hostKm = FOLD_KM;
       for (var k = 0; k < placed.length; k++){
-        var q = placed[k], dx = q.x - sx, dy = q.y - sy, d2 = dx * dx + dy * dy;
-        if (d2 < hostD){ hostD = d2; host = q; }
+        var q = placed[k], km = kmApart(q.e, e);
+        if (km < hostKm){ hostKm = km; host = q; }
       }
       if (host) host.folded.push(e);
       u.card.visible = false; u.beam.visible = false; u.badge.visible = false; u.pile.visible = false;
@@ -837,9 +850,11 @@ function render(){
   });
   // Every card has claimed its place, so the counts are final: a card that absorbed others wears a "+N" chip,
   // and openPanel lists them under "Also on this spot".
+  var foldedCount = 0;
   for (var pj = 0; pj < placed.length; pj++){
     var pl = placed[pj], pe = pl.e, ph = pe.holder;
     pe.folded = pl.folded;
+    foldedCount += pl.folded.length;
     if (!ph) continue;
     var pu = ph.userData;
     if (!pl.folded.length){ pu.pile.visible = false; continue; }
@@ -874,7 +889,8 @@ function render(){
   renderer.render(scene, camera);
   document.getElementById('count').innerHTML =
     (windowTotal > list.length ? 'TOP ' + list.length + ' OF ' + windowTotal + ' EVENTS IN THIS WINDOW — ZOOM IN FOR MORE' : list.length + ' EVENT' + (list.length === 1 ? '' : 'S') + ' IN THIS WINDOW') +
-    (hiddenCount ? '<br>' + hiddenCount + ' FOLDED INTO THE +N CARDS — CLICK ONE OR ZOOM IN' : '') +
+    (foldedCount ? '<br>' + foldedCount + ' MORE WITHIN 250 KM OF A CARD — THE <em>+N</em> CARDS LIST THEM' : '') +
+    (hiddenCount - foldedCount > 0 ? '<br>' + (hiddenCount - foldedCount) + ' WAITING FOR ROOM — ZOOM IN' : '') +
     (behind ? '<br>' + behind + ' ON THE FAR SIDE — KEEP SPINNING' : '') +
     (list.length < 4 ? '<br><em>SPARSE — THE PLACEHOLDER DATA THINS OUT HERE</em>' : '');
 }
@@ -959,10 +975,12 @@ function openPanel(e){
   html += '<div class="pmeta">' + when + (e.endDate ? ' – ' + dayLabel(e.endDate) : '') + (e.who ? '<br>BY ' + e.who : '') + '<br>' + e.place + '</div>';
   html += '<p class="pdesc">' + tinyDesc(e) + '</p>';
   html += '<a class="plink" target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/' + e.slug + '">Read more →</a>';
-  // events that had no room of their own and folded into this card — the "+N" chip on the globe opens this list
+  // the events standing on the same spot, which the "+N" chip on the globe counts. Biggest first, so the list
+  // opens with the ones a reader is most likely to have been looking for.
   if (e.folded && e.folded.length){
-    html += '<div class="concurrent"><p>Also on this spot · ' + e.folded.length + '</p><div class="crow">';
-    e.folded.slice(0, 12).forEach(function(o){
+    var here = e.folded.slice().sort(function(a, b){ return (b.w - a.w) || (b.t0 - a.t0); });
+    html += '<div class="concurrent"><p>' + here.length + ' more event' + (here.length === 1 ? '' : 's') + ' within ' + FOLD_KM + ' km</p><div class="crow">';
+    here.slice(0, 12).forEach(function(o){
       var th = IMAGES[o.slug] ? '<img class="kb" src="' + IMG_DIR + IMAGES[o.slug].file + '" alt="">' : '<img class="ic" src="' + ICON_URL[o.cat] + '" alt="">';
       html += '<button class="nb" data-id="' + o.id + '">' + th + '<b>' + o.title + '</b><span>' + o.place + ' · ' + (o.date ? dayLabel(o.date) : yearLabel(o.start)) + '</span></button>';
     });
@@ -1198,8 +1216,12 @@ canvas.addEventListener('pointermove', function(ev){
     var tip = document.getElementById('tip');
     if (hit){
       tip.querySelector('.tt').textContent = hit.title;
+      // say what the "+N" chip on this card means, in words, at the moment someone is looking at it
+      var alsoHere = hit.folded && hit.folded.length
+        ? ' · ' + hit.folded.length + ' MORE WITHIN ' + FOLD_KM + ' KM — CLICK TO SEE THEM'
+        : '';
       tip.querySelector('.ty').textContent =
-        whenLabel(hit) + ' · ' + hit.place.toUpperCase();
+        whenLabel(hit) + ' · ' + hit.place.toUpperCase() + alsoHere;
       tip.style.left = hit._sx + 'px'; tip.style.top = hit._sy + 'px';
       tip.classList.add('on'); canvas.style.cursor = 'pointer';
     } else { tip.classList.remove('on'); canvas.style.cursor = ''; }
