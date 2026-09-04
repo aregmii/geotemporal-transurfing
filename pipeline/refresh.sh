@@ -10,6 +10,13 @@ python3 -c "import requests, PIL" 2>/dev/null || pip3 install --quiet -r require
 IMAGE_FROM=1926
 if [ "${1:-}" = "--all" ]; then IMAGE_FROM=-4000000; fi
 
+# A sharper Earth, once. Only runs while the shipped texture is still the small one, and the app raises its own
+# zoom limit when it sees the bigger image, so this is what lets you come close enough for a clip to fill a card.
+if python3 -c "import sys;from PIL import Image;sys.exit(0 if Image.open('../site/assets/earth.jpg').size[0] < 4000 else 1)" 2>/dev/null; then
+  echo "== 0. a sharper Earth (NASA Blue Marble 5400x2700)"
+  python3 fetch_earth.py || echo "   (Earth texture download failed — keeping the one that ships; zoom stays capped)"
+fi
+
 echo "== 1/5 events from Wikidata"
 python3 extract_events.py || echo "   (some queries failed — continuing with what came back)"
 

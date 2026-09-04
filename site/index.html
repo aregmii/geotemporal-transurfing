@@ -22,14 +22,15 @@
   <header>
     <span class="brand">Geotemporal Transfusing</span>
     <span class="now" id="now"></span>
-    <span class="spacer"></span>
-    <div class="modes" id="modes">
-      <button data-mode="recent" aria-pressed="true">2000–2025</button>
-      <!-- "Last 100 years" and "All of history" still work via #mode=century / #mode=all; buttons hidden for now -->
-    </div>
-    <button class="sound" id="soundBtn" aria-pressed="false" title="Clips play louder as you zoom toward them">Sound off</button>
-    <button class="sound share" id="shareBtn" title="Copy a link to this moment (and the open event)">Share moment</button>
     <div class="filters" id="filters"></div>
+    <span class="spacer"></span>
+    <!-- "Last 100 years" and "All of history" still work via #mode=century / #mode=all -->
+    <div class="vol" id="vol">
+      <button id="soundBtn" aria-pressed="false" aria-label="Sound on or off" title="Clips play louder as you zoom toward them">
+        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><g id="waves"><path d="M16.5 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></g><path id="mute" d="M17 9.5l5 5m0-5l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+      <input type="range" id="volRange" min="0" max="100" value="70" aria-label="Volume" title="Volume">
+    </div>
   </header>
   <div id="stage">
     <div id="globewrap">
@@ -40,11 +41,12 @@
         <input type="range" id="spinRange" min="0" max="100" value="30" aria-label="Globe turning speed">
         <span class="vval" id="spinVal"></span>
       </div>
-      <div class="vctl right" id="playCtl" title="Play forward in time">
+      <div class="vctl right" id="playCtl" title="Run time backwards or forwards">
         <span class="vlab">TIME</span>
-        <input type="range" id="playRange" min="0" max="100" value="40" aria-label="Playback speed, years per second">
+        <button id="revBtn" aria-pressed="false" aria-label="Run time backwards" title="Run time backwards">◀</button>
+        <button id="playBtn" aria-pressed="false" aria-label="Run time forwards" title="Run time forwards">▶</button>
+        <button id="speedBtn" class="spd" aria-label="Playback speed" title="Playback speed">1×</button>
         <span class="vval" id="playVal"></span>
-        <button id="playBtn" aria-pressed="false" aria-label="Play forward in time">▶</button>
       </div>
       <div id="tip"><div class="tt"></div><div class="ty"></div></div>
       <div class="hint">FLICK TO SPIN · SCROLL TO ZOOM (OUT TO THE MOON) · SHIFT-DRAG TO TILT<br>← → MOVE THROUGH TIME · SPACE PLAYS FORWARD<br><em>+N</em> ON A CARD = THAT MANY MORE EVENTS WITHIN 250 KM</div>

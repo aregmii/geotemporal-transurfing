@@ -217,7 +217,16 @@ scene.add(sunLight);
 var globe = new THREE.Group();
 scene.add(globe);
 
-var tex = new THREE.TextureLoader().load(EARTH_SRC, function(){ render(); });
+// How close you may get is decided by the Earth texture, not by taste: past the point where one texel covers
+// more than a couple of screen pixels the ground turns to mush and the illusion goes with it. 2048x1024 is
+// 20 km per texel and runs out at about 1.6 radii; run pipeline/fetch_earth.py to drop in NASA's 5400x2700
+// Blue Marble and this opens up on its own, no code change.
+var minCamDist = 1.6;
+var tex = new THREE.TextureLoader().load(EARTH_SRC, function(t){
+  var w = t.image && t.image.width;
+  if (w) minCamDist = Math.max(1.08, Math.min(1.9, 1.08 + 0.52 * (2048 / w)));
+  render();
+});
 tex.anisotropy = 4;
 var earth = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 64), new THREE.MeshLambertMaterial({ map:tex }));
 globe.add(earth);
@@ -778,7 +787,7 @@ function render(){
   // the card stays about the same number of pixels while the ground beneath it spreads apart, so coming in on a
   // country pulls its events out of one another. The exponent leaves cards a little larger up close, where you
   // are reading them, than they are with the whole Earth in frame.
-  var zoomBoost = Math.max(0.22, Math.min(1.15, 0.86 * Math.pow(camDist / 3.9, 0.85)));
+  var zoomBoost = Math.max(0.30, Math.min(1.6, 0.86 * Math.pow(camDist / 3.9, 0.55)));
   var pxPerUnit = cardPixels();
   var placed = [];      // {x, y, hw, hh} of cards already laid out this frame, in px
   var hiddenCount = 0;
@@ -870,6 +879,11 @@ function render(){
   }
   window.__borders.visible = WINDOWS[wi].start >= 1900;
   camera.position.z = camDist;
+  // The near clipping plane has to stay in front of the Earth's surface, which sits camDist - 1 away. At the old
+  // fixed 0.1 anything closer than 1.1 sliced the planet open and left you looking at stars. It is only pulled in
+  // when it has to be, because a very small near plane costs depth precision everywhere else.
+  var wantNear = Math.min(0.1, Math.max(0.02, (camDist - 1) * 0.4));
+  if (Math.abs(camera.near - wantNear) > wantNear * 0.15){ camera.near = wantNear; camera.updateProjectionMatrix(); }
 
   if (selected && selected.holder){
     selRing.position.copy(selected.pos);
@@ -1017,6 +1031,7 @@ function closePanel(){
 // ---------- live cards: a video clip plays (muted) inside its hologram, so a hurricane loops on the globe ----------
 // The few biggest on-screen cards with a video clip get a canvas texture repainted from the video every frame.
 var LIVE = {}, LIVE_MAX = 4;
+function liveMax(){ return camDist < 2 ? 8 : LIVE_MAX; }   // close in, more of the cards on screen are worth running as video
 var liveClips = Object.keys(MEDIA).some(function(k){ return MEDIA[k].kind === 'video'; });
 function liveFor(e){
   var L = LIVE[e.slug];
@@ -1038,7 +1053,7 @@ function updateLive(){
   }
   cands.sort(function(a, b){ return (b._px || 0) - (a._px || 0); });
   var keep = {};
-  cands.slice(0, LIVE_MAX).forEach(function(e){
+  cands.slice(0, liveMax()).forEach(function(e){
     var L = liveFor(e); keep[e.slug] = true;
     if (!L.on){ L.on = true; L.video.play().catch(function(){ L.on = false; }); }
     if (L.ready && !L.video.paused){
@@ -1066,7 +1081,7 @@ var SOUND = { on:false, ctx:null, nodes:{}, active:[], ambient:null };
 // a slow filter, plus a breathing sub. It swells as you pull away from Earth and ducks under any event that is
 // playing, so up close you hear the event and far out you hear the space around it.
 function buildAmbient(){
-  var c = SOUND.ctx, out = c.createGain(); out.gain.value = 0; out.connect(c.destination);
+  var c = SOUND.ctx, out = c.createGain(); out.gain.value = 0; out.connect(masterGain());
   var filter = c.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 700; filter.Q.value = 0.6; filter.connect(out);
   var voices = [], base = [55, 82.5, 110, 164.66];         // A1, E2, A2, E3 — an open fifth, no melody to tire of
   for (var i = 0; i < base.length; i++){
@@ -1093,6 +1108,22 @@ function updateAmbient(eventLoudness){
   SOUND.ambient.filter.frequency.setTargetAtTime(420 + far * 900, SOUND.ctx.currentTime, 1.2);
 }
 var SOUND_MAX = 3, SOUND_QUIET_PX = 45, SOUND_FULL_PX = 220;   // card width on screen: silent below, full above (a big card at max zoom is ~280 px)
+// Everything audible — the clips and the space pad — runs through one gain, so the slider in the header is a
+// real volume control rather than a mute switch pretending to be one.
+var volume = 0.7;
+function masterGain(){
+  if (!SOUND.master){
+    SOUND.master = SOUND.ctx.createGain();
+    SOUND.master.gain.value = volume;
+    SOUND.master.connect(SOUND.ctx.destination);
+  }
+  return SOUND.master;
+}
+function setVolume(v){
+  volume = Math.max(0, Math.min(1, v));
+  if (SOUND.ctx && SOUND.master) SOUND.master.gain.setTargetAtTime(volume, SOUND.ctx.currentTime, 0.08);
+  try { localStorage.setItem('gt-vol', String(Math.round(volume * 100))); } catch (err) {}
+}
 function soundNode(e){
   var n = SOUND.nodes[e.slug];
   if (n) return n;
@@ -1101,7 +1132,8 @@ function soundNode(e){
   el.src = MEDIA_DIR + md.file; el.loop = true; el.preload = 'auto'; el.crossOrigin = 'anonymous';
   var src = SOUND.ctx.createMediaElementSource(el), gain = SOUND.ctx.createGain(), pan = SOUND.ctx.createStereoPanner ? SOUND.ctx.createStereoPanner() : null;
   gain.gain.value = 0;
-  if (pan){ src.connect(gain); gain.connect(pan); pan.connect(SOUND.ctx.destination); } else { src.connect(gain); gain.connect(SOUND.ctx.destination); }
+  var out = masterGain();
+  if (pan){ src.connect(gain); gain.connect(pan); pan.connect(out); } else { src.connect(gain); gain.connect(out); }
   n = { el:el, gain:gain, pan:pan, playing:false };
   SOUND.nodes[e.slug] = n; return n;
 }
@@ -1139,7 +1171,8 @@ function updateSound(){
 function setSound(on){
   SOUND.on = on;
   var b = document.getElementById('soundBtn');
-  if (b){ b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.textContent = on ? 'Sound on' : 'Sound off'; }
+  // the button is an icon: the CSS shows the waves when it is on and the cross when it is off
+  if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
   if (on){
     if (!SOUND.ctx) SOUND.ctx = new (window.AudioContext || window.webkitAudioContext)();
     if (SOUND.ctx.state === 'suspended') SOUND.ctx.resume();
@@ -1149,21 +1182,23 @@ function setSound(on){
     if (SOUND.ambient) SOUND.ambient.out.gain.setTargetAtTime(0, SOUND.ctx.currentTime, 0.3);
   }
 }
-// share: copy a link to exactly this view (mode, month, open event)
-var shareBtn = document.getElementById('shareBtn');
-if (shareBtn){
-  shareBtn.onclick = function(){
-    writeHash();
-    var url = location.href.replace(/^file:.*#/, '#');
-    var done = function(ok){ shareBtn.textContent = ok ? 'Link copied' : 'Copy: ' + url; setTimeout(function(){ shareBtn.textContent = 'Share moment'; }, 2200); };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function(){ done(true); }, function(){ done(false); });
-    else done(false);
-  };
-}
+// Sharing a moment: the URL hash already carries the mode, the month and the open event, so the address bar is
+// the share button. The header button is gone — it was taking a slot next to the categories to do what Cmd-L does.
 window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtCam = function(){ return camDist.toFixed(2); }; window.__cgtNow = function(){ return WINDOWS[wi].end; }; window.__cgtGoto = function(y){ var i = WINDOWS.findIndex(function(w){ return Math.abs(w.end - y) < 0.05; }); if (i >= 0) setWindow(i); };   // debugging hooks
 var soundBtn = document.getElementById('soundBtn');
 if (soundBtn){
   soundBtn.onclick = function(){ setSound(!SOUND.on); };
+}
+var volRange = document.getElementById('volRange');
+if (volRange){
+  var savedVol = null;
+  try { savedVol = localStorage.getItem('gt-vol'); } catch (err) {}
+  if (savedVol != null) volRange.value = savedVol;
+  volume = (+volRange.value) / 100;
+  volRange.oninput = function(){
+    setVolume((+volRange.value) / 100);
+    if (!SOUND.on && volume > 0) setSound(true);          // reaching for the slider means you want to hear it
+  };
 }
 
 // ---------- spin to ----------
@@ -1242,7 +1277,7 @@ canvas.addEventListener('pointercancel', function(){ dragging = false; canvas.cl
 canvas.addEventListener('pointerleave', function(){ hovered = null; document.getElementById('tip').classList.remove('on'); });
 canvas.addEventListener('wheel', function(ev){
   ev.preventDefault();
-  camDist = Math.max(1.6, Math.min(140, camDist * (ev.deltaY > 0 ? 1.07 : 0.93)));
+  camDist = Math.max(minCamDist, Math.min(140, camDist * (ev.deltaY > 0 ? 1.07 : 0.93)));   // the floor comes from the Earth texture (see minCamDist)
   hovered = null; document.getElementById('tip').classList.remove('on');
   bindWindow(); render(); if (SOUND.on) updateSound();   // zooming does not stop the globe turning; it changes the mix
 }, { passive:false });
@@ -1305,35 +1340,59 @@ if (spinRange){
   spinRange.oninput = function(){ setSpin(+spinRange.value); };
   setSpin(+spinRange.value);
 }
-var playing = false, playAcc = 0, playLast = 0, yearsPerSec = 0.2;
-var playRange = document.getElementById('playRange'), playVal = document.getElementById('playVal'), playBtn = document.getElementById('playBtn');
-function speedFromSlider(v){ return 0.02 * Math.pow(1.047, v); }                    // 0 -> 1 yr / 50 s ... 40 -> 1 yr / 8 s ... 100 -> 2 yr / s
-function setPlaySpeed(v){
-  yearsPerSec = speedFromSlider(v);
-  var secPerYear = 1 / yearsPerSec, secPerMonth = secPerYear / 12;
-  playVal.textContent = secPerMonth >= 1 ? 'A MONTH\nEVERY ' + (secPerMonth >= 10 ? Math.round(secPerMonth) : secPerMonth.toFixed(1)) + ' S'
-                      : secPerYear >= 1 ? 'A YEAR\nEVERY ' + (secPerYear >= 10 ? Math.round(secPerYear) : secPerYear.toFixed(1)) + ' S' : yearsPerSec.toFixed(1) + ' YEARS\nA SECOND';
+// Time runs both ways. ◀ and ▶ set the direction, the speed button cycles through multiples of a base rate of one
+// month every two seconds, and either button pressed again stops the clock where it is. Running backwards is not
+// a rewind: the globe keeps turning and the cards fade in and out exactly as they do going forwards, so you can
+// sit at a moment, walk back through what led to it, and stop.
+var SPEEDS = [1, 2, 4, 8, 16];
+var BASE_MONTHS_PER_SEC = 0.5;                                   // 1x: a month every two seconds
+var playDir = 0, speedIx = 0, playAcc = 0, playLast = 0;
+var playVal = document.getElementById('playVal');
+var playBtn = document.getElementById('playBtn'), revBtn = document.getElementById('revBtn'), speedBtn = document.getElementById('speedBtn');
+function yearsPerSecNow(){ return BASE_MONTHS_PER_SEC * SPEEDS[speedIx] / 12; }
+function showSpeed(){
+  if (speedBtn) speedBtn.textContent = SPEEDS[speedIx] + '×';
+  if (playVal){
+    var secPerMonth = 1 / (BASE_MONTHS_PER_SEC * SPEEDS[speedIx]);
+    playVal.textContent = playDir === 0 ? 'PAUSED'
+      : (playDir < 0 ? 'BACK\n' : 'ON\n') + (secPerMonth >= 1 ? 'A MONTH EVERY ' + (secPerMonth >= 10 ? Math.round(secPerMonth) : secPerMonth.toFixed(1)) + ' S'
+                                                              : Math.round(1 / secPerMonth) + ' MONTHS A SECOND');
+  }
 }
-function setPlaying(on){
-  playing = on; playAcc = 0; playLast = performance.now();
-  playBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); playBtn.textContent = on ? '❚❚' : '▶';
+function setPlayDir(dir){
+  playDir = dir; playAcc = 0; playLast = performance.now();
+  if (playBtn) playBtn.setAttribute('aria-pressed', dir > 0 ? 'true' : 'false');
+  if (revBtn) revBtn.setAttribute('aria-pressed', dir < 0 ? 'true' : 'false');
+  showSpeed();
 }
-if (playRange){
-  playRange.oninput = function(){ setPlaySpeed(+playRange.value); };
-  setPlaySpeed(+playRange.value);
+if (playBtn){
   playBtn.onclick = function(){
-    if (!playing && wi >= WINDOWS.length - 1) setWindow(0);            // at the end: start over from the first window
-    setPlaying(!playing);
+    if (playDir <= 0 && wi >= WINDOWS.length - 1) setWindow(0);      // at the far end: start over from the beginning
+    setPlayDir(playDir > 0 ? 0 : 1);
   };
 }
+if (revBtn){
+  revBtn.onclick = function(){
+    if (playDir >= 0 && wi <= 0) setWindow(WINDOWS.length - 1);      // at the start: jump to the end and run back
+    setPlayDir(playDir < 0 ? 0 : -1);
+  };
+}
+if (speedBtn){
+  speedBtn.onclick = function(){ speedIx = (speedIx + 1) % SPEEDS.length; showSpeed(); };
+}
+showSpeed();
+var playing = false;                                                // kept for the rail drag, which stops the clock
+function setPlaying(on){ if (!on) setPlayDir(0); }
 function tickPlay(now){
-  if (!playing) return;
-  playAcc += (now - playLast) / 1000 * yearsPerSec; playLast = now;
+  playing = playDir !== 0;
+  if (!playDir) return;
+  playAcc += (now - playLast) / 1000 * yearsPerSecNow(); playLast = now;
   var step = ERAS[WINDOWS[wi].era].slider ? ERAS[WINDOWS[wi].era].step : (WINDOWS[wi].end - WINDOWS[wi].start);
-  if (playAcc >= step){
+  while (playAcc >= step){                                          // a while loop: at 16x a frame can cross several months
     playAcc -= step;
-    if (wi >= WINDOWS.length - 1){ setPlaying(false); return; }
-    setWindow(wi + 1);
+    var next = wi + playDir;
+    if (next < 0 || next >= WINDOWS.length){ setPlayDir(0); return; }
+    setWindow(next);
   }
 }
 

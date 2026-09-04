@@ -14,39 +14,53 @@ body{
 }
 #app{display:flex; flex-direction:column; height:100dvh}
 
+/* One line, as short as it can be: the name, the moment, the four categories, and the volume. Everything that
+   was explaining itself in the header is gone — the globe is what people came for. */
 header{
-  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
-  padding:11px 20px; border-bottom:1px solid var(--rule); flex:0 0 auto; background:var(--panel);
+  display:flex; align-items:center; gap:14px; flex-wrap:nowrap;
+  padding:5px 14px; border-bottom:1px solid var(--rule); flex:0 0 auto; background:var(--panel);
 }
-.brand{font-family:Fraunces,Georgia,serif; font-size:17px; font-weight:600; letter-spacing:-.01em}
+.brand{font-family:Fraunces,Georgia,serif; font-size:14.5px; font-weight:600; letter-spacing:-.01em; white-space:nowrap}
 .now{
   font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11.5px; letter-spacing:.08em;
-  color:var(--ink-2); font-variant-numeric:tabular-nums; display:flex; align-items:baseline; gap:10px;
+  color:var(--ink-2); font-variant-numeric:tabular-nums; display:flex; align-items:baseline; gap:7px; white-space:nowrap;
 }
-.now .nowlab{font-size:9.5px; letter-spacing:.16em; color:var(--dis); border:1px solid var(--dis); border-radius:3px; padding:1px 6px}
-.now b{font-family:Fraunces,Georgia,serif; font-size:20px; font-weight:600; letter-spacing:-.01em; color:var(--ink)}
-.now .nowsub{font-size:10px; color:var(--ink-3)}
-.now b{color:var(--ink); font-weight:500}
+.now .nowlab{font-size:8.5px; letter-spacing:.16em; color:var(--dis); border:1px solid var(--dis); border-radius:3px; padding:0 4px}
+.now b{font-family:Fraunces,Georgia,serif; font-size:16px; font-weight:500; letter-spacing:-.01em; color:var(--ink)}
+.now .nowsub{display:none}                       /* the rail and the fading cards say this without words */
 .spacer{flex:1}
-.modes{display:flex; border:1px solid var(--rule); border-radius:20px; overflow:hidden; margin-right:6px}
-.modes:has(button:only-child){display:none}   /* one rail only for now: the header already names it */
-.modes button{font:inherit; font-size:11.5px; padding:4px 12px; border:none; background:var(--panel-2); color:var(--ink-3); cursor:pointer}
-.modes button[aria-pressed="true"]{background:var(--ink); color:var(--bg)}
-.sound{font:inherit; font-size:11.5px; padding:4px 12px; border:1px solid var(--rule); border-radius:20px; background:var(--panel-2); color:var(--ink-3); cursor:pointer; margin-left:0}
-.sound[aria-pressed="true"]{background:var(--ink); color:var(--bg)}
-.sound.share{margin-left:6px}
+
+/* volume: an icon and a short slider, no label */
+.vol{display:flex; align-items:center; gap:6px}
+.vol button{
+  display:flex; align-items:center; justify-content:center; width:26px; height:26px; padding:0;
+  border:1px solid var(--rule); border-radius:50%; background:var(--panel-2); color:var(--ink-3); cursor:pointer;
+}
+.vol button:hover{color:var(--ink)}
+.vol button[aria-pressed="true"]{color:var(--ink); border-color:var(--ink-3)}
+.vol button[aria-pressed="true"] #mute{display:none}
+.vol button[aria-pressed="false"] #waves{display:none}
+.vol input[type=range]{
+  -webkit-appearance:none; appearance:none; width:64px; height:14px; background:transparent; cursor:pointer; margin:0;
+}
+.vol input[type=range]::-webkit-slider-runnable-track{height:3px; background:var(--rule); border-radius:2px}
+.vol input[type=range]::-moz-range-track{height:3px; background:var(--rule); border-radius:2px}
+.vol input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:11px; height:11px; border-radius:50%; background:var(--ink-2); margin-top:-4px}
+.vol input[type=range]::-moz-range-thumb{width:11px; height:11px; border-radius:50%; background:var(--ink-2); border:none}
+@media (max-width:900px){ .vol input[type=range]{display:none} }
 .pmedia{margin:10px 0 4px}
 .pmedia audio,.pmedia video{width:100%; display:block; border-radius:6px}
 .pmedia .mcredit{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:9.5px; letter-spacing:.06em; color:var(--ink-3); margin-top:4px}
 .pmedia .mcredit a{color:var(--ink-3)}
-.modes button + button{border-left:1px solid var(--rule)}
-.filters{display:flex; gap:6px}
+.filters{display:flex; gap:5px}
 .f{
-  display:inline-flex; align-items:center; gap:9px; cursor:pointer; user-select:none;
+  display:inline-flex; align-items:center; gap:6px; cursor:pointer; user-select:none;
   border:1px solid var(--rule); background:var(--panel-2); color:var(--ink);
-  border-radius:24px; padding:5px 16px 5px 7px; font-size:13.5px; font-weight:500; transition:opacity .15s; font-family:inherit;
+  border-radius:20px; padding:2px 11px 2px 3px; font-size:12px; font-weight:500; transition:opacity .15s; font-family:inherit;
+  white-space:nowrap;
 }
-.f img{width:26px; height:26px; display:block}
+.f img{width:20px; height:20px; display:block}
+@media (max-width:1100px){ .f{font-size:0; gap:0; padding:3px} }   /* icons only when the bar gets tight */
 .f[aria-pressed="false"]{opacity:.32}
 .f:hover{color:var(--ink)}
 
@@ -181,6 +195,9 @@ canvas.drag{cursor:grabbing}
 .vctl:hover,.vctl:focus-within{opacity:1}
 .vctl input[type=range]{height:96px; width:18px}
 .vctl button{width:26px; height:26px; font-size:10px}
+/* the time control: back, forward, and the speed multiplier stacked under the label */
+.vctl .spd{width:auto; min-width:30px; height:20px; border-radius:10px; font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:10px; letter-spacing:.04em}
+#playCtl .vval{white-space:pre-line; max-width:76px}
 .vctl.left{left:10px} .vctl.right{right:10px}
 
 /* the NOW mark on the rail: date sits at the right edge of the lookback band */

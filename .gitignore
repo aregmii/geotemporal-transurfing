@@ -20,3 +20,4 @@ pipeline/facts.json
 pipeline/headlines.json
 pipeline/yearpages_cache/
 pipeline/events_yearpages.json
+pipeline/earth_cache/
