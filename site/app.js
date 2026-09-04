@@ -430,9 +430,40 @@ for (var pi = 0; pi < MAX_SHOWN; pi++){
   var card = new THREE.Sprite(new THREE.SpriteMaterial({ map:SPRITE_TEX.con, transparent:true, depthTest:true, depthWrite:false }));
   var badge = new THREE.Sprite(new THREE.SpriteMaterial({ map:SPRITE_TEX.con, transparent:true, depthTest:false, depthWrite:false }));
   badge.renderOrder = 3; badge.visible = false;
-  holder.add(beam); holder.add(base); holder.add(card); holder.add(badge);
-  holder.visible = false; holder.userData = { beam:beam, base:base, card:card, badge:badge };
+  var pile = new THREE.Sprite(new THREE.SpriteMaterial({ transparent:true, depthTest:false, depthWrite:false }));
+  pile.renderOrder = 4; pile.visible = false;
+  holder.add(beam); holder.add(base); holder.add(card); holder.add(badge); holder.add(pile);
+  holder.visible = false; holder.userData = { beam:beam, base:base, card:card, badge:badge, pile:pile };
   POOL.push(holder); markers.add(holder);
+}
+
+// How far a crowded card climbs before it gives up its place, in multiples of its own height, straight up the
+// screen. Raising it along the surface normal instead would do almost nothing at the middle of the disc, where
+// the normal points at the camera; a screen-space climb stacks a crowded city into a readable column everywhere.
+// Stacking is tried first because a column still shows every event where it happened — folding loses one.
+var STACK = [0, 1.12, 2.24, 3.36, 4.48];
+
+// The chip a card wears when other events folded into it: "+7". One texture per count, built once and reused.
+var PILE_TEX = {};
+function pileTexture(count){
+  var label = '+' + (count > 99 ? 99 : count);
+  if (PILE_TEX[label]) return PILE_TEX[label];
+  var c = document.createElement('canvas'); c.width = 128; c.height = 64;
+  var ctx = c.getContext('2d');
+  ctx.font = '600 30px "IBM Plex Mono", ui-monospace, monospace';
+  var w = Math.min(120, ctx.measureText(label).width + 28), h = 40, x = (128 - w) / 2, y = 12, r = h / 2;
+  ctx.beginPath();
+  ctx.arc(x + r, y + r, r, Math.PI / 2, Math.PI * 1.5);
+  ctx.arc(x + w - r, y + r, r, Math.PI * 1.5, Math.PI / 2);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(8,14,26,.92)'; ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(240,182,58,.95)'; ctx.stroke();
+  ctx.fillStyle = '#F0B63A'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '600 30px "IBM Plex Mono", ui-monospace, monospace';
+  ctx.fillText(label, 64, y + r + 1);
+  var t = new THREE.CanvasTexture(c); t.needsUpdate = true;
+  PILE_TEX[label] = t;
+  return t;
 }
 var Y_AXIS = new THREE.Vector3(0, 1, 0);
 function prepareEvent(e){
@@ -739,39 +770,59 @@ function render(){
     var h = e.holder; if (!h) return;
     var front = worldNormal(e).z > 0.12;
     h.visible = front;
+    e.folded = null;
     if (!front){ e._sx = null; behind++; return; }
     var prom = e._p == null ? 1 : e._p;              // loudness now; `p` below is a placed-card rectangle
     var scale = e.size * zoomBoost * (0.80 + 0.20 * prom);
     var cw = CARD_W * scale, chh = CARD_H * scale;
     var hwPx = cw * pxPerUnit / CARD_H * 0.5, hhPx = chh * pxPerUnit / CARD_H * 0.5;
-    // cards float just above the surface; a card that would overlap a more important one is hidden,
-    // leaving only its base dot — zooming in gives it room and it appears
-    var height = HOVER, sx, sy;
+    // Cards float just above the surface. A card that would overlap one already placed climbs — the beam grows
+    // and it looks for room higher up — so a crowded city stacks into a column instead of one card winning.
+    // Only when every height is taken does it fold into the nearest card on screen, which then wears a "+N" chip.
+    var height = HOVER, free = false, lvl = 0;
+    var isSel = selected && selected.id === e.id;
     _v.copy(e.normal).multiplyScalar(1.002 + height).applyQuaternion(globe.quaternion).project(camera);
-    sx = (_v.x + 1) / 2 * W; sy = (1 - _v.y) / 2 * H;
-    var clash = false;
-    if (!(selected && selected.id === e.id)){
+    var baseX = (_v.x + 1) / 2 * W, baseY = (1 - _v.y) / 2 * H;
+    var sx = baseX, sy = baseY;
+    for (var li = 0; li < STACK.length; li++){
+      lvl = li;
+      sy = baseY - STACK[li] * hhPx * 2;
+      free = true;
+      if (isSel) break;
       for (var i = 0; i < placed.length; i++){
         var p = placed[i];
-        if (Math.abs(p.x - sx) < p.hw + hwPx && Math.abs(p.y - sy) < p.hh + hhPx){ clash = true; break; }
+        if (Math.abs(p.x - sx) < p.hw + hwPx && Math.abs(p.y - sy) < p.hh + hhPx){ free = false; break; }
       }
+      if (free) break;
     }
     var u = h.userData;
-    if (clash){
-      u.card.visible = false; u.beam.visible = false; u.badge.visible = false; u.base.visible = true; u.base.scale.set(0.03, 0.03, 1);
+    if (!free){
+      // fold into the nearest card already on screen, so the event is one click away rather than gone
+      var host = null, hostD = Infinity;
+      for (var k = 0; k < placed.length; k++){
+        var q = placed[k], dx = q.x - sx, dy = q.y - sy, d2 = dx * dx + dy * dy;
+        if (d2 < hostD){ hostD = d2; host = q; }
+      }
+      if (host) host.folded.push(e);
+      u.card.visible = false; u.beam.visible = false; u.badge.visible = false; u.pile.visible = false;
+      u.base.visible = true; u.base.scale.set(0.03, 0.03, 1);
       e._sx = null; e.stackH = 0; e.pos.copy(e.foot); hiddenCount++;
       return;
     }
-    placed.push({ x:sx, y:sy, hw:hwPx, hh:hhPx });
-    e._sx = sx; e._sy = sy; e._px = hwPx * 2; e.stackH = height;
+    placed.push({ x:sx, y:sy, hw:hwPx, hh:hhPx, e:e, folded:[] });
+    // A sprite is drawn with its `center` at its position, so a larger centre.y draws it lower: subtracting the
+    // stack level lifts the whole card straight up the screen. The badge and the "+N" chip ride along with it.
+    var up = STACK[lvl];
+    e._sx = sx; e._sy = sy; e._px = hwPx * 2; e.stackH = height; e._up = up;
     u.card.visible = true; u.beam.visible = true; u.base.visible = true;
     u.beam.scale.set(1, height, 1);
     u.card.position.set(0, height, 0);
     u.card.scale.set(cw, chh, 1);
+    u.card.center.set(0.5, 0.5 - up);
     if (u.hasPhoto && MEDIA[e.slug] == null){
       var bs = chh * 0.34;
       u.badge.visible = true; u.badge.position.set(0, height, 0); u.badge.scale.set(bs, bs, 1);
-      u.badge.center.set(0.5 + (cw / 2 - bs * 0.62) / bs, 0.5 + (chh / 2 - bs * 0.62) / bs);
+      u.badge.center.set(0.5 + (cw / 2 - bs * 0.62) / bs, 0.5 + (chh / 2 - bs * 0.62) / bs - up * chh / bs);
     } else u.badge.visible = false;
     u.base.scale.set(0.02, 0.02, 1);
     var dim = selected && selected.id !== e.id && ctxEls.indexOf(e) < 0;
@@ -781,6 +832,25 @@ function render(){
     u.base.material.opacity = dim ? 0.3 : 0.9;
     e.pos.copy(e.normal).multiplyScalar(1.002 + height);
   });
+  // Every card has claimed its place, so the counts are final: a card that absorbed others wears a "+N" chip,
+  // and openPanel lists them under "Also on this spot".
+  for (var pj = 0; pj < placed.length; pj++){
+    var pl = placed[pj], pe = pl.e, ph = pe.holder;
+    pe.folded = pl.folded;
+    if (!ph) continue;
+    var pu = ph.userData;
+    if (!pl.folded.length){ pu.pile.visible = false; continue; }
+    var cw2 = pu.card.scale.x, ch2 = pu.card.scale.y;
+    var chipH = ch2 * 0.30, chipW = chipH * 2;
+    pu.pile.material.map = pileTexture(pl.folded.length); pu.pile.material.needsUpdate = true;
+    pu.pile.visible = true;
+    pu.pile.position.set(0, pe.stackH, 0);
+    pu.pile.scale.set(chipW, chipH, 1);
+    // bottom-right corner of the card (larger centre.x moves the sprite left, larger centre.y moves it down),
+    // shifted up by however far the card itself climbed
+    pu.pile.center.set(0.5 - (cw2 / 2 - chipW * 0.5 - cw2 * 0.04) / chipW,
+                       0.5 + (ch2 / 2 - chipH * 0.5 - ch2 * 0.05) / chipH - (pe._up || 0) * ch2 / chipH);
+  }
   window.__borders.visible = WINDOWS[wi].start >= 1900;
   camera.position.z = camDist;
 
@@ -802,7 +872,7 @@ function render(){
   renderer.render(scene, camera);
   document.getElementById('count').innerHTML =
     (windowTotal > list.length ? 'TOP ' + list.length + ' OF ' + windowTotal + ' EVENTS IN THIS WINDOW — ZOOM IN FOR MORE' : list.length + ' EVENT' + (list.length === 1 ? '' : 'S') + ' IN THIS WINDOW') +
-    (hiddenCount ? '<br>' + hiddenCount + ' TUCKED UNDER OTHERS — ZOOM IN' : '') +
+    (hiddenCount ? '<br>' + hiddenCount + ' FOLDED INTO THE +N CARDS — CLICK ONE OR ZOOM IN' : '') +
     (behind ? '<br>' + behind + ' ON THE FAR SIDE — KEEP SPINNING' : '') +
     (list.length < 4 ? '<br><em>SPARSE — THE PLACEHOLDER DATA THINS OUT HERE</em>' : '');
 }
@@ -887,6 +957,15 @@ function openPanel(e){
   html += '<div class="pmeta">' + when + (e.endDate ? ' – ' + dayLabel(e.endDate) : '') + (e.who ? '<br>BY ' + e.who : '') + '<br>' + e.place + '</div>';
   html += '<p class="pdesc">' + tinyDesc(e) + '</p>';
   html += '<a class="plink" target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/' + e.slug + '">Read more →</a>';
+  // events that had no room of their own and folded into this card — the "+N" chip on the globe opens this list
+  if (e.folded && e.folded.length){
+    html += '<div class="concurrent"><p>Also on this spot · ' + e.folded.length + '</p><div class="crow">';
+    e.folded.slice(0, 12).forEach(function(o){
+      var th = IMAGES[o.slug] ? '<img class="kb" src="' + IMG_DIR + IMAGES[o.slug].file + '" alt="">' : '<img class="ic" src="' + ICON_URL[o.cat] + '" alt="">';
+      html += '<button class="nb" data-id="' + o.id + '">' + th + '<b>' + o.title + '</b><span>' + o.place + ' · ' + (o.date ? dayLabel(o.date) : yearLabel(o.start)) + '</span></button>';
+    });
+    html += '</div></div>';
+  }
   // concurrent events elsewhere: small moving pictures of what else was going on, ranked by days apart
   if (ctxEls.length){
     html += '<div class="concurrent"><p>' + (spanYears(e) >= 45 / 365 ? 'Running at the same time elsewhere' : 'Concurrent events elsewhere') + '</p><div class="crow">';
