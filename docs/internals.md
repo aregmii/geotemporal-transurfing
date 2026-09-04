@@ -118,3 +118,11 @@ Create a Pages project from this repository with **no build command** and **outp
 ## Licences
 
 Code is MIT. Data and images have their own terms; see `LICENSE`.
+
+## Known gaps
+
+- Coverage leans European and recent; the year-by-country pages even it out from 2000 on.
+- "Meanwhile" means the same calendar day. Wikidata has no time of day.
+- Headlines are written by rules (`merge.js`), so some still read like article titles; the winner, result and death-count rules cover races, finals, elections and disasters when the lead paragraph states them.
+- An event Wikidata gives no end date to is treated as a moment and shows in its first month only; `boost.json` and the curated rows patch the ones that matter.
+- Desktop only. A phone-sized viewport works but is not designed for.

@@ -25,3 +25,5 @@ pipeline/earth_cache/
 # transfer bundles Claude drops in while syncing to this machine
 .gt-sync*.tgz
 .gt*.tgz
+__pycache__/
+*.pyc

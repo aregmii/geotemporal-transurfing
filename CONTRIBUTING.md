@@ -4,13 +4,13 @@ Thanks for looking. This is a small, dependency-light project on purpose: the ap
 
 ## 1. Add or fix an event (no code)
 
-Hand-checked events live in `pipeline/curated/*.json`, one row per event in the schema described in the README ("Data model"). Exact dates for curated rows go in `pipeline/curated_dates.json`, hand-picked clips in `pipeline/curated_media.json`. Rebuild with `node pipeline/build.js` and open `site/index.html` (or `npm run dev`).
+Hand-checked events live in `pipeline/curated/*.json`, one row per event in the row shape described in [docs/internals.md](docs/internals.md) ("Data model"). Exact dates for curated rows go in `pipeline/curated_dates.json`, hand-picked clips in `pipeline/curated_media.json`. Rebuild with `node pipeline/build.js` and open `site/index.html` (or `npm run dev`).
 
 Rules of thumb: an event must have a place a reader can be shown; the description is your own words (not copied from Wikipedia); the slug is the English Wikipedia article name.
 
 ## 2. Add a data source
 
-Each source is one script in `pipeline/` that writes rows in the shared row shape and caches every remote reply in its own `*_cache/` directory, so re-runs are cheap and a failure halfway loses nothing. Look at `fetch_facts.py` (small) or `extract_events.py` (large) for the pattern. Add the step to `pipeline/refresh.sh`, document the source in the README, and keep to the Wikidata/Wikipedia/Commons etiquette already in the scripts: a descriptive User-Agent, a pause between calls, back-off on 429.
+Each source is one script in `pipeline/` that writes rows in the shared row shape and caches every remote reply in its own `*_cache/` directory, so re-runs are cheap and a failure halfway loses nothing. Look at `fetch_facts.py` (small) or `extract_events.py` (large) for the pattern. Add the step to `pipeline/refresh.sh`, document the source in `docs/internals.md`, and keep to the Wikidata/Wikipedia/Commons etiquette already in the scripts: a descriptive User-Agent, a pause between calls, back-off on 429.
 
 Licensing is not optional: photos and clips must come with a licence the site can show (`fetch_images.py` and `fetch_media.py` show how the credit is carried through to the panel).
 
@@ -18,7 +18,7 @@ Licensing is not optional: photos and clips must come with a licence the site ca
 
 `site/app.js` is plain ES5-style JavaScript with three.js r128 and astronomy-engine vendored in `site/vendor/`; no bundler, no framework, no build. Keep it that way — a contributor should be able to open `index.html` from disk and read the whole thing top to bottom. Sections are marked with `// ---------- name ----------` comments. `pipeline/playground.js` builds the single-file version used for hosted previews; if you add a data file, add it there too.
 
-The visual rules that took the longest to get right, and that pull requests should respect: the Earth is the real Earth (NASA Blue Marble), the sky is the real sky for the moment shown, the globe never stops turning, and nothing on the globe pretends to be more precise than the data (a year-only event covers its year; a same-day coincidence is same-day).
+The visual rules that took the longest to get right, and that pull requests should respect: the Earth is the real Earth (NASA Blue Marble), the sky is the real sky for the month shown, the globe rests unless the visitor moves it, every card stands over its own coordinates, and nothing pretends to be more precise than the data (a day's event shows in its month; a "meanwhile" pairing is the same calendar day).
 
 ## 4. Report data problems
 
