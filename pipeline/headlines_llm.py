@@ -6,8 +6,8 @@ Run:   ANTHROPIC_API_KEY=sk-... python3 headlines_llm.py ../site/data/events.jso
 Needs: pip install requests
 
 For every event, sends the article name, date, place and the Wikipedia lead paragraph, and asks for a headline that
-says what happened ("Argentina beat France on penalties to win the 2022 World Cup final"), 12 words or fewer,
-no exclamation marks, past tense, no hedging. Cached per slug + lead in headlines_cache/, so a re-run only
+says what happened and why anyone would care ("Argentina beat France on penalties to win the 2022 World Cup"),
+13 words or fewer, past tense, no clickbait tricks — the interest has to come from the fact itself. Cached per slug + lead in headlines_cache/, so a re-run only
 writes headlines for new or changed events. Output: { slug: headline }, read by merge.js ahead of its own rules.
 
 Cost: about 250 input + 25 output tokens per event; at Claude Haiku 4.5 prices ($1 / $5 per million tokens, platform.claude.com/docs/en/models/overview) about $4 per 10,000 events.
@@ -29,12 +29,20 @@ CACHE_DIR = "headlines_cache"
 BATCH = 20   # events per request; the model answers with a JSON object slug -> headline
 
 SYSTEM = (
-    "You write headlines for a map of world events. For each event you get an article title, a date, a place and the "
-    "opening of its Wikipedia article. Reply with ONLY a JSON object mapping each slug to one headline. Rules: say what "
-    "happened, not what the thing is; at most 12 words; past tense; include the decisive fact when the text has it "
-    "(who won, the score, how many died, the magnitude, who was elected); no exclamation marks; no quotation marks; "
-    "no trailing period; never invent numbers or names that are not in the text; for a birth or death, name the "
-    "person and what they were known for in a few words."
+    "You write the headline that makes someone want to click, for events standing on a 3D globe. For each event you get "
+    "an article title, a date, a place and the opening of its Wikipedia article. Reply with ONLY a JSON object mapping "
+    "each slug to one headline.\n"
+    "Write it the way a good newspaper front page would: the specific thing that happened and the detail that makes a "
+    "stranger curious. Rules:\n"
+    "- Say what happened and why it mattered, never just name the thing. 'United States-Mexico-Canada Agreement' is "
+    "useless; 'The three countries tear up NAFTA and sign its replacement' is the headline.\n"
+    "- At most 13 words. Past tense. No exclamation marks, no quotation marks, no trailing period.\n"
+    "- Lead with the decisive fact when the text has one: who won and how, how many died, the magnitude, who was "
+    "elected, what was banned or created.\n"
+    "- Never invent a number, name, or outcome that is not in the text. If the text is thin, write the plainest true "
+    "sentence you can rather than guessing; accuracy beats drama every time.\n"
+    "- For a birth or death, name the person and the one thing they are remembered for.\n"
+    "- No teasing without payoff: never 'you won't believe', 'this changed everything', or a question as a headline."
 )
 
 

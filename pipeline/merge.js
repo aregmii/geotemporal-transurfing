@@ -192,6 +192,16 @@ function crashPhrase(lead) {
   // stop before a date or a death count: those are said separately
   return m[0].replace(/^was /, '').replace(/\s+(?:on|at|in) \d.*$/, '').replace(/\s+(?:killing|with|carrying).*$/, '').replace(/\s+(?:near|in) [A-Z][^ ]* in [A-Z].*$/, '').trim();
 }
+// A few shapes that carry no information on their own ("United States–Mexico–Canada Agreement", "Kellogg-Briand
+// pact", "1st Academy Awards"): say what the thing did, taken from the first sentence, before the name.
+const DULL = /(agreement|pact|treaty|accord|convention|protocol|charter|declaration|act\b|bill\b|amendment|awards|ceremony|summit|conference|council|congress|assembly|session|referendum|census|census\b|standard|system|model|principle|law\b|theory|process|method|effect|equation|constant|hypothesis)/i;
+function whatItDid(lead) {
+  const first = String(lead || '').replace(/\u00a0/g, ' ').split(/(?<=[a-z0-9\)])\.\s+(?=[A-Z])/)[0].replace(/\s+/g, ' ').trim();
+  // "... is a trade agreement between Canada, Mexico and the United States that replaced NAFTA" -> the clause that says what it does
+  let m = /\b(replaced|replaces|superseded|ended|ends|banned|bans|outlawed|created|creates|established|establishes|founded|abolished|granted|guarantees|guaranteed|required|requires|committed|commits|allowed|allows|limited|limits|set|sets|introduced|introduces|renamed|merged|split|opened|closed|recognised|recognized|awarded|honoured|honored)\b\s+(.{8,90}?)(?:[,.;]|$)/i.exec(first);
+  if (m) return (m[1].replace(/s$|es$/, '').replace(/^(ban)$/, 'banned') + ' ' + m[2]).trim();
+  return '';
+}
 function headline(row) {
   const title = row[0], slug = row[9], lead = row[8] || '', f = facts[slug] || {};
   if (written[slug]) return written[slug];
@@ -209,9 +219,23 @@ function headline(row) {
   if (f.deaths && /flight|crash|air|ferry|sinking|disaster|derail|collision/.test(lower)) return title + (/flight/.test(lower) ? (/shot down|shootdown/i.test(lead) ? ' shot down, ' : ' crashes, ') : ': ') + fmtNum(f.deaths) + ' killed';
   if (f.deaths && /attack|bombing|shooting|massacre|stampede|fire|flood|cyclone|hurricane|typhoon|storm|tsunami|explosion|landslide|heat wave|avalanche/.test(lower)) return title + ': ' + fmtNum(f.deaths) + ' killed';
   if (/^(birth|death) of /i.test(title)) { const p = predicateOf(title, lead); return p ? title + ', ' + p.replace(/^(?:the|an?)\s+/i, '') : title; }
-  if (/^(discovery|invention) of /i.test(title) || / introduced$/.test(title) || /^constellation /i.test(title)) return title;
+  if (/^(discovery|invention) of /i.test(title) || / introduced$/.test(title) || /^constellation /i.test(title)) {
+    const did = whatItDid(lead);
+    return did ? title + ' — ' + did : title;
+  }
+  if (DULL.test(title)) {
+    const did = whatItDid(lead);
+    if (did) return title + ' — ' + did;
+  }
   const p = predicateOf(title, lead);
-  return p ? title + ': ' + p : title;
+  if (p) return title + ': ' + p;
+  // no lead paragraph, only Wikidata's one-line description ("North American trade bloc"): use it rather than
+  // leaving a bare name that says nothing
+  const short = String(lead || '').trim();
+  if (short && short.length < 90 && !/^no description/i.test(short) && title.toLowerCase().indexOf(short.toLowerCase()) < 0) {
+    return title + ' — ' + short.charAt(0).toLowerCase() + short.slice(1);
+  }
+  return title;
 }
 for (const r of out) {
   const f = facts[r[9]] || {};

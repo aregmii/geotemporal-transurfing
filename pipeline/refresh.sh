@@ -41,7 +41,7 @@ node build.js
 echo "== 4b. facts for headlines and exact spans (winner, deaths, magnitude, start/end)"
 python3 fetch_facts.py ../site/data/events.json --out facts.json || echo "   (facts step failed — headlines fall back to the lead sentence)"
 echo "== 4c. written headlines (only with ANTHROPIC_API_KEY in the environment or pipeline/.env)"
-python3 headlines_llm.py ../site/data/events.json --out headlines.json || echo "   (headline step failed — rules only)"
+python3 headlines_llm.py ../site/data/events.json --out headlines.json --min-weight "${HEADLINE_MIN_WEIGHT:-2}" || echo "   (headline step failed — rules only)"
 node build.js
 
 echo "== 5/6 audio and video clips for the biggest events (from year $IMAGE_FROM; needs ffmpeg for small files)"

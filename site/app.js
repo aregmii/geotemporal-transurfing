@@ -962,7 +962,37 @@ function updateLive(){
 // Each event with a clip gets an <audio> routed through a gain + stereo panner. Every frame the visible cards are
 // ranked by on-screen width; the three biggest play, gain follows width (quiet when small, full at ~300 px),
 // pan follows screen x. Everything else is paused. Browsers require a click before audio starts: the Sound button.
-var SOUND = { on:false, ctx:null, nodes:{}, active:[] };
+var SOUND = { on:false, ctx:null, nodes:{}, active:[], ambient:null };
+// Space ambience, generated live (no audio file, nothing licensed): three detuned sine voices a fifth apart through
+// a slow filter, plus a breathing sub. It swells as you pull away from Earth and ducks under any event that is
+// playing, so up close you hear the event and far out you hear the space around it.
+function buildAmbient(){
+  var c = SOUND.ctx, out = c.createGain(); out.gain.value = 0; out.connect(c.destination);
+  var filter = c.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 700; filter.Q.value = 0.6; filter.connect(out);
+  var voices = [], base = [55, 82.5, 110, 164.66];         // A1, E2, A2, E3 — an open fifth, no melody to tire of
+  for (var i = 0; i < base.length; i++){
+    var osc = c.createOscillator(); osc.type = i > 1 ? 'sine' : 'triangle'; osc.frequency.value = base[i];
+    var g = c.createGain(); g.gain.value = i === 0 ? 0.5 : 0.22 - i * 0.03;
+    var lfo = c.createOscillator(); lfo.frequency.value = 0.03 + i * 0.017;   // very slow drift, never in step
+    var lfoGain = c.createGain(); lfoGain.gain.value = base[i] * 0.004;
+    lfo.connect(lfoGain); lfoGain.connect(osc.frequency); lfo.start();
+    osc.connect(g); g.connect(filter); osc.start();
+    voices.push(osc);
+  }
+  var swell = c.createOscillator(); swell.frequency.value = 0.05;             // the pad breathes over ~20 s
+  var swellGain = c.createGain(); swellGain.gain.value = 180;
+  swell.connect(swellGain); swellGain.connect(filter.frequency); swell.start();
+  return { out:out, filter:filter };
+}
+function updateAmbient(eventLoudness){
+  if (!SOUND.on || !SOUND.ctx) return;
+  if (!SOUND.ambient) SOUND.ambient = buildAmbient();
+  // 0 at the surface, 1 far out; an event playing close by pushes the ambience back down
+  var far = Math.max(0, Math.min(1, (camDist - 2.2) / 7));
+  var level = far * far * 0.30 * (1 - 0.85 * eventLoudness);
+  SOUND.ambient.out.gain.setTargetAtTime(level, SOUND.ctx.currentTime, 0.9);
+  SOUND.ambient.filter.frequency.setTargetAtTime(420 + far * 900, SOUND.ctx.currentTime, 1.2);
+}
 var SOUND_MAX = 3, SOUND_QUIET_PX = 45, SOUND_FULL_PX = 220;   // card width on screen: silent below, full above (a big card at max zoom is ~280 px)
 function soundNode(e){
   var n = SOUND.nodes[e.slug];
@@ -978,6 +1008,7 @@ function soundNode(e){
 }
 function updateSound(){
   if (!SOUND.on || !SOUND.ctx) return;
+  if (!shown.length){ updateAmbient(0); return; }
   var cands = [];
   for (var i = 0; i < shown.length; i++){
     var e = shown[i];
@@ -995,6 +1026,9 @@ function updateSound(){
     if (n.pan && e._sx != null) n.pan.pan.setTargetAtTime(Math.max(-1, Math.min(1, (e._sx / W - 0.5) * 1.6)), t, 0.25);
     if (!n.playing){ n.playing = true; n.el.play().catch(function(){ n.playing = false; }); }
   });
+  var loudest = 0;
+  keep.forEach(function(e){ var n = SOUND.nodes[e.slug]; if (n) loudest = Math.max(loudest, n.gain.gain.value); });
+  updateAmbient(loudest);
   Object.keys(SOUND.nodes).forEach(function(slug){
     var n = SOUND.nodes[slug];
     if (n.playing && !keep.some(function(e){ return e.slug === slug; })){
@@ -1013,6 +1047,7 @@ function setSound(on){
     updateSound();
   } else {
     Object.keys(SOUND.nodes).forEach(function(k){ var n = SOUND.nodes[k]; n.el.pause(); n.playing = false; n.gain.gain.value = 0; });
+    if (SOUND.ambient) SOUND.ambient.out.gain.setTargetAtTime(0, SOUND.ctx.currentTime, 0.3);
   }
 }
 // share: copy a link to exactly this view (mode, month, open event)
@@ -1029,7 +1064,6 @@ if (shareBtn){
 window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtCam = function(){ return camDist.toFixed(2); }; window.__cgtNow = function(){ return WINDOWS[wi].end; }; window.__cgtGoto = function(y){ var i = WINDOWS.findIndex(function(w){ return Math.abs(w.end - y) < 0.05; }); if (i >= 0) setWindow(i); };   // debugging hooks
 var soundBtn = document.getElementById('soundBtn');
 if (soundBtn){
-  if (!Object.keys(MEDIA).length) soundBtn.hidden = true;
   soundBtn.onclick = function(){ setSound(!SOUND.on); };
 }
 
@@ -1107,7 +1141,7 @@ canvas.addEventListener('wheel', function(ev){
   ev.preventDefault();
   camDist = Math.max(1.6, Math.min(140, camDist * (ev.deltaY > 0 ? 1.07 : 0.93)));
   hovered = null; document.getElementById('tip').classList.remove('on');
-  bindWindow(); render();                 // zooming does not stop the globe turning
+  bindWindow(); render(); if (SOUND.on) updateSound();   // zooming does not stop the globe turning; it changes the mix
 }, { passive:false });
 
 // ---------- idle spin ----------
