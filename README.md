@@ -26,4 +26,6 @@ npm run refresh      # pull everything again from Wikidata, Wikipedia and Common
 
 Events and dates come from Wikidata, descriptions from Wikipedia (CC BY-SA), photographs and clips from Wikimedia Commons under the licence shown in each panel; the Earth is NASA's Blue Marble and the sky is the real sky for the moment shown. How it fits together: [docs/internals.md](docs/internals.md). To add an event, fix a headline or add a source: [CONTRIBUTING.md](CONTRIBUTING.md).
 
+**What this is.** A proof of concept, nothing more: an idea about what it would feel like to be unbound by space and time and look at the Earth's recent past all at once. It was prototyped quickly with Claude (Anthropic's model) doing most of the coding from spoken direction, over a few days, so expect rough edges — headlines written by rules, uneven coverage between countries, a desktop-only layout. The design decisions worth keeping are written down in [docs/internals.md](docs/internals.md); everything else is up for grabs.
+
 Code is MIT; data and media keep their own terms ([LICENSE](LICENSE)).

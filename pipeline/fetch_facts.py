@@ -23,7 +23,7 @@ import urllib.parse
 
 import requests
 
-USER_AGENT = "GeotemporalTransurfing/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
+USER_AGENT = "GeotemporalTransurfing/0.6 (https://github.com/aregmii/geotemporal-transurfing)"
 WDQS = "https://query.wikidata.org/sparql"
 CACHE_DIR = "facts_cache_v2"   # v2: end dates at month and year precision are kept (the v1 cache stored only day-precision ends)
 BATCH = 60

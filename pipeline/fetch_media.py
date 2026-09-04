@@ -32,7 +32,7 @@ import urllib.parse
 
 import requests
 
-USER_AGENT = "GeotemporalTransurfing/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
+USER_AGENT = "GeotemporalTransurfing/0.6 (https://github.com/aregmii/geotemporal-transurfing)"
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 WDQS = "https://query.wikidata.org/sparql"
 CACHE_DIR = "media_cache"

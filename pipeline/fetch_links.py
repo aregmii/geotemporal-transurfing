@@ -24,7 +24,7 @@ import urllib.parse
 
 import requests
 
-USER_AGENT = "GeotemporalTransurfing/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
+USER_AGENT = "GeotemporalTransurfing/0.6 (https://github.com/aregmii/geotemporal-transurfing)"
 WDQS = "https://query.wikidata.org/sparql"
 CACHE_DIR = "links_cache"
 RELATIONS = ["P1542", "P828", "P1536", "P1478", "P1479", "P155", "P156", "P361", "P527"]

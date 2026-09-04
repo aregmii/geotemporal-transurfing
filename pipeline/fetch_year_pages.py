@@ -33,7 +33,7 @@ import urllib.parse
 
 import requests
 
-USER_AGENT = "GeotemporalTransurfing/0.1 (personal history-map prototype; contact: amishregmi.brt@gmail.com)"
+USER_AGENT = "GeotemporalTransurfing/0.6 (https://github.com/aregmii/geotemporal-transurfing)"
 API = "https://en.wikipedia.org/w/api.php"
 CACHE_DIR = "yearpages_cache"
 PAUSE_SECONDS = 0.15
