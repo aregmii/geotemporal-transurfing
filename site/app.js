@@ -218,6 +218,12 @@ var nowT = 0;                                          // the moment on the glob
 if (wi < 0) wi = WINDOWS.findIndex(function(w){ return w.start <= 2022 && w.end >= 2022; });
 if (wi < 0) wi = WINDOWS.length - 1;
 var selected = null, hovered = null, hoveredSky = null, idle = true, idleTimer = null;
+// The clock every animation reads. Normally the browser's; a recorder can freeze it and step it by hand
+// (window.__cgtFrame), so a film of the app is smooth however slowly the frames were rendered.
+var VIRTUAL_MS = null;
+function clockNow(){ return VIRTUAL_MS != null ? VIRTUAL_MS : performance.now(); }
+var ANIMS = [];                                        // running tweens: functions of the clock, true when done
+function runAnims(){ var t = clockNow(); for (var i = ANIMS.length - 1; i >= 0; i--){ if (ANIMS[i](t)) ANIMS.splice(i, 1); } }
 function agoText(ly){ return ly >= 1000000 ? (ly / 1000000).toFixed(1) + ' MILLION YEARS AGO' : ly >= 2 ? Math.round(ly).toLocaleString() + ' YEARS AGO' : 'ABOUT A YEAR AGO'; }
 var off = { con:false, cul:false, sci:false, dis:false };
 var camDist = 3.9;
@@ -1435,7 +1441,7 @@ function setSound(on){
 }
 // Sharing a moment: the URL hash already carries the mode, the month and the open event, so the address bar is
 // the share button. The header button is gone — it was taking a slot next to the categories to do what Cmd-L does.
-window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtShown = function(){ return shown; }; window.__cgtImages = IMAGES; window.__cgtOpen = openPanel; window.__cgtContext = contextFor; window.__cgtTickNext = function(){ tickerIndex++; showTicker(); }; window.__cgtSky = function(){ return SKY_ON_SCREEN; }; window.__cgtMotif = playMotif; window.__cgtFly = function(e){ flyTo(e, function(){ openPanel(e); }); }; window.__cgtGotoT = goToMoment; window.__cgtZoom = function(d){ camDist = Math.max(minCamDist, Math.min(140, d)); bindNow(true); render(); }; window.__cgtSpin = function(e){ globe.quaternion.copy(targetQuat(e.lat, e.lon)); }; window.__cgtCam = function(){ return camDist.toFixed(2); }; window.__cgtNow = function(){ return WINDOWS[wi].end; }; window.__cgtGoto = function(y){ var i = WINDOWS.findIndex(function(w){ return Math.abs(w.end - y) < 0.05; }); if (i >= 0) setWindow(i); };   // debugging hooks
+window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtShown = function(){ return shown; }; window.__cgtImages = IMAGES; window.__cgtOpen = openPanel; window.__cgtContext = contextFor; window.__cgtTickNext = function(){ tickerIndex++; showTicker(); }; window.__cgtSky = function(){ return SKY_ON_SCREEN; }; window.__cgtMotif = playMotif; window.__cgtFly = function(e){ flyTo(e, function(){ openPanel(e); }); }; window.__cgtGotoT = goToMoment; window.__cgtFrame = function(ms){ VIRTUAL_MS = (VIRTUAL_MS == null ? performance.now() : VIRTUAL_MS) + ms; if (playDir && playLast > VIRTUAL_MS) playLast = VIRTUAL_MS - ms; tickOnce(); render(); }; window.__cgtFlick = function(vx, vy){ velX = vx; velY = vy || 0; }; window.__cgtWheel = function(steps){ for (var i = 0; i < Math.abs(steps); i++) camDist = Math.max(minCamDist, Math.min(140, camDist * (steps > 0 ? 1.07 : 0.93))); bindNow(true); render(); }; window.__cgtZoom = function(d){ camDist = Math.max(minCamDist, Math.min(140, d)); bindNow(true); render(); }; window.__cgtSpin = function(e){ globe.quaternion.copy(targetQuat(e.lat, e.lon)); }; window.__cgtCam = function(){ return camDist.toFixed(2); }; window.__cgtNow = function(){ return WINDOWS[wi].end; }; window.__cgtGoto = function(y){ var i = WINDOWS.findIndex(function(w){ return Math.abs(w.end - y) < 0.05; }); if (i >= 0) setWindow(i); };   // debugging hooks
 var soundBtn = document.getElementById('soundBtn');
 if (soundBtn){
   soundBtn.onclick = function(){ setSound(!SOUND.on); };
@@ -1453,7 +1459,6 @@ if (volRange){
 }
 
 // ---------- spin to ----------
-var spinAnim = null;
 function spinTo(e){ flyTo(e, null, camDist); }
 // Going to an event: the globe turns so the place comes to the middle while the camera comes down to a viewing
 // height (FLY_HEIGHT radii — about 4,000 km up, where a card is a picture and the country fills the frame), both
@@ -1462,17 +1467,19 @@ var FLY_HEIGHT = 1.62;
 function flyTo(e, done, heightOverride){
   var from = globe.quaternion.clone(), to = targetQuat(e.lat, e.lon);
   var d0 = camDist, d1 = heightOverride != null ? heightOverride : Math.max(minCamDist, Math.min(camDist, FLY_HEIGHT));
-  var t0 = performance.now(), dur = Math.abs(d1 - d0) > 0.05 ? 1500 : 700;
-  if (spinAnim) cancelAnimationFrame(spinAnim);
-  (function step(t){
+  var t0 = clockNow(), dur = Math.abs(d1 - d0) > 0.05 ? 1500 : 700;
+  ANIMS.length = 0;                                    // a new flight replaces any flight under way
+  ANIMS.push(function(t){
     var k = Math.min(1, (t - t0) / dur);
     var ease = k < 0.5 ? 2*k*k : 1 - Math.pow(-2*k + 2, 2) / 2;
     globe.quaternion.copy(from).slerp(to, ease);
     if (d1 !== d0){ camDist = d0 + (d1 - d0) * ease; bindNow(true); }
     render();
-    if (k < 1) spinAnim = requestAnimationFrame(step);
-    else if (done) done();
-  })(t0);
+    if (k < 1) return false;
+    if (done) done();
+    return true;
+  });
+  runAnims();
   bumpIdle();
 }
 
@@ -1484,7 +1491,7 @@ var qTmp = new THREE.Quaternion(), qTmp2 = new THREE.Quaternion();
 
 canvas.addEventListener('pointerdown', function(ev){
   dragging = true; moved = 0; lastX = ev.clientX; lastY = ev.clientY; shifted = ev.shiftKey;
-  velX = 0; velY = 0; lastMoveT = performance.now();
+  velX = 0; velY = 0; lastMoveT = clockNow();
   canvas.classList.add('drag'); canvas.setPointerCapture(ev.pointerId); bumpIdle();
 });
 canvas.addEventListener('pointermove', function(ev){
@@ -1498,7 +1505,7 @@ canvas.addEventListener('pointermove', function(ev){
     } else {
       qTmp.setFromAxisAngle(AY, dx * k); qTmp2.setFromAxisAngle(AX, dy * k);
       globe.quaternion.premultiply(qTmp).premultiply(qTmp2);
-      var now = performance.now(), dt = Math.max(1, now - lastMoveT); lastMoveT = now;
+      var now = clockNow(), dt = Math.max(1, now - lastMoveT); lastMoveT = now;
       velX = 0.6 * velX + 0.4 * (dx * k) * (16 / dt); velY = 0.6 * velY + 0.4 * (dy * k) * (16 / dt);
     }
     render(); bumpIdle(); return;
@@ -1540,7 +1547,7 @@ canvas.addEventListener('pointermove', function(ev){
 function endDrag(ev){
   if (!dragging) return;
   dragging = false; canvas.classList.remove('drag');
-  if (performance.now() - lastMoveT > 80){ velX = spinDir * spinSpeed; velY = 0; }   // held still before release: no throw, keep turning
+  if (clockNow() - lastMoveT > 80){ velX = spinDir * spinSpeed; velY = 0; }   // held still before release: no throw, keep turning
   if (moved < 5){ velX = spinDir * spinSpeed; velY = 0;
     var rect = canvas.getBoundingClientRect();
     var hit = pick(ev.clientX - rect.left, ev.clientY - rect.top);
@@ -1579,8 +1586,13 @@ function kenBurns(t){
   return any;
 }
 function tick(){
-  var moving = kenBurns(performance.now()); tickPlay(performance.now()); if (selected || moving) render();
-  if (updateLiveGlyphs(performance.now()) && !selected) render();
+  if (VIRTUAL_MS == null) tickOnce();                  // under a frozen clock the recorder steps the app itself
+  requestAnimationFrame(tick);
+}
+function tickOnce(){
+  runAnims(); tickTicker();
+  var moving = kenBurns(clockNow()); tickPlay(clockNow()); if (selected || moving) render();
+  if (updateLiveGlyphs(clockNow()) && !selected) render();
   if (SOUND.on) updateSound();
   if (liveClips){ updateLive(); if (!selected) render(); }
   if (!dragging){
@@ -1597,7 +1609,6 @@ function tick(){
       render();
     }
   }
-  requestAnimationFrame(tick);
 }
 
 // ---------- spin speed (left) and time playback (right) ----------
@@ -1637,7 +1648,7 @@ function showSpeed(){
   }
 }
 function setPlayDir(dir){
-  playDir = dir; playAcc = 0; playLast = performance.now();
+  playDir = dir; playAcc = 0; playLast = clockNow();
   showSpeed();
 }
 // a press in the running direction goes one step faster; a press the other way turns round at 1x
@@ -1928,7 +1939,8 @@ function shortTitle(e){
   if (t.length > 72) t = t.slice(0, 72).replace(/\s+\S*$/, '') + '…';
   return t;
 }
-var tickerPairs = [], tickerIndex = 0, tickerTimer = null;
+var tickerPairs = [], tickerIndex = 0, tickerShownAt = 0, TICKER_HOLD_MS = 9000;
+function tickTicker(){ if (tickerPairs.length > 1 && clockNow() - tickerShownAt >= TICKER_HOLD_MS){ tickerIndex++; showTicker(); tickerShownAt = clockNow(); } }
 function tickerSide(e){
   // the place is added only when the headline does not already say it
   var t = shortTitle(e);
@@ -1947,7 +1959,7 @@ function showTicker(){
 }
 function resetTicker(){
   tickerPairs = coincidences(); tickerIndex = 0; showTicker();
-  clearInterval(tickerTimer); tickerTimer = setInterval(function(){ tickerIndex++; showTicker(); }, 9000);
+  tickerShownAt = clockNow();                                       // the next line comes TICKER_HOLD_MS later, on the app's clock
 }
 document.getElementById('aboutCounts').textContent = EVENTS.length.toLocaleString() + ' events · ' + Object.keys(IMAGES).length.toLocaleString() + ' photographs';
 document.getElementById('aboutBtn').onclick = function(){ document.getElementById('about').classList.toggle('on'); };
