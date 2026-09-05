@@ -1,12 +1,10 @@
 # Geotemporal Transurfing
 
-Explore all four dimensions: orbit and zoom through space, move through time, and follow events across the globe.
+The Tesseract experience lets you explore geotemporal time: orbit and zoom through space, pause, reverse, or rewind time and event footage, accelerate through history, and see what was happening elsewhere concurrently.
 
 **[Try it](https://geotemporal-transurfing.pages.dev/)**
 
 ![The Tesseract experience: play, pause, reverse, accelerate, and travel between events](docs/tesseract-tour.gif)
-
-**The Tesseract experience.** Orbit and zoom through space, pause or rewind time and event footage, and see what was happening elsewhere on the same date.
 
 ![Throw the globe, approach Stockholm, and open moving footage of the 2010 royal wedding](docs/demo.gif)
 
