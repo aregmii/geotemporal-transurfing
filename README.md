@@ -6,7 +6,12 @@ Transfusing through the 4 dimensions.
 
 ![The Tesseract experience: play, pause, reverse, accelerate, and travel between events](docs/tesseract-tour.gif)
 
-**The Tesseract experience.** Move through all four dimensions: orbit and zoom through space, play or rewind history, pause and accelerate supported archival footage, then follow “Meanwhile, elsewhere” to what was happening in another place.
+**The Tesseract experience.** 
+
+Current experience includes:
+1. Orbit and zoom through space
+2. Pause, play or rewind time and events
+3. See concurrent events occurring elsewhere for each event.
 
 ![Throw the globe, approach Stockholm, and open moving footage of the 2010 royal wedding](docs/demo.gif)
 
