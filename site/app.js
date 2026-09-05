@@ -785,7 +785,7 @@ function updateLiveGlyphs(now){
 
 var shown = [];   // events currently bound to pool holders
 var windowTotal = 0;
-var monthCands = [], prevShown = [], CAT_COLOR = {};
+var monthCands = [], prevShown = [], CAT_COLOR = {}, PHOTOS_ONLY = false, CARD_SCALE = 1;
 function catColor(cat){ if (!CAT_COLOR[cat]) CAT_COLOR[cat] = css(CATS[cat].v); return CAT_COLOR[cat]; }
 function bindWindow(){
   // Once per month: every event that can be on the globe at some moment of this month. Then bindNow() picks,
@@ -806,7 +806,8 @@ function bindNow(force){
   var list = [];
   for (var i = 0; i < monthCands.length; i++){
     var e = monthCands[i];
-    if (far && e.w <= 1) continue;
+    if (PHOTOS_ONLY){ if (!IMAGES[e.slug]) continue; }              // a recording that wants pictures only
+    else if (far && e.w <= 1) continue;
     e._p = slider ? prominence(e, nowT) : 1;
     if (e._p > 0.005) list.push(e);
   }
@@ -949,7 +950,7 @@ function render(){
   // the card stays about the same number of pixels while the ground beneath it spreads apart, so coming in on a
   // country pulls its events out of one another. The exponent leaves cards a little larger up close, where you
   // are reading them, than they are with the whole Earth in frame.
-  var zoomBoost = Math.max(0.30, Math.min(1.6, 0.86 * Math.pow(camDist / 3.9, 0.55)));
+  var zoomBoost = Math.max(0.30, Math.min(1.6, 0.86 * Math.pow(camDist / 3.9, 0.55))) * CARD_SCALE;
   var pxPerUnit = cardPixels();
   var placed = [];      // {x, y, hw, hh} of cards already laid out this frame, in px
   var hiddenCount = 0;
@@ -1441,7 +1442,7 @@ function setSound(on){
 }
 // Sharing a moment: the URL hash already carries the mode, the month and the open event, so the address bar is
 // the share button. The header button is gone — it was taking a slot next to the categories to do what Cmd-L does.
-window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtShown = function(){ return shown; }; window.__cgtImages = IMAGES; window.__cgtOpen = openPanel; window.__cgtContext = contextFor; window.__cgtTickNext = function(){ tickerIndex++; showTicker(); }; window.__cgtSky = function(){ return SKY_ON_SCREEN; }; window.__cgtMotif = playMotif; window.__cgtFly = function(e){ flyTo(e, function(){ openPanel(e); }); }; window.__cgtGotoT = goToMoment; window.__cgtFrame = function(ms){ VIRTUAL_MS = (VIRTUAL_MS == null ? performance.now() : VIRTUAL_MS) + ms; if (playDir && playLast > VIRTUAL_MS) playLast = VIRTUAL_MS - ms; tickOnce(); render(); }; window.__cgtFlick = function(vx, vy){ velX = vx; velY = vy || 0; }; window.__cgtWheel = function(steps){ for (var i = 0; i < Math.abs(steps); i++) camDist = Math.max(minCamDist, Math.min(140, camDist * (steps > 0 ? 1.07 : 0.93))); bindNow(true); render(); }; window.__cgtZoom = function(d){ camDist = Math.max(minCamDist, Math.min(140, d)); bindNow(true); render(); }; window.__cgtSpin = function(e){ globe.quaternion.copy(targetQuat(e.lat, e.lon)); }; window.__cgtCam = function(){ return camDist.toFixed(2); }; window.__cgtNow = function(){ return WINDOWS[wi].end; }; window.__cgtGoto = function(y){ var i = WINDOWS.findIndex(function(w){ return Math.abs(w.end - y) < 0.05; }); if (i >= 0) setWindow(i); };   // debugging hooks
+window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtShown = function(){ return shown; }; window.__cgtImages = IMAGES; window.__cgtOpen = openPanel; window.__cgtContext = contextFor; window.__cgtTickNext = function(){ tickerIndex++; showTicker(); }; window.__cgtSky = function(){ return SKY_ON_SCREEN; }; window.__cgtMotif = playMotif; window.__cgtFly = function(e){ flyTo(e, function(){ openPanel(e); }); }; window.__cgtGotoT = goToMoment; window.__cgtPhotosOnly = function(on, scale){ PHOTOS_ONLY = !!on; CARD_SCALE = scale || 1; bindNow(true); render(); }; window.__cgtView = function(lat, lon, dist){ globe.quaternion.copy(targetQuat(lat, lon)); if (dist) camDist = Math.max(minCamDist, Math.min(140, dist)); bindNow(true); render(); }; window.__cgtFrame = function(ms){ VIRTUAL_MS = (VIRTUAL_MS == null ? performance.now() : VIRTUAL_MS) + ms; if (playDir && playLast > VIRTUAL_MS) playLast = VIRTUAL_MS - ms; tickOnce(); render(); }; window.__cgtFlick = function(vx, vy){ velX = vx; velY = vy || 0; }; window.__cgtWheel = function(steps){ for (var i = 0; i < Math.abs(steps); i++) camDist = Math.max(minCamDist, Math.min(140, camDist * (steps > 0 ? 1.07 : 0.93))); bindNow(true); render(); }; window.__cgtZoom = function(d){ camDist = Math.max(minCamDist, Math.min(140, d)); bindNow(true); render(); }; window.__cgtSpin = function(e){ globe.quaternion.copy(targetQuat(e.lat, e.lon)); }; window.__cgtCam = function(){ return camDist.toFixed(2); }; window.__cgtNow = function(){ return WINDOWS[wi].end; }; window.__cgtGoto = function(y){ var i = WINDOWS.findIndex(function(w){ return Math.abs(w.end - y) < 0.05; }); if (i >= 0) setWindow(i); };   // debugging hooks
 var soundBtn = document.getElementById('soundBtn');
 if (soundBtn){
   soundBtn.onclick = function(){ setSound(!SOUND.on); };
