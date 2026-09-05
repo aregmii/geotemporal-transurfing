@@ -8,7 +8,7 @@ The Tesseract experience allows you to
 
 **[Try it](https://geotemporal-transurfing.pages.dev/)**
 
-![The Tesseract experience: play, pause, reverse, accelerate, and travel between events](docs/tesseract-tour.gif)
+<img src="docs/tesseract-tour.gif" width="800" alt="The Tesseract experience: play, pause, reverse, accelerate, and travel between events">
 
 ![Throw the globe, approach Stockholm, and open moving footage of the 2010 royal wedding](docs/demo.gif)
 
@@ -23,8 +23,6 @@ The Tesseract experience allows you to
 **Control time and space.** Slow down, speed up, reverse, and pause. Switch to independent XYZ movement, look around, and return to Earth.
 
 ![Change time direction and speed, move through XYZ, and return to Earth](docs/time-playback.gif)
-
-The opening projects archival wedding footage among the event cards. The reverse sequence uses NASA’s archival Discovery launch footage. The navigation and XYZ walkthroughs use verified archival photographs. Period views show their date range; Moment view shows events on the selected date. [Recording and media credits](docs/demo-media-credits.md).
 
 ## How it works
 
