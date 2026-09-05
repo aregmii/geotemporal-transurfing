@@ -1,6 +1,10 @@
 # Geotemporal Transurfing
 
-The Tesseract experience lets you explore geotemporal time: orbit and zoom through space, pause, reverse, or rewind time and event footage, accelerate through history, and see what was happening elsewhere concurrently.
+The Tesseract experience allows you to
+
+- orbit and zoom through space
+- pause, reverse or fast-forward time, and event footage
+- see what's happening at a different X, Y, Z coordinate at the time of the event
 
 **[Try it](https://geotemporal-transurfing.pages.dev/)**
 
@@ -24,7 +28,7 @@ The opening projects archival wedding footage among the event cards. The reverse
 
 ## How it works
 
-Events are collected offline from Wikipedia, Wikidata, and curated records, then placed on the globe by date and location. Earth uses static NASA imagery wrapped around a 3D globe, with a [sky calculated from a star catalog and astronomical models](docs/observer-and-sky-validation.md); it is not a live satellite feed. Dated photos and clips share the time controls, while “Meanwhile” takes you to events in other places.
+Static data is collected from Wikidata, Wikipedia and Wikimedia. The logic is in [`site/app.js`](site/app.js).
 
 ## Run locally
 
