@@ -7,6 +7,39 @@ var BORDERS = window.__GT.borders;
 var RAW = window.__GT.events;
 var IMAGES = window.__GT.images;
 var MEDIA = window.__GT.media || {};
+var PHOTO_INDEX = window.GTEventPhotos.createIndex(window.__GT.eventPhotos || {events:[]});
+function photoFor(e, panel){
+  var photos = window.GTEventPhotos.photosFor(e, PHOTO_INDEX);
+  for (var i = 0; i < photos.length; i++){
+    var p = photos[i];
+    if (panel) return p;
+    if (p.photoRole === 'context') continue;
+    var date = p.photoDate && p.photoDate.length === 10 ? window.GTTime.parseISO(p.photoDate) : NaN;
+    if (Number.isFinite(date) && date <= nowT) return p;
+  }
+  return null;
+}
+function mediaFor(e, panel){
+  var m = MEDIA[e.stableId] || MEDIA[e.mediaKey];
+  if (!m) return null;
+  if (panel) return m;
+  var t = window.GTTime.parseISO(m.mediaDate);
+  return m.autoplayApproved && m.mediaRole === 'contemporaneous' && Number.isFinite(t) && t <= nowT ? m : null;
+}
+
+function visualFor(e){
+  var photo = photoFor(e), media = mediaFor(e);
+  return photo || (media && media.kind === 'video' ? media : null);
+}
+function clipIdentity(e, media){
+  return JSON.stringify([e.stableId || e.mediaKey, media.kind, media.file]);
+}
+function cardMediaStamp(e){
+  var photo = photoFor(e), media = mediaFor(e);
+  return JSON.stringify([photo ? photo.file : null, media ? clipIdentity(e, media) : null]);
+}
+function cardTextureKey(e){ return (e.stableId || e.mediaKey || e.cat) + ':' + cardMediaStamp(e); }
+
 var LINKS = window.__GT.links || [];              // [[slugA, relation, slugB], ...] from Wikidata cause/effect properties          // slug -> { file, kind, author, license, licenseUrl, filePage, seconds }
 var MEDIA_DIR = window.__GT.mediaDir != null ? window.__GT.mediaDir : "media/";
 var DEG = Math.PI / 180;
@@ -18,55 +51,40 @@ var CATS = {
   dis:{label:'Disasters',       v:'--dis'}
 };
 
-function parseRow(r, i){
-  var e = { id:i, title:r[0], lat:r[1], lon:r[2], start:r[3], end:r[4], cat:r[5], w:r[6], place:r[7], desc:r[8], slug:r[9],
-            date:(typeof r[10] === 'string' && /^-?\d{1,6}-\d{2}-\d{2}$/.test(r[10]) && !/-01-01$/.test(r[10])) ? r[10] : null, who:r[11] || null,
-            endDate:(typeof r[12] === 'string' && /^-?\d{1,6}-\d{2}-\d{2}$/.test(r[12])) ? r[12] : null, name:r[13] || r[0] };
-  // time bounds in fractional years: a dated event is a point (or its exact span), a year-only event covers its whole year(s)
-  if (e.date){ e.t0 = fracOfDate(e.date); e.t1 = e.endDate ? Math.max(e.t0 + 1 / 365, fracOfDate(e.endDate)) : (e.end > e.start ? e.end + 1 : e.t0 + 1 / 365); }
-  else { e.t0 = e.start; e.t1 = e.end + 1; }
-  return e;
+var TIME = window.GTTime, EVENT_MODEL = window.GTEvents;
+var temporalView = 'period', periodDays = 365 * 5, densityLevel = 1;
+function presentTime(){ return TIME.now(); }
+function parseRow(r, i){ return EVENT_MODEL.parseRow(r, i, TIME); }
+function fracOfDate(iso){ return TIME.parseISO(iso); }
+var STEP = 1 / 12, BACKGROUND = 0.42;
+function viewBounds(t, w){
+  var era = ERAS[w.era];
+  if (!era.slider) return { start:w.start, end:Math.min(w.end, presentTime()), overview:true };
+  return temporalView === 'moment'
+    ? { start:t, end:t, overview:false }
+    : { start:TIME.addDays(t, -periodDays), end:t, overview:true };
 }
-function fracOfDate(iso){ var m = /^(-?\d+)-(\d\d)-(\d\d)$/.exec(iso); return +m[1] + (+m[2] - 1) / 12 + (+m[3] - 1) / 365; }
-// Event time, continuously. NOW is a moment (a fractional year, nowT), and every event has a loudness at that
-// moment: a moment (a day, a match, a crash) fades in over the three days before its date, holds for a little over
-// three weeks, and fades out over a week — so 9/11 is on the globe through September 2001 and gone by
-// mid-October, and as the film runs cards rise and sink instead of popping in and out at month boundaries.
-// Something that runs for months or years (a war, a pandemic) fades in the same way, is loudest when it begins,
-// settles to a background level, and fades out when it ends.
-var STEP = 1 / 12;                                     // the month: the unit of the rail and of the data shards
-var HEADLINE_YEARS = { 1:0.5, 2:1, 3:2, 4:3 };         // how long a long-running thing stays loud after it begins
-var BACKGROUND = 0.42;
-var MOMENT = 45 / 365;                                 // shorter than this, an event is a moment
-var FADE_IN = 3 / 365, HOLD = 24 / 365, FADE_OUT = 8 / 365;
+function eligibleEvent(e){ return e.t0 <= presentTime(); }
+function inView(e, t, w){
+  if (!eligibleEvent(e)) return false;
+  var b = viewBounds(t, w);
+  return b.overview ? e.t0 <= b.end && e.t1 > b.start : EVENT_MODEL.contains(e, t);
+}
 function prominence(e, now){
-  if (now < e.t0 - FADE_IN) return 0;                  // not yet
-  var rise = now < e.t0 ? (now - (e.t0 - FADE_IN)) / FADE_IN : 1;
-  if (e.t1 - e.t0 < MOMENT){                           // a moment: its three weeks, then gone
-    var since = now - e.t0;
-    if (since < 0) return rise;
-    if (since < HOLD) return 1;
-    if (since < HOLD + FADE_OUT) return 1 - (since - HOLD) / FADE_OUT;
-    return 0;
-  }
-  if (now > e.t1 + FADE_OUT) return 0;                 // over
-  var H = HEADLINE_YEARS[e.w] || 1, age = now - e.t0;
-  var level = age < H ? 1 - (1 - BACKGROUND) * (age / H) : BACKGROUND;
-  if (now > e.t1) level *= 1 - (now - e.t1) / FADE_OUT;
-  return level * rise;
+  if (!inView(e, now, WINDOWS[wi])) return 0;
+  if (temporalView === 'moment') return 1;
+  return e.temporalKind === 'interval' && now > TIME.addDays(e.t0, 30) ? 0.62 : 1;
 }
-// could this event be on the globe at any point during the month the window names?
 function inMonth(e, w){
-  var start = w.end, end = w.end + STEP;
-  if (e.t1 - e.t0 < MOMENT) return e.t0 - FADE_IN < end && e.t0 + HOLD + FADE_OUT > start;
-  return e.t0 - FADE_IN < end && e.t1 + FADE_OUT > start;
+  var end = Math.min(TIME.nextMonth(w.end), presentTime());
+  var begin = temporalView === 'period' ? TIME.addDays(w.end, -periodDays) : w.end;
+  return eligibleEvent(e) && e.t0 <= end && e.t1 > begin;
 }
 function inWindow(e, w){
-  var era = ERAS[w.era];
-  if (era && era.slider) return inMonth(e, w);                              // the slider rails follow NOW
-  return e.t0 < w.end && e.t1 > w.start;                                     // era tabs: anything inside the era
+  return ERAS[w.era].slider ? inMonth(e, w) : eligibleEvent(e) && e.t0 <= Math.min(w.end, presentTime()) && e.t1 > w.start;
 }
-function fracYear(y){ return Math.round(y * 12) / 12; }
+function fracYear(y){ return TIME.monthStart(y); }
+
 var EVENTS = RAW.map(parseRow);
 // Large builds keep only the top events per year in events.json and the rest in data/y/<year>.json shards,
 // listed in data/index.json; a window loads the shards it touches on demand (not in the playground build).
@@ -76,8 +94,8 @@ var loadedYears = {};
 // Two rails. "century" = calendar decades with 5-year windows; "all" = eleven eras from the first stone tools.
 var ERA_SETS = {
   // a slider: the window is `width` years wide and moves one year at a time across from..to
-  recent:  [ {name:'', label:'', from:2000, to:2026, step:1/12, width:1/12, slider:true, tick:5} ],   // one month at a time, from the first month
-  century: [ {name:'', label:'', from:1926, to:2026, step:1/12, width:1/12, slider:true, tick:10} ],
+  recent:  [ {name:'', label:'', from:2000, to:presentTime(), step:1/12, width:1/12, slider:true, tick:5} ],   // one month at a time, from the first month
+  century: [ {name:'', label:'', from:Math.floor(presentTime()) - 100, to:presentTime(), step:1/12, width:1/12, slider:true, tick:10} ],
   all: [
     {name:'ORIGINS',        label:'4–0.3 Mya',        from:-4000000, to:-320000, step:1000000},
     {name:'HOMO SAPIENS',   label:'320–12 kya',       from:-320000,  to:-10000,  step:100000},
@@ -89,30 +107,29 @@ var ERA_SETS = {
     {name:'EARLY MODERN',   label:'1600–1800',        from:1600,     to:1800,    step:50},
     {name:'INDUSTRIAL',     label:'1800–1900',        from:1800,     to:1900,    step:25},
     {name:'MODERN',         label:'1900–1990',        from:1900,     to:1990,    step:15},
-    {name:'CONTEMPORARY',   label:'1990–2026',        from:1990,     to:2026,    step:12}
+    {name:'CONTEMPORARY',   label:'1990–present',     from:1990,     to:presentTime(),    step:12}
   ]
 };
+var navigationGeneration = 0;
 var mode = 'recent';
 var ERAS = ERA_SETS[mode];
 var WINDOWS = [];
 function buildWindows(){
+  if (mode === 'century') ERAS[0].from = Math.floor(presentTime()) - 100;
   WINDOWS = [];
   ERAS.forEach(function(era, ei){
-    var width = era.width || era.step;
-    var n = era.slider ? Math.round((era.to - era.from) / era.step) : Math.ceil((era.to - era.from) / era.step);
-    era.first = WINDOWS.length; era.count = n;
-    for (var k = 0; k < n; k++){
-      if (era.slider){
-        // a slider window is named by its end, which is NOW: the month on the globe runs from NOW for one step
-        var now = fracYear(era.from + k * era.step);
-        WINDOWS.push({ start:fracYear(now - width), end:now, era:ei });
-      } else {
-        var a = era.from + k * era.step;
-        WINDOWS.push({ start:a, end:Math.min(a + width, era.to), era:ei });
-      }
+    if (ei === ERAS.length - 1) era.to = presentTime();
+    era.first = WINDOWS.length;
+    if (era.slider){
+      for (var at = TIME.monthStart(era.from); at <= era.to; at = TIME.nextMonth(at))
+        WINDOWS.push({ start:TIME.nextMonth(at, -1), end:at, era:ei });
+    } else {
+      for (var a = era.from; a < era.to; a += era.step) WINDOWS.push({ start:a, end:Math.min(a + era.step, era.to), era:ei });
     }
+    era.count = WINDOWS.length - era.first;
   });
 }
+
 buildWindows();
 
 function ago(y){
@@ -128,12 +145,11 @@ function dayLabel(iso){
   var y = parseInt(m[1], 10); if (y <= 0) y = y - 1;   // Wikidata astronomical year -> historical, matching row years
   return parseInt(m[3], 10) + ' ' + MONTHS[parseInt(m[2], 10) - 1] + ' ' + yearLabel(y);
 }
-function dayNumber(iso){
-  var m = iso.match(/^(-?\d+)-(\d{2})-(\d{2})$/); if (!m) return null;
-  return parseInt(m[1], 10) * 365.25 + (parseInt(m[2], 10) - 1) * 30.44 + parseInt(m[3], 10);
-}
+function dayNumber(iso){ var t = TIME.parseISO(iso); return Number.isFinite(t) ? Math.round(TIME.toDay(t)) : null; }
+
 function whenLabel(e){
-  if (e.date) return dayLabel(e.date);
+  if (e.date && e.datePrecision === 'day') return dayLabel(e.date);
+  if (e.date && e.datePrecision === 'month') return monthLabel(e.t0) + ' · month known';
   return e.start === e.end ? yearLabel(e.start) : rangeLabel(e.start, e.end);
 }
 function yearLabel(y){
@@ -156,7 +172,7 @@ function rangeLabel(a, b){
   return a + '–' + b;
 }
 var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function monthLabel(y){ var yr = Math.floor(y + 1e-6), m = Math.round((y - yr) * 12); if (m >= 12){ yr++; m = 0; } return MONTHS[m] + ' ' + yr; }
+function monthLabel(y){ var p = TIME.parts(y); return MONTHS[p.month - 1] + ' ' + (p.year <= 0 ? (1 - p.year) + ' BCE' : p.year); }
 
 // ---------- icons ----------
 function css(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
@@ -227,16 +243,77 @@ function runAnims(){ var t = clockNow(); for (var i = ANIMS.length - 1; i >= 0; 
 function agoText(ly){ return ly >= 1000000 ? (ly / 1000000).toFixed(1) + ' MILLION YEARS AGO' : ly >= 2 ? Math.round(ly).toLocaleString() + ' YEARS AGO' : 'ABOUT A YEAR AGO'; }
 var off = { con:false, cul:false, sci:false, dis:false };
 var camDist = 3.9;
+var observerMode = 'orbit', orbitQuat = new THREE.Quaternion();
+var observerKeys = {}, observerTickLast = null;
+var observerStatusLast = '', observerRevision=0, observerSignature='', observerBoundRevision=-1, observerLastBind=-Infinity;
+var MAX_OBSERVER_R = 140;
 
 // ---------- three ----------
 var wrap = document.getElementById('globewrap');
 var canvas = document.getElementById('c');
-var renderer = new THREE.WebGLRenderer({ canvas:canvas, antialias:true, alpha:false });
+var renderer = new THREE.WebGLRenderer({ canvas:canvas, antialias:true, alpha:false, preserveDrawingBuffer:true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.setClearColor(0x05070d, 1);
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(42, 1, 0.1, 3000);
 camera.position.set(0, 0, camDist);
+function syncObserver(){
+  if (observerMode === 'orbit'){
+    camera.quaternion.copy(orbitQuat).invert();
+    camera.position.set(0,0,camDist).applyQuaternion(camera.quaternion);
+  } else camDist = camera.position.length();
+  camera.updateMatrixWorld(true);
+  var signature=camera.position.toArray().concat(camera.quaternion.toArray()).map(function(v){return v.toFixed(6);}).join(',');
+  if(signature!==observerSignature){observerSignature=signature;observerRevision++;}
+}
+function earthOccludes(point){ return GTObserver.earthOccludes(camera.position, point); }
+function visibleNormal(e){ return GTObserver.surfaceFacing(e.normal, camera.position); }
+function projectEarthPoint(point){ return point.clone().project(camera); }
+function cameraRay(mx,my){
+  var point = new THREE.Vector3(mx / W * 2 - 1, 1 - my / H * 2, 0.5).unproject(camera);
+  return new THREE.Ray(camera.position.clone(), point.sub(camera.position).normalize());
+}
+function eventOnScreen(e){
+  var p = projectEarthPoint(e.normal.clone().multiplyScalar(1.002 + HOVER));
+  return p.z >= -1 && p.z <= 1 && Math.abs(p.x) < 1.08 && Math.abs(p.y) < 1.08;
+}
+function setObserverDistance(distance){
+  distance = Math.max(minCamDist, Math.min(MAX_OBSERVER_R, distance));
+  if (observerMode === 'free') camera.position.setLength(distance);
+  camDist = distance; syncObserver();
+}
+function setObserverMode(mode){
+  ANIMS.length = 0; velX = velY = 0; syncObserver();
+  if (mode === 'orbit' && observerMode === 'free'){
+    camera.lookAt(0,0,0); orbitQuat.copy(camera.quaternion).invert();
+  }
+  observerMode = mode; syncObserver();
+  var b = document.getElementById('freeViewBtn');
+  if (b){ b.setAttribute('aria-pressed', mode === 'free' ? 'true':'false'); b.textContent = mode === 'free' ? 'FREE MOVEMENT' : 'EXPLORE XYZ'; }
+  var controls = document.getElementById('observerMove'); if(controls) controls.hidden = mode !== 'free';
+  var hint=document.getElementById('observerHint'); if(hint) hint.hidden = mode !== 'free';
+  render();
+}
+function returnToEarth(){
+  setObserverMode('orbit'); orbitQuat.copy(targetQuat(22,18)); camDist=3.9;
+  syncObserver(); bindNow(true); render();
+}
+function translateObserver(dx,dy,dz){
+  if(observerMode !== 'free') setObserverMode('free');
+  ANIMS.length=0; velX=velY=0;
+  var next=camera.position.clone().add(new THREE.Vector3(dx,dy,dz));
+  if(next.length()<minCamDist) next.setLength(minCamDist);
+  if(next.length()>MAX_OBSERVER_R) next.setLength(MAX_OBSERVER_R);
+  camera.position.copy(next); syncObserver(); bindNow(true); render();
+}
+function tickObserver(seconds){
+  if(observerMode !== 'free') return;
+  var move=new THREE.Vector3((observerKeys.KeyD?1:0)-(observerKeys.KeyA?1:0),(observerKeys.KeyE?1:0)-(observerKeys.KeyQ?1:0),(observerKeys.KeyS?1:0)-(observerKeys.KeyW?1:0));
+  if(move.lengthSq()){
+    move.normalize().multiplyScalar(Math.max(0.15,(camDist-1)*0.5)*seconds).applyQuaternion(camera.quaternion);
+    translateObserver(move.x,move.y,move.z);
+  }
+}
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.62));
 var sunLight = new THREE.DirectionalLight(0xfff4e0, 0.9);
@@ -273,18 +350,16 @@ function toVec(lat, lon, r){
   return new THREE.Vector3(-r * Math.cos(phi) * Math.sin(theta), r * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta));
 }
 
-// ---------- the real sky ----------
-// Everything in the sky is placed in Earth-fixed coordinates: a star at right ascension RA and declination Dec sits
-// over longitude RA − GMST (Greenwich sidereal time) and latitude Dec. The sky group is a child of the globe, so it
-// turns with the Earth as you spin it and stays correct for the moment shown. Positions come from astronomy-engine.
-var SKY_R = 900;                       // stars, far behind everything
-var AU_IN_EARTH_RADII = 23455;         // 1 AU / Earth's radius — the Moon lands ~60 R away, its real distance
-var sky = new THREE.Group(); globe.add(sky);
-var skyDate = new Date();
-var skyLabelSprites = [];
-
+// ---------- catalog sky and geometric Solar System ----------
+// World axes are Earth-fixed. EQJ catalog directions are precessed/nutated to EQD,
+// then rotated by apparent sidereal time. Only directions are translated to the observer.
+var SKY_R = 900, AU_IN_EARTH_RADII = GTObserver.AU_KM / GTObserver.EARTH_KM;
+var sky = new THREE.Group(); scene.add(sky);
+var bodiesGroup = new THREE.Group(); scene.add(bodiesGroup);
+var skyDate = null, skyAvailable = false, skyLabelSprites = [];
+var skyCatalogPoints = null, skyCatalogPositions = [];
+var bodyPositions = {}, BODY_RADII_KM = {Sun:695700,Moon:1737.4,Mercury:2439.7,Venus:6051.8,Mars:3389.5,Jupiter:69911,Saturn:58232};
 function skyLonLat(raDeg, decDeg, gmstDeg){ return [decDeg, ((raDeg - gmstDeg + 540) % 360) - 180]; }
-
 function makeTextSprite(text, size, dim){
   // screen-constant label: sizeAttenuation off, scale is a fraction of the viewport height
   var c = document.createElement('canvas'); c.width = 512; c.height = 64;
@@ -297,51 +372,59 @@ var SKYLABELS = window.__GT.skyLabels || { stars:[], constellations:[] };
 
 var skySphere, moonMesh, sunSprite, planetSprites = {};
 function buildSkyStatic(){
-  // the sky itself: a baked equirectangular photograph-style map (real stars and Milky Way, equatorial coordinates)
-  // on the inside of a far sphere. Same longitude mapping as the Earth texture, mirrored because we look from inside.
-  var skyTex = new THREE.TextureLoader().load(window.__GT.skyImage || 'assets/sky.jpg', function(){ render(); });
-  skyTex.wrapS = THREE.RepeatWrapping; skyTex.repeat.x = -1;
-  skySphere = new THREE.Mesh(new THREE.SphereGeometry(SKY_R, 64, 40), new THREE.MeshBasicMaterial({ map:skyTex, side:THREE.BackSide, depthWrite:false }));
-  skySphere.renderOrder = -10; sky.add(skySphere);
+  var catalog = window.__GT.starCatalog;
+  var stars = catalog && catalog.features ? catalog.features.map(function(f){ return [f.geometry.coordinates[0],f.geometry.coordinates[1],f.properties.mag]; }) : SKYLABELS.stars.map(function(st){ return [st[1],st[2],st[3]]; });
+  var positions=[], colors=[];
+  stars.forEach(function(st){
+    var ra=st[0]*DEG,dec=st[1]*DEG;
+    skyCatalogPositions.push({x:Math.cos(dec)*Math.cos(ra),y:Math.cos(dec)*Math.sin(ra),z:Math.sin(dec)});
+    positions.push(0,0,0);
+    var brightness=Math.max(0.13,Math.min(1,Math.pow(10,-0.15*(st[2]+1))));
+    colors.push(brightness,brightness,brightness);
+  });
+  var geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3)); geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+  skyCatalogPoints=new THREE.Points(geo,new THREE.PointsMaterial({size:2,sizeAttenuation:false,vertexColors:true,depthWrite:false}));
+  skyCatalogPoints.frustumCulled=false; skyCatalogPoints.renderOrder=-10; sky.add(skyCatalogPoints);
 
   // the Moon: a lit sphere at its true distance and size, so its phase and apparent size are right
   moonMesh = new THREE.Mesh(new THREE.SphereGeometry(0.2727, 32, 24), new THREE.MeshLambertMaterial({ color:0xd9d9d2 }));
-  sky.add(moonMesh);
+  bodiesGroup.add(moonMesh);
 
   // the Sun: a bright sprite far out, plus the directional light comes from it
   var sc = document.createElement('canvas'); sc.width = sc.height = 256; var sctx = sc.getContext('2d');
   var grad = sctx.createRadialGradient(128, 128, 0, 128, 128, 128); grad.addColorStop(0, 'rgba(255,255,250,1)'); grad.addColorStop(0.38, 'rgba(255,253,240,1)'); grad.addColorStop(0.40, 'rgba(255,240,205,.55)'); grad.addColorStop(0.7, 'rgba(255,225,170,.12)'); grad.addColorStop(1, 'rgba(255,220,150,0)');
   sctx.fillStyle = grad; sctx.fillRect(0, 0, 256, 256);
-  sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(sc), transparent:true, depthTest:false }));
-  sunSprite.scale.set(700 * 0.0093 * 2.6, 700 * 0.0093 * 2.6, 1); sky.add(sunSprite);   // disc is 0.53° wide; the glare around it about 2.6× that
+  sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(sc), transparent:true, depthTest:true, depthWrite:false }));
+  sunSprite.scale.set(700 * 0.0093 * 2.6, 700 * 0.0093 * 2.6, 1); bodiesGroup.add(sunSprite);   // disc is 0.53° wide; the glare around it about 2.6× that
 
   // planets visible to the eye: small warm points with labels
   ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'].forEach(function(name){
     var pc = document.createElement('canvas'); pc.width = pc.height = 32; var pctx = pc.getContext('2d');
     pctx.beginPath(); pctx.arc(16, 16, 6, 0, 2 * Math.PI); pctx.fillStyle = name === 'Mars' ? '#ffb28a' : '#fff4d6'; pctx.fill();
-    var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(pc), transparent:true, depthTest:false, sizeAttenuation:false }));
-    sp.scale.set(0.014, 0.014, 1); sky.add(sp);
+    var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(pc), transparent:true, depthTest:true, sizeAttenuation:false }));
+    sp.scale.set(0.003, 0.003, 1); bodiesGroup.add(sp);
     planetSprites[name] = sp;
   });
   // sky label candidates — the picker below shows the dozen most important ones on screen each frame
   SKYLABELS.stars.forEach(function(st){
     var ll = skyLonLat(st[1], st[2], 0);
     var text = st[0].toUpperCase() + ' · STAR' + (st[4] ? ' · ' + fmtLy(st[4]) : '');
-    LABEL_CANDIDATES.push({ text:text, pos:toVec(ll[0], ll[1], SKY_R - 20), prio: 6 - st[3], name:st[0], kind:'star', ly:st[4] });
+    LABEL_CANDIDATES.push({ text:text, eqj:equatorialVector(ll[1], ll[0]), pos:new THREE.Vector3(), prio: 6 - st[3], name:st[0], kind:'star', ly:st[4] });
   });
-  SKYLABELS.dsos.forEach(function(d){
+  (SKYLABELS.dsos || []).forEach(function(d){
     var ll = skyLonLat(d[1], d[2], 0);
     var text = d[0].toUpperCase() + ' · ' + String(d[4]).toUpperCase() + (d[5] ? ' · ' + fmtLy(d[5]) : '');
-    LABEL_CANDIDATES.push({ text:text, pos:toVec(ll[0], ll[1], SKY_R - 20), prio: 5.5 - (d[3] || 5), name:d[0], kind:String(d[4]), ly:d[5] });
+    LABEL_CANDIDATES.push({ text:text, eqj:equatorialVector(ll[1], ll[0]), pos:new THREE.Vector3(), prio: 5.5 - (d[3] || 5), name:d[0], kind:String(d[4]), ly:d[5] });
   });
   SKYLABELS.constellations.forEach(function(cn){
     var ll = skyLonLat(cn[1], cn[2], 0);
-    LABEL_CANDIDATES.push({ text:cn[0].toUpperCase(), pos:toVec(ll[0], ll[1], SKY_R - 20), prio: cn[3] === 1 ? 2.5 : cn[3] === 2 ? 1.5 : 0.5, dim:true, name:cn[0], kind:'constellation' });
+    LABEL_CANDIDATES.push({ text:cn[0].toUpperCase(), eqj:equatorialVector(ll[1], ll[0]), pos:new THREE.Vector3(), prio: cn[3] === 1 ? 2.5 : cn[3] === 2 ? 1.5 : 0.5, dim:true, name:cn[0], kind:'constellation' });
   });
   for (var li = 0; li < LABEL_POOL_SIZE; li++){
     var lb = makeTextSprite('', 0.026); lb.visible = false; sky.add(lb); LABEL_POOL.push(lb);
   }
 }
+function equatorialVector(ra,dec){ return {x:Math.cos(dec*DEG)*Math.cos(ra*DEG),y:Math.cos(dec*DEG)*Math.sin(ra*DEG),z:Math.sin(dec*DEG)}; }
 var LABEL_CANDIDATES = [], LABEL_POOL = [], LABEL_POOL_SIZE = 14, LABEL_TEX = {};
 var SKY_ON_SCREEN = [];                          // the labels drawn this frame, with screen positions, for hover
 var SKYFACTS = window.__GT.skyFacts || {};
@@ -363,26 +446,33 @@ function labelTexture(text, dim){
   var tex = new THREE.CanvasTexture(c); LABEL_TEX[key] = tex; return tex;
 }
 var _lw = new THREE.Vector3();
+function skyLabelClear(sx,sy){
+  // Keep the complete label band clear of the Earth even when it is off-center.
+  var xs=[sx-110,sx,sx+110],ys=[sy+8,sy+27];
+  for(var x=0;x<xs.length;x++) for(var y=0;y<ys.length;y++){
+    var ray=cameraRay(xs[x],ys[y]);
+    if(earthOccludes(ray.at(SKY_R,new THREE.Vector3()))) return false;
+  }
+  return true;
+}
 function pickSkyLabels(){
-  // project every candidate; keep the ones on screen and clear of the Earth's disc; show the top few
-  if (!LABEL_CANDIDATES.length) return;
-  var earthPx = Math.asin(Math.min(1, 1 / camDist)) / (camera.fov * DEG / 2) * (H / 2);
-  var cx = W / 2, cy = H / 2, chosen = [];
-  var bodies = [{ obj:moonMesh, text:'MOON · ' + Math.round(moonMesh.position.length() * 6371).toLocaleString() + ' KM', prio:99, name:'Moon', kind:'moon' },
-                { obj:sunSprite, text:'SUN · 150 M KM · ½° WIDE FROM HERE, AS IT IS FROM EARTH', prio:98, name:'Sun', kind:'star' }];
-  Object.keys(planetSprites).forEach(function(n){ bodies.push({ obj:planetSprites[n], text:n.toUpperCase() + ' · PLANET', prio:90, name:n, kind:'planet' }); });
-  var all = bodies.map(function(b){ return { text:b.text, pos:b.obj.position, prio:b.prio, name:b.name, kind:b.kind }; }).concat(LABEL_CANDIDATES);
-  SKY_ON_SCREEN = [];
-  for (var i = 0; i < all.length; i++){
-    var c = all[i];
-    _lw.copy(c.pos).applyEuler(sky.rotation).applyQuaternion(globe.quaternion);
-    if (_lw.z < 0 && c.prio < 90) { /* behind the camera plane is fine for far sky; projection handles it */ }
+  SKY_ON_SCREEN=[];
+  if (!skyAvailable){ LABEL_POOL.forEach(function(lb){lb.visible=false;}); return; }
+  var chosen=[];
+  var bodies=[{obj:moonMesh,text:'MOON',prio:99,name:'Moon',kind:'moon'}, {obj:sunSprite,text:'SUN',prio:98,name:'Sun',kind:'star'}];
+  Object.keys(planetSprites).forEach(function(n){bodies.push({obj:planetSprites[n],text:n.toUpperCase(),prio:90,name:n,kind:'planet'});});
+  var all=bodies.filter(function(b){return b.obj.visible;}).map(function(b){
+    return {text:b.text+' · '+Math.round(bodyPositions[b.name].distanceTo(camera.position)*6371).toLocaleString()+' KM',pos:b.obj.position.clone().sub(camera.position),prio:b.prio,name:b.name,kind:b.kind};
+  }).concat(LABEL_CANDIDATES);
+  for(var i=0;i<all.length;i++){
+    var c=all[i];
+    _lw.copy(c.pos).add(camera.position);
+    if(earthOccludes(_lw)) continue;
     _lw.project(camera);
-    if (_lw.z > 1) continue;
-    var sx = (_lw.x + 1) / 2 * W, sy = (1 - _lw.y) / 2 * H;
-    if (sx < 30 || sx > W - 30 || sy < 30 || sy > H - 30) continue;
-    if (Math.hypot(sx - cx, sy - cy) < earthPx + 24 && c.prio < 90) continue;   // hidden behind the Earth
-    c._sx = sx; c._sy = sy; chosen.push(c);
+    if(_lw.z < -1 || _lw.z > 1) continue;
+    var sx=(_lw.x+1)/2*W,sy=(1-_lw.y)/2*H;
+    if(sx<30 || sx>W-30 || sy<30 || sy>H-30 || !skyLabelClear(sx,sy)) continue;
+    c._sx=sx;c._sy=sy;chosen.push(c);
   }
   chosen.sort(function(a, b){ return b.prio - a.prio; });
   var used = [];
@@ -401,9 +491,7 @@ function pickSkyLabels(){
   for (; n < LABEL_POOL_SIZE; n++) LABEL_POOL[n].visible = false;
 }
 
-// Where the viewer is: the point on the Earth straight below the camera, the height above it, and the moment.
-// The camera sits on +Z looking at the origin, so the point below it is world (0,0,1) taken back into the globe's
-// own frame. Written on every frame the view changes.
+// The observer remains independent of camera orientation in an Earth-fixed frame.
 var skyDateText = '', viewpointLast = '';
 var _below = new THREE.Vector3(), _qInv = new THREE.Quaternion();
 function latLonOf(v){
@@ -413,45 +501,58 @@ function latLonOf(v){
   return [lat, lon];
 }
 function writeViewpoint(){
-  _qInv.copy(globe.quaternion).invert();
-  _below.set(0, 0, 1).applyQuaternion(_qInv);
-  var ll = latLonOf(_below);
-  var km = Math.round((camDist - 1) * 6371);
-  var height = km >= 100000 ? Math.round(km / 1000).toLocaleString() + ',000 KM' : km.toLocaleString() + ' KM';
-  var where = Math.abs(ll[0]).toFixed(1) + '°' + (ll[0] >= 0 ? 'N' : 'S') + ' ' + Math.abs(ll[1]).toFixed(1) + '°' + (ll[1] >= 0 ? 'E' : 'W');
-  var text = 'YOU · ' + height + ' ABOVE ' + where + ' · ' + skyDateText;
-  if (text !== viewpointLast){ viewpointLast = text; document.getElementById('skyDate').textContent = text; }
+  _below.copy(camera.position).normalize();
+  var ll=latLonOf(_below),km=Math.round((camDist-1)*GTObserver.EARTH_KM);
+  var where=Math.abs(ll[0]).toFixed(1)+'°'+(ll[0]>=0?'N':'S')+' '+Math.abs(ll[1]).toFixed(1)+'°'+(ll[1]>=0?'E':'W');
+  var text=km.toLocaleString()+' KM ABOVE '+where+' · '+skyDateText;
+  if(text!==viewpointLast){viewpointLast=text;document.getElementById('skyDate').textContent=text;}
+  var coords=document.getElementById('observerCoordinates');
+  if(coords){ coords.textContent='X '+Math.round(camera.position.x*6371).toLocaleString()+' · Y '+Math.round(camera.position.y*6371).toLocaleString()+' · Z '+Math.round(camera.position.z*6371).toLocaleString()+' KM'; }
 }
 function monthMidDate(fracYearValue){
-  var year = Math.floor(fracYearValue + 1e-6), month = Math.round((fracYearValue - year) * 12);
-  if (month > 11){ month = 0; year++; }
-  return new Date(Date.UTC(year, month, 15, 12, 0, 0));
+  var year=Math.floor(fracYearValue+1e-6),month=Math.round((fracYearValue-year)*12);
+  if(month>11){month=0;year++;} return new Date(Date.UTC(year,month,15,12));
 }
+var lastSkyComputed=null;
 function setSkyDate(date){
-  if (typeof Astronomy === 'undefined'){ return; }
-  skyDate = date;
-  var gmstDeg = Astronomy.SiderealTime(date) * 15;
-  // the static sky was built at GMST 0 — turn it about the Earth's axis (three.js +Y) by −GMST
-  sky.rotation.set(0, -gmstDeg * DEG, 0);
-  function place(body, radius){
-    var eq = Astronomy.EquatorFromVector(Astronomy.GeoVector(body, date, true));
-    var ll = skyLonLat(eq.ra * 15, eq.dec, 0);   // GMST 0 frame, the group rotation adds the time
-    return { v: toVec(ll[0], ll[1], radius), distAU: eq.dist };
+  skyAvailable=typeof Astronomy!=='undefined' && GTObserver.supportedDate(date);
+  sky.visible=skyAvailable; bodiesGroup.visible=skyAvailable;
+  if(!skyAvailable){
+    skyDate=null;lastSkyComputed=null;skyDateText='SKY UNAVAILABLE · SUPPORTED 1900–2100';
+    sunLight.intensity=0; writeViewpoint(); return;
   }
-  var moon = place('Moon', 1); moonMesh.position.copy(moon.v.multiplyScalar(moon.distAU * AU_IN_EARTH_RADII));
-  var sun = place('Sun', 700); sunSprite.position.copy(sun.v);
-  // light the Earth (and the Moon) from the Sun's real direction; ambient keeps the night side readable
-  var sunWorld = sun.v.clone().applyEuler(sky.rotation).applyQuaternion(globe.quaternion).normalize();
-  sunLight.position.copy(sunWorld.multiplyScalar(50));
-  Object.keys(planetSprites).forEach(function(name){ var v = place(name, SKY_R - 10).v; planetSprites[name].position.copy(v); });
-  skyDateText = 'SKY FOR ' + date.toISOString().slice(0, 10) + ' ' + date.toISOString().slice(11, 16) + ' UTC';
-  writeViewpoint();
+  skyDate=date;
+  skyDateText='SKY '+date.toISOString().slice(0,16).replace('T',' ')+' UTC · GEOMETRIC';
+  if(lastSkyComputed===+date){writeViewpoint();return;}
+  lastSkyComputed=+date;
+  var rot=Astronomy.Rotation_EQJ_EQD(date),gast=Astronomy.SiderealTime(date);
+  function fixed(v){ return GTObserver.eqdToFixed(Astronomy.RotateVector(rot,new Astronomy.Vector(v.x,v.y,v.z,date)),gast); }
+  var arr=skyCatalogPoints.geometry.attributes.position.array;
+  skyCatalogPositions.forEach(function(v,i){var p=fixed(v);arr[i*3]=p.x*SKY_R;arr[i*3+1]=p.y*SKY_R;arr[i*3+2]=p.z*SKY_R;});
+  skyCatalogPoints.geometry.attributes.position.needsUpdate=true;
+  LABEL_CANDIDATES.forEach(function(c){var p=fixed(c.eqj);c.pos.set(p.x,p.y,p.z).multiplyScalar(SKY_R-20);});
+  var bodies=GTObserver.geometricBodies(Astronomy,date,Object.keys(BODY_RADII_KM));
+  Object.keys(bodies).forEach(function(n){var p=bodies[n];bodyPositions[n]=new THREE.Vector3(p.x,p.y,p.z);});
+  sunLight.intensity=0.9; updateSunLight(); writeViewpoint();
 }
 function updateSunLight(){
-  // the Sun sprite lives in the sky group (a child of the globe); re-derive the world-space light direction after any spin
-  if (!sunSprite) return;
-  var w = sunSprite.position.clone().applyEuler(sky.rotation).applyQuaternion(globe.quaternion).normalize();
-  sunLight.position.copy(w.multiplyScalar(50));
+  if(!skyAvailable || !bodyPositions.Sun) return;
+  sky.position.copy(camera.position);
+  sunLight.position.copy(bodyPositions.Sun).normalize().multiplyScalar(100);
+  moonMesh.position.copy(bodyPositions.Moon);
+  moonMesh.visible=!earthOccludes(bodyPositions.Moon) || bodyPositions.Moon.distanceTo(camera.position)<1;
+  function drawBody(name,obj){
+    var relative=bodyPositions[name].clone().sub(camera.position),dist=relative.length();
+    var display=Math.min(SKY_R-30,dist);
+    obj.position.copy(camera.position).add(relative.setLength(display));
+    obj.visible=!earthOccludes(bodyPositions[name]);
+    if(name==='Sun'){
+      var diameter=2*BODY_RADII_KM.Sun/6371/dist*display*2.6;
+      obj.scale.set(diameter,diameter,1);
+    }
+  }
+  drawBody('Sun',sunSprite);
+  Object.keys(planetSprites).forEach(function(n){drawBody(n,planetSprites[n]);});
 }
 
 // borders as line segments
@@ -484,7 +585,7 @@ RING_DASH = new THREE.CanvasTexture(ringCanvas(128, true));
 
 var markers = new THREE.Group(); globe.add(markers);
 var MAX_SHOWN = 400;
-function shownCap(){ return Math.round(Math.max(90, Math.min(MAX_SHOWN, 90 * Math.pow(3.9 / camDist, 2)))); }
+function shownCap(){ return Math.round(Math.min(MAX_SHOWN, Math.max(90, 150 * Math.pow(3.9 / camDist, 1.2)) * densityLevel)); }
 
 // Each event is a hologram: a translucent light beam rising from the exact spot, with the event's image floating
 // at the top as a framed card. Cards that would overlap on screen are lifted higher, so dense regions stack
@@ -566,31 +667,38 @@ function prepareEvent(e){
   e.quat = new THREE.Quaternion().setFromUnitVectors(Y_AXIS, e.normal.clone().normalize());
 }
 EVENTS.forEach(prepareEvent);
-var shardLoads = 0;
+var shardLoader = SHARDS && window.GTShards.create({
+  years:SHARDS.years, dir:SHARDS.dir,
+  onRows:function(rows){
+    var ids = new Set(EVENTS.map(function(e){ return e.stableId; })), added = 0;
+    rows.forEach(function(r){ var e = parseRow(r, EVENTS.length); if (ids.has(e.stableId)) return; ids.add(e.stableId); prepareEvent(e); EVENTS.push(e); added++; });
+    meanwhileCache = null;
+    return added;
+  },
+  onStatus:function(state){
+    var box = document.getElementById('dataStatus'); if (!box) return;
+    var failed = Object.keys(state.failures), pending = Object.keys(state.states).filter(function(y){ return state.states[y] === 'loading'; });
+    box.hidden = !failed.length && !pending.length;
+    box.textContent = failed.length ? 'Some years could not load · Retry' : 'Loading historical events…';
+    box.disabled = !failed.length;
+  }
+});
 function ensureYears(start, end, done){
-  // fetch the shards a window touches, append their rows to EVENTS, then call done(true) if anything new arrived
-  if (!SHARDS){ done(false); return; }
-  var need = SHARDS.years.filter(function(y){ return y >= Math.floor(start) && y <= Math.floor(end + STEP) && !loadedYears[y]; });   // the years the month touches
-  if (!need.length){ done(false); return; }
-  need.forEach(function(y){ loadedYears[y] = 'loading'; });
-  var gen = ++shardLoads;
-  Promise.all(need.map(function(y){
-    return fetch(SHARDS.dir + y + '.json').then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; });
-  })).then(function(lists){
-    lists.forEach(function(rows, k){
-      loadedYears[need[k]] = true;
-      rows.forEach(function(r){ var e = parseRow(r, EVENTS.length); prepareEvent(e); EVENTS.push(e); });
-    });
-    done(true, gen === shardLoads);
-  });
+  if (!shardLoader){ done(false, true); return; }
+  var b = viewBounds(nowT, WINDOWS[wi]);
+  var lo = Math.min(start, b.start), hi = Math.min(presentTime(), Math.max(end, TIME.addDays(b.end, 32)));
+  shardLoader.range(lo, hi).then(function(results){ done(results.some(function(r){ return r.added > 0; }), true); });
 }
+var retryData = document.getElementById('dataStatus');
+if (retryData) retryData.onclick = function(){ ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added){ bindWindow(); render(); resetTicker(); resolvePendingEvent(); }); };
 
 // hologram card texture: the photo (or category glyph) with a tinted frame, scanlines and a badge
 var CARD_TEX = {};
 function cardTexture(e, onReady){
-  var key = (IMAGES[e.slug] ? e.slug : 'glyph:' + e.cat) + (MEDIA[e.slug] ? '|m' : '');
+  var key = cardTextureKey(e);
   if (CARD_TEX[key] && onReady !== 'painter') return CARD_TEX[key];
-  var cw = 256, ch = 192, col = css(CATS[e.cat].v);
+  var compact = !visualFor(e);
+  var cw = 256, ch = compact ? 108 : 192, col = css(CATS[e.cat].v);
   function paint(img, canvas){
     var c = canvas || document.createElement('canvas'); c.width = cw; c.height = ch; var ctx = c.getContext('2d');
     ctx.fillStyle = 'rgba(8,14,26,.72)'; ctx.fillRect(0, 0, cw, ch);
@@ -601,16 +709,26 @@ function cardTexture(e, onReady){
       var tint = ctx.createLinearGradient(0, 0, 0, ch); tint.addColorStop(0, 'rgba(110,200,255,.16)'); tint.addColorStop(1, 'rgba(110,160,255,.28)');
       ctx.fillStyle = tint; ctx.fillRect(0, 0, cw, ch);
     } else {
-      ctx.save(); ctx.translate(cw / 2 - 50, ch / 2 - 50); ctx.globalAlpha = 0.9; drawGlyph(ctx, e.cat, 100); ctx.restore();
+      ctx.fillStyle = '#ecf1fa'; ctx.font = compact ? '600 24px Arial' : '600 20px Arial';
+      var title = String(e.name || e.title || CATS[e.cat].label), words = title.split(/\s+/), lines = [], line = '';
+      words.forEach(function(word){ var next = line ? line + ' ' + word : word; if (ctx.measureText(next).width > 226 && line){ lines.push(line); line = word; } else line = next; });
+      if (line) lines.push(line);
+      var maxLines = compact ? 2 : 4;
+      if(lines.length > maxLines){ var last=lines[maxLines-1]; while(last.length && ctx.measureText(last+'…').width>226)last=last.slice(0,-1); lines[maxLines-1]=last+'…'; }
+      lines.slice(0,maxLines).forEach(function(text,i){ctx.fillText(text,15,(compact?31:38)+i*27);});
+      ctx.fillStyle = '#b7d5e9'; ctx.font = compact ? '18px Arial' : '15px Arial'; if (e.title) ctx.fillText(whenLabel(e),15,ch-14);
+
     }
     ctx.fillStyle = 'rgba(0,0,0,.16)';
     for (var y = 0; y < ch; y += 4) ctx.fillRect(0, y, cw, 1.5);
     ctx.lineWidth = 5; ctx.strokeStyle = col; ctx.strokeRect(2.5, 2.5, cw - 5, ch - 5);
     ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.strokeRect(8, 8, cw - 16, ch - 16);
+    if (!compact){
     ctx.beginPath(); ctx.arc(cw - 26, ch - 26, 18, 0, 2 * Math.PI); ctx.fillStyle = col; ctx.fill();
     ctx.lineWidth = 2.5; ctx.strokeStyle = '#fff'; ctx.stroke();
     ctx.save(); ctx.translate(cw - 26 - 12, ch - 26 - 12); drawGlyph(ctx, e.cat, 24); ctx.restore();
-    if (MEDIA[e.slug]){   // a clip: play badge, bottom-left
+    }
+    if (mediaFor(e)){   // a clip: play badge, bottom-left
       ctx.beginPath(); ctx.arc(26, ch - 26, 16, 0, 2 * Math.PI); ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fill();
       ctx.beginPath(); ctx.moveTo(21, ch - 34); ctx.lineTo(21, ch - 18); ctx.lineTo(34, ch - 26); ctx.closePath(); ctx.fillStyle = '#0b1220'; ctx.fill();
     }
@@ -618,12 +736,12 @@ function cardTexture(e, onReady){
     var tex = new THREE.CanvasTexture(c); CARD_TEX[key] = tex; return tex;
   }
   if (onReady === 'painter') return paint;                    // used by the live (video) cards
-  var im = IMAGES[e.slug];
-  if (!im) return paint(null);
+  var im = photoFor(e), md = mediaFor(e), poster = !im && md && md.kind === 'video' && md.poster;
+  if (!im && !poster) return paint(null);
   var img = new Image();
-  img.onload = function(){ onReady(paint(img)); };
-  img.src = IMG_DIR + im.file;
-  return null;
+  img.onload = function(){ var tex = paint(img); if (typeof onReady === 'function') onReady(tex); };
+  img.src = poster ? MEDIA_DIR + md.poster : IMG_DIR + im.file;
+  return paint(null);
 }
 var GLYPH_TEX = {};
 Object.keys(CATS).forEach(function(k){ GLYPH_TEX[k] = cardTexture({ cat:k, slug:'' }, function(){}); });
@@ -783,6 +901,7 @@ function updateLiveGlyphs(now){
   return any;
 }
 
+var densityStats = {};
 var shown = [];   // events currently bound to pool holders
 var windowTotal = 0;
 var monthCands = [], prevShown = [], CAT_COLOR = {}, PHOTOS_ONLY = false, CARD_SCALE = 1;
@@ -798,6 +917,7 @@ var lastBindT = NaN;
 function bindNow(force){
   if (!force && nowT === lastBindT) return;
   lastBindT = nowT;
+  syncObserver();
   var w = WINDOWS[wi];
   // The noise floor: with the whole Earth in frame the smallest tier (weight 1: minor year-page items) gets no
   // card at all. Coming in past 2.5 radii lifts the floor, so a country fills in with its smaller events as you
@@ -806,21 +926,26 @@ function bindNow(force){
   var list = [];
   for (var i = 0; i < monthCands.length; i++){
     var e = monthCands[i];
-    if (PHOTOS_ONLY){ if (!IMAGES[e.slug]) continue; }              // a recording that wants pictures only
-    else if (far && e.w <= 1) continue;
-    e._p = slider ? prominence(e, nowT) : 1;
+    if (PHOTOS_ONLY){ if (!visualFor(e)) continue; }             // verified photographs or dated video
+    else if (densityLevel < 1 && far && e.w <= 1) continue;
+    e._p = inView(e, nowT, w) ? (slider ? prominence(e, nowT) : 1) : 0;
     if (e._p > 0.005) list.push(e);
   }
-  // Importance first, then a real photograph: a weight-3 event with a picture never outranks a weight-4 one
-  // without, but among equals the picture wins the card.
-  function rank(e){ return e.w * 10 + (IMAGES[e.slug] ? 3 : 0) + e._p; }
+  // Reserve readable space for vetted moving footage, then photographs and event importance.
+  function rank(e){ var m=mediaFor(e); return e.w * 3 + (m && m.kind === 'video' ? 30 : photoFor(e) ? 15 : 0) + e._p; }
   list.sort(function(a, b){ return (rank(b) - rank(a)) || (b.t0 - a.t0); });
   windowTotal = list.length;
-  shown = list.slice(0, shownCap());
+  syncObserver();
+  var cameraVisible = list.filter(function(e){ return visibleNormal(e) > 0 && eventOnScreen(e); });
+  var baselineSelection = list.slice(0, shownCap()).filter(function(e){ return visibleNormal(e) > 0 && eventOnScreen(e); });
+  densityStats = { eligible:list.length, verifiedPhotos:list.filter(function(e){return !!photoFor(e);}).length, cameraVisible:cameraVisible.length, previousSelection:baselineSelection.length, selected:Math.min(cameraVisible.length,shownCap()) };
+  shown = window.GTEventSelection.select(cameraVisible, shownCap(), function(e){return !!visualFor(e);});
+  densityStats.selected = shown.length;
   // While a panel is open, the event and its "meanwhile" partners always have a card, whatever their rank,
   // so the pairing the panel lists is the pairing the globe shows.
+  if (FOOTAGE && selected === FOOTAGE.event && !off[selected.cat]){ selected._p=1; if(shown.indexOf(selected)<0)shown.unshift(selected); }
   if (selected){
-    var pinned = [selected].concat(contextFor(selected)).filter(function(e){ return !off[e.cat] && inWindow(e, w); });
+    var pinned = [selected].concat(contextFor(selected)).filter(function(e){ return !off[e.cat] && inView(e, nowT, w) && (!PHOTOS_ONLY || visualFor(e)); });
     var rest = shown.filter(function(e){ return pinned.indexOf(e) < 0; });
     shown = pinned.concat(rest).slice(0, Math.max(shownCap(), pinned.length));
   }
@@ -828,13 +953,22 @@ function bindNow(force){
   prevShown = shown;
   shown.forEach(function(e, i){
     var h = POOL[i], u = h.userData;
-    if (u.bound === e) return;                                       // same card in the same holder: nothing to redo
+    e.holder = h;
+    var mediaStamp = cardMediaStamp(e);
+    if (u.bound === e && u.mediaStamp === mediaStamp) return;
+    u.mediaStamp = mediaStamp;                                       // same card in the same holder: nothing to redo
     u.bound = e;
-    var tex = cardTexture(e, function(t){ if (e.holder === h){ u.card.material.map = t; u.card.material.needsUpdate = true; render(); } });
+    var tex = cardTexture(e, function(t){
+      if (e.holder !== h || u.bound !== e || u.mediaStamp !== mediaStamp) return;
+      var replace = u.card.material.map === u.fallbackMap;
+      u.fallbackMap = t;
+      if (replace){ u.card.material.map = t; u.card.material.needsUpdate = true; render(); }
+    });
     var live = liveFor2(e);
-    u.card.material.map = tex || live.tex; u.card.material.needsUpdate = true;
+    u.fallbackMap = tex || live.tex;
+    u.card.material.map = u.fallbackMap; u.card.material.needsUpdate = true;
     u.badge.material.map = BADGE_LIVE[liveKey(e)].tex; u.badge.material.needsUpdate = true;
-    u.hasPhoto = !!tex;
+    u.hasPhoto = !!photoFor(e);
     u.beam.material.color.set(catColor(e.cat));
     h.position.copy(e.foot); h.quaternion.copy(e.quat);
     e.holder = h; e.stackH = 0;
@@ -883,20 +1017,13 @@ function updateHotZones(){
     if (zone.heat < 12) continue;                                        // one small event is not a hot zone
     var strength = Math.min(1, Math.sqrt(zone.heat) / 10);
     _hn.copy(zone.lead.normal).applyQuaternion(globe.quaternion);
-    if (_hn.z > -0.05 && g < HOT_POOL){
+    if (visibleNormal(zone.lead) > 0 && g < HOT_POOL){
       var sp = hotGround[g++];
       sp.position.copy(zone.lead.normal).multiplyScalar(1.012);
       // the glow is a far-view thing: it shrinks and thins as the camera comes down, so up close the map is the map
       var near = Math.max(0, Math.min(1, (camDist - 1.2) / 2.2));  // 0 at the closest zoom, 1 with the Earth in frame
       var size = (0.30 + 0.55 * strength) * (0.12 + 0.88 * near) * Math.max(0.6, Math.min(1.4, camDist / 3.9));
-      sp.scale.set(size, size, 1); sp.material.opacity = (0.55 + 0.45 * strength) * (0.25 + 0.75 * near); sp.visible = true;
-    } else if (l < HOT_POOL){
-      var rim = Math.hypot(_hn.x, _hn.y); if (rim < 0.02) continue;      // straight behind: no direction to point to
-      var sp2 = hotLimb[l++];
-      sp2.position.set(_hn.x / rim * 1.0, _hn.y / rim * 1.0, 0.05);
-      var behind = -_hn.z;                                               // 0 at the limb, 1 straight behind
-      var size2 = (0.35 + 0.5 * strength) * (1 - 0.45 * behind);
-      sp2.scale.set(size2, size2, 1); sp2.material.opacity = (0.5 + 0.5 * strength) * (1 - 0.6 * behind); sp2.visible = true;
+      sp.scale.set(size, size, 1); sp.material.opacity = (0.55 + 0.45 * strength) * (0.25 + 0.75 * near) / Math.sqrt(Math.max(1, shown.length / 40)); sp.visible = true;
     }
   }
   for (; g < HOT_POOL; g++) hotGround[g].visible = false;
@@ -919,7 +1046,7 @@ function targetQuat(lat, lon){
   var qx = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0), a);
   return qx.multiply(qy);
 }
-globe.quaternion.copy(targetQuat(22, 18));
+orbitQuat.copy(targetQuat(22, 18)); syncObserver();
 
 var W = 0, H = 0;
 function resize(){
@@ -942,6 +1069,10 @@ function cardPixels(){
 }
 function render(){
   if (!W) return;
+  syncObserver();
+  if(observerBoundRevision!==observerRevision && clockNow()-observerLastBind>=100){
+    observerLastBind=clockNow();observerBoundRevision=observerRevision;bindNow(true);
+  }
   var list = shown;
   var ctxEls = selected ? contextFor(selected) : [];
   var behind = 0;
@@ -954,26 +1085,26 @@ function render(){
   var pxPerUnit = cardPixels();
   var placed = [];      // {x, y, hw, hh} of cards already laid out this frame, in px
   var hiddenCount = 0;
-  // The Earth's silhouette in pixels. The camera sits on +Z looking at the origin, so the globe's centre is the
-  // centre of the canvas; the edge is where the line of sight grazes a sphere of radius 1 at camDist away.
-  // A card may climb only while it stays inside this circle — past it, it is standing on stars.
-  var globeCX = W / 2, globeCY = H / 2;
-  var limbPx = (H / 2) * Math.tan(Math.asin(Math.min(0.999, 1 / camDist))) / Math.tan(camera.fov * DEG / 2);
   // lay out by importance so the biggest events claim their spot first
   // ---- pass 1: measure every event and group the ones that stand on the same ground ----
   // The list is in importance order, so the first event at a place leads its group and the anchor is its spot.
   var groups = [];
   list.forEach(function(e){
     var h = e.holder; if (!h) return;
-    var front = worldNormal(e).z > 0.12;
+    var front = visibleNormal(e) > 0 && eventOnScreen(e);
     h.visible = front;
     e.folded = null; e._sx = null;
     if (!front){ behind++; return; }
     var prom = e._p == null ? 1 : e._p;              // loudness now
     var scale = e.size * zoomBoost * (0.80 + 0.20 * prom);
-    e._cw = CARD_W * scale; e._chh = CARD_H * scale; e._prom = prom;
+    var compact = !visualFor(e);
+    e._cw = CARD_W * scale * (compact ? .94 : 1); e._chh = CARD_H * scale * (compact ? .529 : 1); e._prom = prom;
     e._hw = e._cw * pxPerUnit / CARD_H * 0.5; e._hh = e._chh * pxPerUnit / CARD_H * 0.5;
-    _v.copy(e.normal).multiplyScalar(1.002 + HOVER).applyQuaternion(globe.quaternion).project(camera);
+    _v.copy(e.normal).multiplyScalar(1.002 + HOVER).applyQuaternion(globe.quaternion);
+    var cameraDepth=-_v.clone().applyMatrix4(camera.matrixWorldInverse).z;
+    var localPixels=H/(2*Math.tan(camera.fov*DEG/2)*Math.max(camera.near,cameraDepth));
+    e._hw=e._cw*localPixels/2;e._hh=e._chh*localPixels/2;
+    _v.project(camera);
     e._bx = (_v.x + 1) / 2 * W; e._by = (1 - _v.y) / 2 * H;
     for (var g = 0; g < groups.length; g++){
       if (kmApart(groups[g].leader, e) < FOLD_KM){ groups[g].members.push(e); return; }
@@ -995,12 +1126,17 @@ function render(){
     e._sx = null; e.stackH = 0; e.pos.copy(e.foot); hiddenCount++;
   }
   function screenAt(e, height){
-    _v.copy(e.normal).multiplyScalar(1.002 + height).applyQuaternion(globe.quaternion).project(camera);
+    _v.copy(e.normal).multiplyScalar(1.002 + height).applyQuaternion(globe.quaternion);
+    var depth=-_v.clone().applyMatrix4(camera.matrixWorldInverse).z;
+    if(depth<=camera.near) return null;
+    var pixels=H/(2*Math.tan(camera.fov*DEG/2)*depth);
+    e._hw=e._cw*pixels/2;e._hh=e._chh*pixels/2;
+    _v.project(camera);
     return [(_v.x + 1) / 2 * W, (1 - _v.y) / 2 * H];
   }
   function clear(sx, sy, hw, hh, isSel){
     if (isSel) return true;
-    if (Math.hypot(sx - globeCX, sy - globeCY) + hh * 0.55 > limbPx) return false;
+    if(sx-hw<4 || sx+hw>W-4 || sy-hh<4 || sy+hh>H-4) return false;
     for (var i = 0; i < placed.length; i++){
       var p = placed[i];
       if (Math.abs(p.x - sx) < p.hw + hw && Math.abs(p.y - sy) < p.hh + hh) return false;
@@ -1016,7 +1152,7 @@ function render(){
     u.card.position.set(0, height, 0);
     u.card.scale.set(cw, chh, 1);
     u.card.center.set(0.5, 0.5);
-    if (u.hasPhoto && MEDIA[e.slug] == null){
+    if (u.hasPhoto && mediaFor(e) == null){
       var bs = chh * 0.34;
       u.badge.visible = true; u.badge.position.set(0, height, 0); u.badge.scale.set(bs, bs, 1);
       u.badge.center.set(0.5 + (cw / 2 - bs * 0.62) / bs, 0.5 + (chh / 2 - bs * 0.62) / bs);
@@ -1030,7 +1166,7 @@ function render(){
     var tall = height > HOVER * 1.5;
     // with a panel open, everything but the event and its same-day partners steps back to a quarter
     u.card.material.opacity = (dim ? 0.25 : 0.96) * fade; u.badge.material.opacity = (dim ? 0.2 : 1) * fade;
-    u.beam.material.opacity = (dim ? 0.05 : (tall ? 0.4 : 0.22)) * vis;  // a long beam has to be seen to be believed
+    u.beam.material.opacity = (dim ? 0.05 : (tall ? 0.4 : 0.22)) * vis * (visualFor(e) ? 1 : .38);
     u.base.material.opacity = (dim ? 0.2 : 0.9) * vis;
     if (u.pile) u.pile.material.opacity = vis;
     e.pos.copy(e.normal).multiplyScalar(1.002 + height);
@@ -1047,7 +1183,7 @@ function render(){
       for (; level < LEVELS.length && !done; level++){
         var height = HOVER * LEVELS[level];
         var at = screenAt(e, height);
-        if (clear(at[0], at[1], e._hw, e._hh, sel)){ show(e, height, at[0], at[1], group); done = true; }
+        if (at && clear(at[0], at[1], e._hw, e._hh, sel)){ show(e, height, at[0], at[1], group); done = true; }
       }
       if (!done){
         if (m === 0){
@@ -1084,7 +1220,7 @@ function render(){
                        0.5 + (ch2 / 2 - chipH * 0.5 - ch2 * 0.05) / chipH);
   }
   window.__borders.visible = WINDOWS[wi].start >= 1900;
-  camera.position.z = camDist;
+  syncObserver();
   writeViewpoint();
   // The near clipping plane has to stay in front of the Earth's surface, which sits camDist - 1 away. At the old
   // fixed 0.1 anything closer than 1.1 sliced the planet open and left you looking at stars. It is only pulled in
@@ -1095,14 +1231,14 @@ function render(){
   if (selected && selected.holder){
     selRing.position.copy(selected.pos);
     var sz = CARD_W * selected.size * zoomBoost * 1.35; selRing.scale.set(sz, sz, 1);
-    selRing.visible = worldNormal(selected).z > 0.12;
+    selRing.visible = visibleNormal(selected) > 0 && eventOnScreen(selected);
   } else selRing.visible = false;
   ctxRings.forEach(function(r, i){
     var e = ctxEls[i];
     if (!e || !e.holder){ r.visible = false; return; }
     r.position.copy(e.pos);
     var s2 = CARD_W * e.size * zoomBoost * 1.3; r.scale.set(s2, s2, 1);
-    r.visible = worldNormal(e).z > 0.12;
+    r.visible = visibleNormal(e) > 0 && eventOnScreen(e);
   });
 
   updateHotZones();
@@ -1115,19 +1251,20 @@ function render(){
 }
 
 function pick(mx, my){
-  var best = null, bestD = 28;
+  var best=null,bestD=Infinity;
   visibleEvents().forEach(function(e){
-    if (e._sx == null) return;
-    var d = Math.hypot(e._sx - mx, e._sy - my);
-    if (d < bestD){ bestD = d; best = e; }
+    if(e._sx==null) return;
+    var dx=Math.abs(e._sx-mx),dy=Math.abs(e._sy-my);
+    if(dx>Math.max(12,e._hw||0) || dy>Math.max(12,e._hh||0)) return;
+    var d=dx/Math.max(12,e._hw||0)+dy/Math.max(12,e._hh||0);
+    if(d<bestD){bestD=d;best=e;}
   });
   return best;
 }
 function spanYears(e){ return e.t1 - e.t0; }
 function dayOrdinal(iso){
-  // exact day count for CE dates ("2001-09-11" -> days since epoch); null for anything else
-  var m = iso && iso.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (!m) return null;
-  return Math.round(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000);
+  var t = TIME.parseISO(iso);
+  return Number.isFinite(t) ? Math.round(TIME.toDay(t)) : null;
 }
 var MEANWHILE_MAX = 6, MEANWHILE_APART_KM = 1200, MEANWHILE_DAYS = 3;
 var meanwhileCache = { key:null, list:[] };
@@ -1137,19 +1274,19 @@ function contextFor(e){
   // that day, spread out so no two stand within MEANWHILE_APART_KM of each other or of the event itself; when the
   // day has fewer than three, events one to three days either side fill in, each labelled with its gap. Nothing
   // further away in time is ever shown: a two-year overlap is not "at the same time".
-  var key = e.id + '|' + EVENTS.length + '|' + Object.keys(off).filter(function(k){ return off[k]; }).join(',');
-  if (meanwhileCache.key === key) return meanwhileCache.list;
+  var key = e.id + '|' + EVENTS.length + '|' + Math.floor(TIME.toDay(presentTime())) + '|' + Object.keys(off).filter(function(k){ return off[k]; }).join(',');
+  if (meanwhileCache && meanwhileCache.key === key) return meanwhileCache.list;
   var out = [];
-  var day0 = dayOrdinal(e.date);
+  var day0 = e.datePrecision === 'day' ? dayOrdinal(e.date) : null;
   if (day0 != null){
     var cands = [];
     for (var i = 0; i < EVENTS.length; i++){
       var o = EVENTS[i];
-      if (o.id === e.id || o.slug === e.slug || !o.date || off[o.cat]) continue;
+      if (o.id === e.id || o.slug === e.slug || !o.date || o.datePrecision !== 'day' || !eligibleEvent(o) || off[o.cat]) continue;
       var od = dayOrdinal(o.date); if (od == null) continue;
       var gap = od - day0; if (gap < -MEANWHILE_DAYS || gap > MEANWHILE_DAYS) continue;
       if (kmApart(e, o) < MEANWHILE_APART_KM) continue;
-      cands.push({ e:o, gap:gap, score:(gap === 0 ? 100 : 0) + o.w * 10 + (IMAGES[o.slug] ? 3 : 0) + (o.date === e.date ? 0 : -Math.abs(gap)) });
+      cands.push({ e:o, gap:gap, score:(gap === 0 ? 100 : 0) + o.w * 10 + (photoFor(o) ? 3 : 0) + (o.date === e.date ? 0 : -Math.abs(gap)) });
     }
     cands.sort(function(a, b){ return b.score - a.score; });
     var sameDay = 0;
@@ -1169,11 +1306,6 @@ function contextFor(e){
 }
 
 // ---------- panel ----------
-function skyDateFor(e){
-  // a dated event within the ephemeris' reliable range shows the sky of that day at noon UTC
-  if (e && e.date){ var y = parseInt(e.date, 10); if (y > 1600 && y < 2200){ var d = new Date(e.date + 'T12:00:00Z'); if (!isNaN(d)) return d; } }
-  return new Date();
-}
 function tinyDesc(e){
   // the first sentence or two of the lead, at most ~220 characters; curated rows are already short
   var d = String(e.desc || '').replace(/\u00a0/g, ' ');
@@ -1184,27 +1316,44 @@ function tinyDesc(e){
   return out.replace(/[.\s]*$/, '') + (out.length && !/…$/.test(out) ? '.' : '');
 }
 function openPanel(e){
+  if (!eligibleEvent(e)) return;
+  var changedSelection = selected !== e;
+  if (changedSelection){ cancelFootage(); navigationGeneration++; ANIMS.length = 0; }
   selected = e;
-  if (typeof setPlayDir === 'function' && playDir) setPlayDir(0);   // opening something stops the film, as in any player
-  setSkyDate(skyDateFor(e));
-  bindWindow(); render();                  // pin the event and its same-day partners onto the globe, then lay out
+  if (changedSelection){
+    if (playDir) setPlayDir(0);
+    if (e.t0 < ERAS[0].from){ setMode('all', e.t0); selected = e; }
+    nowT = boundedTime(e.t0); wi = windowIndexFor(nowT);
+    syncHeader(); placeHandle();
+  }
+  setSkyDate(dateOfNow());
+  bindWindow(); render();
+  if (changedSelection) resetTicker();
+  document.getElementById('tip').classList.remove('on');
+  // pin the event and its same-day partners onto the globe, then lay out
   var p = document.getElementById('panel');
   var ctxEls = contextFor(e);
   var when = whenLabel(e);
   var html = '<button class="pclose" id="pclose" aria-label="Close">✕</button>';
   html += '<div class="pcat"><img src="' + ICON_URL[e.cat] + '" alt="">' + CATS[e.cat].label + '</div>';
-  var im = IMAGES[e.slug], md = MEDIA[e.slug];
+  var im = photoFor(e, true), md = mediaFor(e, true);
+  var footageMedia = md && md.kind === 'video' && md.autoplayApproved && md.mediaRole === 'contemporaneous' && Number.isFinite(TIME.parseISO(md.mediaDate)) && TIME.parseISO(md.mediaDate) <= presentTime() ? md : null;
   // the hero: the clip (or the photo, kept moving) magnified
   var centre = md
-    ? (md.kind === 'video' ? '<video src="' + MEDIA_DIR + md.file + '" controls autoplay muted loop playsinline preload="metadata"></video>'
-                           : (im ? '<img class="kb" src="' + IMG_DIR + im.file + '" alt="">' : '') + '<audio src="' + MEDIA_DIR + md.file + '" controls autoplay preload="metadata"></audio>')
+    ? (md.kind === 'video' ? (footageMedia ? '<div id="footageScreen"></div>' : '<div class="imgslot">Recording unavailable at this date</div>')
+                           : (im ? '<img class="kb" src="' + IMG_DIR + im.file + '" alt="">' : '') + '<audio src="' + MEDIA_DIR + md.file + '" controls preload="metadata"></audio>')
     : im ? '<img class="kb" src="' + IMG_DIR + im.file + '" alt="">' : '<div class="imgslot"><img src="' + ICON_URL[e.cat] + '" alt="" style="width:44px;height:44px;opacity:.7"></div>';
   var credit = (md ? (md.title ? md.title + ' · ' : '') + (md.author ? md.author + ' · ' : '') + '<a href="' + (md.filePage || md.source || '#') + '" target="_blank" rel="noopener">' + (md.license || 'source') + '</a>'
                    : im ? (im.author ? im.author + ' · ' : '') + '<a href="' + im.filePage + '" target="_blank" rel="noopener">' + (im.license || 'Commons') + '</a>' : '');
   html += '<div class="hero">' + centre + '</div>';
+  if (md && md.licenseUrl) credit += ' · <a href="' + md.licenseUrl + '" target="_blank" rel="noopener">License</a>';
   if (credit) html += '<div class="mcredit">' + credit + '</div>';
+  if (im && (!md || md.kind !== 'video')) html += '<div class="photo-date">Photo: ' + im.photoDate + ' · ' + im.photoRole + ' · ' + im.location + '</div>';
+  if (md) html += '<div class="photo-date">Recording: ' + md.mediaDate + ' · ' + md.mediaRole + ' · ' + md.location + '<details><summary>Recording notes</summary>' + md.notes + '<br>' + md.changes + '</details></div>';
   html += '<h2>' + e.title + '</h2>';
-  html += '<div class="pmeta">' + when + (e.endDate ? ' – ' + dayLabel(e.endDate) : '') + (e.who ? '<br>BY ' + e.who : '') + '<br>' + e.place + '</div>';
+  html += '<div class="pmeta">' + when + (e.endDate ? ' – ' + (e.endPrecision === 'year' ? yearLabel(e.end) : e.endPrecision === 'month' ? monthLabel(fracOfDate(e.endDate)) : dayLabel(e.endDate)) : '') + (e.who ? '<br>BY ' + e.who : '') + '<br>' + e.place + '</div>';
+  if (e.dateUncertain) html += '<div class="photo-date">Date precision is uncertain in the source record.</div>';
+  if (e.datePrecision === 'day') html += '<div class="photo-date">Event time of day unavailable; the sky starts at 00:00 UTC.</div>';
   html += '<p class="pdesc">' + tinyDesc(e) + '</p>';
   html += '<a class="plink" target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/' + e.slug + '">Read more →</a>';
   // the events standing on the same spot, which the "+N" chip on the globe counts. Biggest first, so the list
@@ -1212,8 +1361,8 @@ function openPanel(e){
   if (e.folded && e.folded.length){
     var here = e.folded.slice().sort(function(a, b){ return (b.w - a.w) || (b.t0 - a.t0); });
     html += '<div class="concurrent"><p>' + here.length + ' more event' + (here.length === 1 ? '' : 's') + ' within ' + FOLD_KM + ' km</p><div class="crow">';
-    here.slice(0, 12).forEach(function(o){
-      var th = IMAGES[o.slug] ? '<img class="kb" src="' + IMG_DIR + IMAGES[o.slug].file + '" alt="">' : '<img class="ic" src="' + ICON_URL[o.cat] + '" alt="">';
+    here.forEach(function(o){
+      var th = photoFor(o) ? '<img class="kb" src="' + IMG_DIR + photoFor(o).file + '" alt="">' : '<img class="ic" src="' + ICON_URL[o.cat] + '" alt="">';
       html += '<button class="nb" data-id="' + o.id + '">' + th + '<b>' + o.title + '</b><span>' + o.place + ' · ' + (o.date ? dayLabel(o.date) : yearLabel(o.start)) + '</span></button>';
     });
     html += '</div></div>';
@@ -1224,12 +1373,13 @@ function openPanel(e){
     var began = spanYears(e) >= 45 / 365 || e.endDate;
     html += '<div class="concurrent meanwhile"><p>' + (began ? 'The day it began, elsewhere' : 'Meanwhile, elsewhere') + ' · ' + dayLabel(e.date) + '</p>';
     ctxEls.forEach(function(o){
-      var thumb = IMAGES[o.slug] ? '<img class="kb" src="' + IMG_DIR + IMAGES[o.slug].file + '" alt="">' : '<img class="ic" src="' + ICON_URL[o.cat] + '" alt="">';
+      var thumb = photoFor(o) ? '<img class="kb" src="' + IMG_DIR + photoFor(o).file + '" alt="">' : '<img class="ic" src="' + ICON_URL[o.cat] + '" alt="">';
       var gapText = o._gap === 0 ? 'same day' : Math.abs(o._gap) + (Math.abs(o._gap) === 1 ? ' day ' : ' days ') + (o._gap > 0 ? 'later' : 'earlier');
       html += '<button class="mw" data-id="' + o.id + '">' + thumb + '<span class="mwt">' + (o.place ? '<em>' + o.place + '</em>' : '') + '<i>' + gapText + '</i><b>' + o.title + '</b></span></button>';
     });
     html += '</div>';
   }
+  if (FOOTAGE && FOOTAGE.live.video.parentNode) FOOTAGE.live.video.parentNode.removeChild(FOOTAGE.live.video);
   p.innerHTML = html;
   p.classList.add('on');
   writeHash();
@@ -1237,59 +1387,119 @@ function openPanel(e){
   Array.prototype.forEach.call(p.querySelectorAll('.ew, .nb, .mw'), function(b){
     b.onclick = function(){ var t = EVENTS[+b.dataset.id]; flyTo(t, function(){ openPanel(t); }); };
   });
+  if (footageMedia) enterFootage(e, footageMedia);
   resize();
 }
 function closePanel(){
-  selected = null;
+  cancelFootage(); silenceTransportSound(); navigationGeneration++; ANIMS.length = 0; pendingEventHash = null;
+  selected = null; hovered = null; document.getElementById('tip').classList.remove('on');
   setSkyDate(dateOfNow());
   bindWindow();                            // unpin
   document.getElementById('panel').classList.remove('on');
-  resize(); writeHash();
+  syncHeader(); placeHandle(); resize(); writeHash();
 }
 
 // ---------- live cards: a video clip plays (muted) inside its hologram, so a hurricane loops on the globe ----------
 // The few biggest on-screen cards with a video clip get a canvas texture repainted from the video every frame.
-var LIVE = {}, LIVE_MAX = 4;
-function liveMax(){ return camDist < 2 ? 8 : LIVE_MAX; }   // close in, more of the cards on screen are worth running as video
+var LIVE = {}, LIVE_MAX = 4, FOOTAGE = null, clipFrameSeconds = 0;
+function liveMax(){ return camDist < 2 ? 8 : LIVE_MAX; }
 var liveClips = Object.keys(MEDIA).some(function(k){ return MEDIA[k].kind === 'video'; });
-function liveFor(e){
-  var L = LIVE[e.slug];
+function paintLiveFrame(L){
+  if (!L.on || L.video.readyState < 2) return;
+  L.paint(L.video, L.canvas); L.tex.needsUpdate = true;
+  var e = L.event, u = e.holder && e.holder.userData;
+  if (u && u.bound === e && mediaFor(e) && clipIdentity(e, mediaFor(e)) === L.key){
+    u.card.material.map = L.tex; u.card.material.needsUpdate = true;
+  }
+  render();
+}
+function liveFor(e, media){
+  var key = clipIdentity(e, media), L = LIVE[key];
   if (L) return L;
   var v = document.createElement('video');
-  v.src = MEDIA_DIR + MEDIA[e.slug].file; v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto'; v.crossOrigin = 'anonymous';
-  var canvas = document.createElement('canvas');
-  var tex = new THREE.CanvasTexture(canvas);
-  L = { video:v, canvas:canvas, tex:tex, paint:cardTexture(e, 'painter'), on:false, ready:false };
-  v.addEventListener('loadeddata', function(){ L.ready = true; });
-  LIVE[e.slug] = L; return L;
+  v.muted = true; v.loop = false; v.playsInline = true; v.preload = 'auto'; v.crossOrigin = 'anonymous';
+  if (media.poster) v.poster = MEDIA_DIR + media.poster;
+  v.setAttribute('aria-label', media.title || 'Event footage');
+  v.src = MEDIA_DIR + media.file;
+  var canvas = document.createElement('canvas'), tex = new THREE.CanvasTexture(canvas);
+  L = { key:key, event:e, media:media, video:v, canvas:canvas, tex:tex, paint:cardTexture(e, 'painter'), on:false, position:playDir<0?Number(media.seconds)||0:0, duration:Number(media.seconds) || 0 };
+  L.seeker = window.GTMediaTransport.createSeeker(v, {
+    onFrame:function(){ paintLiveFrame(L); },
+    onError:function(){ if (FOOTAGE && FOOTAGE.live === L){ setPlayDir(0); var note = document.getElementById('footageNote'); if(note) note.textContent = 'This recording could not be decoded. Return to history to continue.'; } }
+  });
+  v.addEventListener('loadedmetadata', function(){ if(Number.isFinite(v.duration)) L.duration = v.duration; if(FOOTAGE && FOOTAGE.live === L) showSpeed(); });
+  LIVE[key] = L; return L;
+}
+function cancelFootage(){
+  if (!FOOTAGE) return;
+  var L = FOOTAGE.live; FOOTAGE = null; L.on = false; L.seeker.cancel();
+  playDir = 0; playing = false; clipFrameSeconds = 0;
+  showSpeed();
+}
+function enterFootage(e, media){
+  var same = FOOTAGE && FOOTAGE.event === e && FOOTAGE.live.key === clipIdentity(e, media);
+  if (!same){
+    cancelFootage();
+    var L = liveFor(e, media);
+    L.position = 0; L.on = true;
+    FOOTAGE = {event:e, live:L, recordingDate:media.mediaDate};
+    nowT = boundedTime(TIME.parseISO(media.mediaDate)); wi = windowIndexFor(nowT);
+    playDir = 0; lastPlayDir = 1; playing = false; playLast = clockNow(); clipFrameSeconds = 0;
+    setSkyDate(dateOfNow()); bindWindow(); syncHeader(); placeHandle(); writeHash();
+  }
+  var screen = document.getElementById('footageScreen');
+  if (screen) screen.appendChild(FOOTAGE.live.video);
+  FOOTAGE.live.on = true; FOOTAGE.live.seeker.seek(FOOTAGE.live.position);
+  silenceTransportSound(); showSpeed();
+}
+function exitFootage(retreat){
+  if (!FOOTAGE) return;
+  var direction = playDir, from = camDist;
+  cancelFootage(); closePanel();
+  if (retreat){
+    var began = clockNow(), to = Math.max(3.9, Math.min(6, from * 1.8));
+    ANIMS.push(function(now){ var t = Math.max(0, Math.min(1, (now - began) / 1500)), ease = t * t * (3 - 2 * t); setObserverDistance(from + (to - from) * ease); bindNow(true); render(); return t >= 1; });
+  }
+  setPlayDir(direction);
+}
+function footageState(){
+  var L = FOOTAGE && FOOTAGE.live;
+  return {phase:L?'footage':'history',position:L?L.position:null,duration:L?L.duration:null,direction:playDir,rate:SPEEDS[speedIx],lastDirection:lastPlayDir,eventId:L?L.event.stableId:null,eventDate:L?L.event.date:null,recordingDate:FOOTAGE?FOOTAGE.recordingDate:null,error:L&&L.seeker.error()?L.seeker.error().message:null,seekPending:Object.keys(LIVE).some(function(k){return LIVE[k].on && LIVE[k].seeker.pending();})};
 }
 function updateLive(){
-  var cands = [];
+  var cands = [], seconds = clipFrameSeconds; clipFrameSeconds = 0;
   for (var i = 0; i < shown.length; i++){
-    var e = shown[i], md = MEDIA[e.slug];
-    if (!md || md.kind !== 'video' || e._sx == null || !e.holder) continue;
-    cands.push(e);
+    var e = shown[i], md = mediaFor(e);
+    if (!md || md.kind !== 'video' || e._sx == null || !e.holder || !e.holder.visible) continue;
+    cands.push({event:e, media:md});
   }
-  cands.sort(function(a, b){ return (b._px || 0) - (a._px || 0); });
+  cands.sort(function(a, b){ return (b.event._px || 0) - (a.event._px || 0); });
   var keep = {};
-  cands.slice(0, liveMax()).forEach(function(e){
-    var L = liveFor(e); keep[e.slug] = true;
-    if (!L.on){ L.on = true; L.video.play().catch(function(){ L.on = false; }); }
-    if (L.ready && !L.video.paused){
-      L.paint(L.video, L.canvas); L.tex.needsUpdate = true;
-      var u = e.holder.userData;
-      if (u.card.material.map !== L.tex){ u.card.material.map = L.tex; u.card.material.needsUpdate = true; }
+  if (FOOTAGE) keep[FOOTAGE.live.key] = true;
+  cands.slice(0, liveMax()).forEach(function(candidate){
+    var L = liveFor(candidate.event, candidate.media); keep[L.key] = true; L.on = true;
+    if (!FOOTAGE || FOOTAGE.live !== L){
+      L.position = window.GTMediaTransport.advance(L.position, L.duration, FOOTAGE ? 0 : seconds, playDir, SPEEDS[speedIx], false).position;
+      L.seeker.seek(L.position);
     }
   });
-  Object.keys(LIVE).forEach(function(slug){
-    var L = LIVE[slug];
-    if (L.on && !keep[slug]){
-      L.on = false; L.video.pause();
-      var e = EVENTS.find(function(x){ return x.slug === slug && x.holder; });
-      if (e){ var u = e.holder.userData; var t = cardTexture(e, function(){}); if (t){ u.card.material.map = t; u.card.material.needsUpdate = true; } }
+  if (FOOTAGE){ FOOTAGE.live.on = true; FOOTAGE.live.seeker.seek(FOOTAGE.live.position); }
+  Object.keys(LIVE).forEach(function(key){
+    var L = LIVE[key];
+    if (!keep[key]){
+      L.on = false; L.seeker.cancel();
+      var e = L.event, u = e.holder && e.holder.userData;
+      if (u && u.bound === e && u.card.material.map === L.tex){ u.card.material.map = u.fallbackMap; u.card.material.needsUpdate = true; }
     }
   });
 }
+window.__gtFootage = {
+  state:footageState,
+  decoders:function(){return Object.keys(LIVE).map(function(k){var L=LIVE[k];return {key:k,on:L.on,position:L.position,decoder:L.seeker.state()};});},
+  settle:function(){
+    return Promise.all(Object.keys(LIVE).filter(function(k){return LIVE[k].on;}).map(function(k){return LIVE[k].seeker.settle();})).then(function(){Object.keys(LIVE).forEach(function(k){if(LIVE[k].on)paintLiveFrame(LIVE[k]);});render();return footageState();});
+  }
+};
 
 // ---------- sound: clips get louder as their card grows on screen ----------
 // Each event with a clip gets an <audio> routed through a gain + stereo panner. Every frame the visible cards are
@@ -1332,9 +1542,11 @@ function updateAmbient(eventLoudness){
 var MOTIF = [[220, 0], [261.63, 2.0], [329.63, 4.0], [392.0, 6.2], [440, 8.0], [329.63, 11.5]];   // A3 C4 E4 G4 A4 E4, seconds
 var motifTimer = null, motifLastFar = 0;
 function playMotif(){
+  if(FOOTAGE || playDir<=0)return;
   var c = SOUND.ctx, t0 = c.currentTime;
   var out = c.createGain(); out.gain.value = 0.0; out.connect(masterGain());
   var far = Math.max(0, Math.min(1, (camDist - 4) / 8));
+  SOUND.motifOut = out;
   out.gain.setTargetAtTime(0.10 * far, t0, 1.5);
   out.gain.setTargetAtTime(0, t0 + 13.5, 2.5);
   for (var i = 0; i < MOTIF.length; i++){
@@ -1383,7 +1595,7 @@ function setVolume(v){
 function soundNode(e){
   var n = SOUND.nodes[e.slug];
   if (n) return n;
-  var md = MEDIA[e.slug];
+  var md = mediaFor(e);
   var el = document.createElement(md.kind === 'video' ? 'video' : 'audio');
   el.src = MEDIA_DIR + md.file; el.loop = true; el.preload = 'auto'; el.crossOrigin = 'anonymous';
   var src = SOUND.ctx.createMediaElementSource(el), gain = SOUND.ctx.createGain(), pan = SOUND.ctx.createStereoPanner ? SOUND.ctx.createStereoPanner() : null;
@@ -1393,16 +1605,25 @@ function soundNode(e){
   n = { el:el, gain:gain, pan:pan, playing:false };
   SOUND.nodes[e.slug] = n; return n;
 }
+function silenceTransportSound(){
+  Array.prototype.forEach.call(document.querySelectorAll('#panel audio, #panel video'),function(el){el.pause();});
+  if (!SOUND || !SOUND.ctx) return;
+  clearTimeout(motifTimer);
+  if(SOUND.motifOut)SOUND.motifOut.gain.value=0;
+  Object.keys(SOUND.nodes).forEach(function(k){var n=SOUND.nodes[k];n.el.pause();n.playing=false;n.gain.gain.value=0;});
+  if(SOUND.ambient) SOUND.ambient.out.gain.setTargetAtTime(0,SOUND.ctx.currentTime,0.03);
+}
 function updateSound(){
   if (!SOUND.on || !SOUND.ctx) return;
-  if (!shown.length){ updateAmbient(0); return; }
+  if (FOOTAGE || playDir <= 0){ silenceTransportSound(); return; }
+  if (!shown.length){ silenceTransportSound(); return; }
   var cands = [];
   for (var i = 0; i < shown.length; i++){
     var e = shown[i];
-    if (!MEDIA[e.slug] || e._sx == null) continue;
+    if (!mediaFor(e) || !mediaFor(e).hasAudio || e._sx == null) continue;
     cands.push(e);
   }
-  if (selected && MEDIA[selected.slug] && cands.indexOf(selected) < 0) cands.push(selected);
+  if (selected && mediaFor(selected) && mediaFor(selected).hasAudio && cands.indexOf(selected) < 0) cands.push(selected);
   cands.sort(function(a, b){ return (b._px || 0) - (a._px || 0); });
   var keep = cands.slice(0, SOUND_MAX), t = SOUND.ctx.currentTime;
   keep.forEach(function(e){
@@ -1442,7 +1663,7 @@ function setSound(on){
 }
 // Sharing a moment: the URL hash already carries the mode, the month and the open event, so the address bar is
 // the share button. The header button is gone — it was taking a slot next to the categories to do what Cmd-L does.
-window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtShown = function(){ return shown; }; window.__cgtImages = IMAGES; window.__cgtOpen = openPanel; window.__cgtContext = contextFor; window.__cgtTickNext = function(){ tickerIndex++; showTicker(); }; window.__cgtSky = function(){ return SKY_ON_SCREEN; }; window.__cgtMotif = playMotif; window.__cgtFly = function(e){ flyTo(e, function(){ openPanel(e); }); }; window.__cgtGotoT = goToMoment; window.__cgtPhotosOnly = function(on, scale){ PHOTOS_ONLY = !!on; CARD_SCALE = scale || 1; bindNow(true); render(); }; window.__cgtView = function(lat, lon, dist){ globe.quaternion.copy(targetQuat(lat, lon)); if (dist) camDist = Math.max(minCamDist, Math.min(140, dist)); bindNow(true); render(); }; window.__cgtFrame = function(ms){ VIRTUAL_MS = (VIRTUAL_MS == null ? performance.now() : VIRTUAL_MS) + ms; if (playDir && playLast > VIRTUAL_MS) playLast = VIRTUAL_MS - ms; tickOnce(); render(); }; window.__cgtFlick = function(vx, vy){ velX = vx; velY = vy || 0; }; window.__cgtWheel = function(steps){ for (var i = 0; i < Math.abs(steps); i++) camDist = Math.max(minCamDist, Math.min(140, camDist * (steps > 0 ? 1.07 : 0.93))); bindNow(true); render(); }; window.__cgtZoom = function(d){ camDist = Math.max(minCamDist, Math.min(140, d)); bindNow(true); render(); }; window.__cgtSpin = function(e){ globe.quaternion.copy(targetQuat(e.lat, e.lon)); }; window.__cgtCam = function(){ return camDist.toFixed(2); }; window.__cgtNow = function(){ return WINDOWS[wi].end; }; window.__cgtGoto = function(y){ var i = WINDOWS.findIndex(function(w){ return Math.abs(w.end - y) < 0.05; }); if (i >= 0) setWindow(i); };   // debugging hooks
+window.__cgtSound = SOUND; window.__cgtEvents = EVENTS; window.__cgtShown = function(){ return shown; }; window.__cgtImages = IMAGES; window.__cgtOpen = openPanel; window.__cgtContext = contextFor; window.__cgtTickNext = function(){ tickerIndex++; showTicker(); }; window.__cgtSky = function(){ return SKY_ON_SCREEN; }; window.__cgtMotif = playMotif; window.__cgtFly = function(e){ flyTo(e, function(){ openPanel(e); }); }; window.__cgtGotoT = goToMoment; window.__cgtPhotosOnly = function(on, scale){ PHOTOS_ONLY = !!on; CARD_SCALE = scale || 1; bindNow(true); render(); }; window.__cgtView = function(lat, lon, dist){ setObserverMode('orbit'); orbitQuat.copy(targetQuat(lat, lon)); if (dist) camDist = Math.max(minCamDist, Math.min(140, dist)); bindNow(true); render(); }; window.__cgtFrame = function(ms){ VIRTUAL_MS = (VIRTUAL_MS == null ? performance.now() : VIRTUAL_MS) + ms; if (playDir && playLast > VIRTUAL_MS) playLast = VIRTUAL_MS - ms; tickOnce(); render(); }; window.__cgtFlick = function(vx, vy){ velX = vx * 60; velY = (vy || 0) * 60; }; window.__cgtWheel = function(steps){ for (var i = 0; i < Math.abs(steps); i++) camDist = Math.max(minCamDist, Math.min(140, camDist * (steps > 0 ? 1.07 : 0.93))); bindNow(true); render(); }; window.__cgtZoom = function(d){ camDist = Math.max(minCamDist, Math.min(140, d)); bindNow(true); render(); }; window.__cgtSpin = function(e){ setObserverMode('orbit'); orbitQuat.copy(targetQuat(e.lat, e.lon)); syncObserver(); }; window.__cgtCam = function(){ return camDist.toFixed(2); }; window.__cgtNow = function(){ return WINDOWS[wi].end; }; window.__cgtGoto = function(y){ var i = WINDOWS.findIndex(function(w){ return Math.abs(w.end - y) < 0.05; }); if (i >= 0) setWindow(i); };   // debugging hooks
 var soundBtn = document.getElementById('soundBtn');
 if (soundBtn){
   soundBtn.onclick = function(){ setSound(!SOUND.on); };
@@ -1466,48 +1687,81 @@ function spinTo(e){ flyTo(e, null, camDist); }
 // eased together over a second and a half; then the panel opens. Pulling back up is the viewer's own scroll.
 var FLY_HEIGHT = 1.62;
 function flyTo(e, done, heightOverride){
-  var from = globe.quaternion.clone(), to = targetQuat(e.lat, e.lon);
+  var flightGeneration = ++navigationGeneration;
+  setObserverMode('orbit'); velX = velY = 0;
+  var from = orbitQuat.clone(), to = targetQuat(e.lat, e.lon);
   var d0 = camDist, d1 = heightOverride != null ? heightOverride : Math.max(minCamDist, Math.min(camDist, FLY_HEIGHT));
   var t0 = clockNow(), dur = Math.abs(d1 - d0) > 0.05 ? 1500 : 700;
   ANIMS.length = 0;                                    // a new flight replaces any flight under way
   ANIMS.push(function(t){
     var k = Math.min(1, (t - t0) / dur);
     var ease = k < 0.5 ? 2*k*k : 1 - Math.pow(-2*k + 2, 2) / 2;
-    globe.quaternion.copy(from).slerp(to, ease);
+    orbitQuat.copy(from).slerp(to, ease); syncObserver();
     if (d1 !== d0){ camDist = d0 + (d1 - d0) * ease; bindNow(true); }
     render();
     if (k < 1) return false;
-    if (done) done();
+    if (done && flightGeneration === navigationGeneration) done();
     return true;
   });
   runAnims();
   bumpIdle();
 }
 
+var freeViewBtn=document.getElementById('freeViewBtn');
+if(freeViewBtn) freeViewBtn.onclick=function(){setObserverMode(observerMode==='free'?'orbit':'free');};
+var returnEarthBtn=document.getElementById('returnEarthBtn');
+if(returnEarthBtn) returnEarthBtn.onclick=returnToEarth;
+Array.prototype.forEach.call(document.querySelectorAll('[data-observer-axis]'),function(b){
+  b.onclick=function(){var delta=[0,0,0];delta[+b.dataset.observerAxis]=+b.dataset.sign*Math.max(0.1,(camDist-1)*0.12);translateObserver(delta[0],delta[1],delta[2]);};
+});
+window.addEventListener('keydown',function(ev){
+  if(observerMode!=='free' || /INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)) return;
+  if(/^(KeyW|KeyA|KeyS|KeyD|KeyQ|KeyE)$/.test(ev.code)){ev.preventDefault();observerKeys[ev.code]=true;}
+});
+window.addEventListener('keyup',function(ev){delete observerKeys[ev.code];});
+window.addEventListener('blur',function(){observerKeys={};});
+window.__cgtObserver={state:function(){syncObserver();return {mode:observerMode,position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),earthRadii:camDist,frame:'Earth-fixed X Greenwich, Y north, Z west',skyDate:skyDate&&skyDate.toISOString(),skyAvailable:skyAvailable};},mode:setObserverMode,move:translateObserver,returnEarth:returnToEarth,look:function(yaw,pitch){setObserverMode('free');camera.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),yaw));camera.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),pitch));syncObserver();render();},bodies:function(){return bodyPositions;}};
+
 // ---------- pointer ----------
 var dragging = false, lastX = 0, lastY = 0, moved = 0, shifted = false;
 var velX = 0, velY = 0, lastMoveT = 0, spinDir = 1;
 var AX = new THREE.Vector3(1,0,0), AY = new THREE.Vector3(0,1,0), AZ = new THREE.Vector3(0,0,1);
 var qTmp = new THREE.Quaternion(), qTmp2 = new THREE.Quaternion();
+var touchPoints = {}, pinchDistance = 0;
 
 canvas.addEventListener('pointerdown', function(ev){
-  dragging = true; moved = 0; lastX = ev.clientX; lastY = ev.clientY; shifted = ev.shiftKey;
+  touchPoints[ev.pointerId]=[ev.clientX,ev.clientY];
+  var points=Object.keys(touchPoints).map(function(id){return touchPoints[id];});
+  if(points.length===2){pinchDistance=Math.hypot(points[0][0]-points[1][0],points[0][1]-points[1][1]);moved=100;velX=velY=0;canvas.setPointerCapture(ev.pointerId);return;}
+  ANIMS.length=0; dragging = true; moved = 0; lastX = ev.clientX; lastY = ev.clientY; shifted = ev.shiftKey;
   velX = 0; velY = 0; lastMoveT = clockNow();
   canvas.classList.add('drag'); canvas.setPointerCapture(ev.pointerId); bumpIdle();
 });
 canvas.addEventListener('pointermove', function(ev){
+  if(touchPoints[ev.pointerId]) touchPoints[ev.pointerId]=[ev.clientX,ev.clientY];
+  var points=Object.keys(touchPoints).map(function(id){return touchPoints[id];});
+  if(points.length===2){
+    var distance=Math.hypot(points[0][0]-points[1][0],points[0][1]-points[1][1]);
+    if(pinchDistance>0 && distance>0) setObserverDistance(camDist*pinchDistance/distance);
+    pinchDistance=distance;moved=100;lastX=ev.clientX;lastY=ev.clientY;bindNow(true);render();return;
+  }
   var rect = canvas.getBoundingClientRect();
   if (dragging){
     var dx = ev.clientX - lastX, dy = ev.clientY - lastY;
     moved += Math.abs(dx) + Math.abs(dy); lastX = ev.clientX; lastY = ev.clientY;
-    var k = 0.0042 * (camDist / 3.9);
+    var k = Math.min(0.008,0.0042 * (camDist / 3.9));
+    if(observerMode==='free'){
+      var yaw=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),-dx*0.003);
+      var pitch=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-dy*0.003);
+      camera.quaternion.premultiply(yaw).multiply(pitch); syncObserver(); render(); return;
+    }
     if (shifted){
-      qTmp.setFromAxisAngle(AZ, -dx * k); globe.quaternion.premultiply(qTmp);
+      qTmp.setFromAxisAngle(AZ, -dx * k); orbitQuat.premultiply(qTmp); syncObserver();
     } else {
       qTmp.setFromAxisAngle(AY, dx * k); qTmp2.setFromAxisAngle(AX, dy * k);
-      globe.quaternion.premultiply(qTmp).premultiply(qTmp2);
+      orbitQuat.premultiply(qTmp).premultiply(qTmp2); syncObserver();
       var now = clockNow(), dt = Math.max(1, now - lastMoveT); lastMoveT = now;
-      velX = 0.6 * velX + 0.4 * (dx * k) * (16 / dt); velY = 0.6 * velY + 0.4 * (dy * k) * (16 / dt);
+      velX = 0.6 * velX + 0.4 * (dx * k) * (1000 / dt); velY = 0.6 * velY + 0.4 * (dy * k) * (1000 / dt);
     }
     render(); bumpIdle(); return;
   }
@@ -1546,21 +1800,25 @@ canvas.addEventListener('pointermove', function(ev){
   }
 });
 function endDrag(ev){
+  delete touchPoints[ev.pointerId];
+  var remaining=Object.keys(touchPoints);
+  if(remaining.length){lastX=touchPoints[remaining[0]][0];lastY=touchPoints[remaining[0]][1];moved=100;pinchDistance=0;return;}
+  pinchDistance=0;
   if (!dragging) return;
   dragging = false; canvas.classList.remove('drag');
-  if (clockNow() - lastMoveT > 80){ velX = spinDir * spinSpeed; velY = 0; }   // held still before release: no throw, keep turning
-  if (moved < 5){ velX = spinDir * spinSpeed; velY = 0;
+  if (clockNow() - lastMoveT > 80){ velX = 0; velY = 0; }   // held still before release: no throw, keep turning
+  if (moved < 5){ velX = 0; velY = 0;
     var rect = canvas.getBoundingClientRect();
     var hit = pick(ev.clientX - rect.left, ev.clientY - rect.top);
     if (hit) openPanel(hit); else closePanel();
   }
 }
 canvas.addEventListener('pointerup', endDrag);
-canvas.addEventListener('pointercancel', function(){ dragging = false; canvas.classList.remove('drag'); });
+canvas.addEventListener('pointercancel', function(){ touchPoints={};pinchDistance=0;dragging=false;velX=velY=0;canvas.classList.remove('drag'); });
 canvas.addEventListener('pointerleave', function(){ hovered = null; document.getElementById('tip').classList.remove('on'); });
 canvas.addEventListener('wheel', function(ev){
   ev.preventDefault();
-  camDist = Math.max(minCamDist, Math.min(140, camDist * (ev.deltaY > 0 ? 1.07 : 0.93)));   // the floor comes from the Earth texture (see minCamDist)
+  ANIMS.length=0; setObserverDistance(camDist * Math.exp(Math.max(-0.22,Math.min(0.22,ev.deltaY*0.001))));   // the floor comes from the Earth texture (see minCamDist)
   hovered = null; document.getElementById('tip').classList.remove('on');
   bindNow(true); render(); if (SOUND.on) updateSound();   // zooming does not stop the globe turning; it changes the mix
 }, { passive:false });
@@ -1573,8 +1831,8 @@ function kenBurns(t){
   var any = false;
   for (var i = 0; i < shown.length; i++){
     var e = shown[i];
-    if (!e.holder || !e.holder.visible || e._sx == null || !IMAGES[e.slug]) continue;
-    var tex = CARD_TEX[e.slug + (MEDIA[e.slug] ? '|m' : '')];
+    if (!e.holder || !e.holder.visible || e._sx == null || !photoFor(e)) continue;
+    var tex = CARD_TEX[cardTextureKey(e)];
     if (!tex || tex === e.holder.userData.card.material.map && false) continue;
     if (tex !== e.holder.userData.card.material.map) continue;      // a live clip or glyph is showing instead
     var ph = (e.id * 0.61803) % 1 * Math.PI * 2, sel = selected && selected.id === e.id;
@@ -1596,18 +1854,15 @@ function tickOnce(){
   if (updateLiveGlyphs(clockNow()) && !selected) render();
   if (SOUND.on) updateSound();
   if (liveClips){ updateLive(); if (!selected) render(); }
-  if (!dragging){
-    // The globe moves when you move it. A flick carries on with momentum and settles; it does not resume a
-    // spin of its own. The SPIN slider still exists for anyone who wants the old always-turning behaviour —
-    // at zero, which is the default, the target is rest.
-    if (Math.abs(velX) > 1e-6) spinDir = velX < 0 ? -1 : 1;
-    var target = spinDir * spinSpeed;
-    velX = target + (velX - target) * 0.955;
-    velY *= 0.955;
-    if (Math.abs(velX) > 1e-7 || Math.abs(velY) > 0.0003){
-      qTmp.setFromAxisAngle(AY, velX); qTmp2.setFromAxisAngle(AX, velY);
-      globe.quaternion.premultiply(qTmp).premultiply(qTmp2);
-      render();
+  var tickNow=clockNow(),seconds=observerTickLast==null ? 0 : Math.max(0,Math.min(0.1,(tickNow-observerTickLast)/1000));
+  observerTickLast=tickNow; tickObserver(seconds);
+  if(!dragging && observerMode==='orbit' && !ANIMS.length){
+    if(Math.abs(velX)>1e-6) spinDir=velX<0?-1:1;
+    var x=GTObserver.coast(velX,spinDir*spinSpeed*60,seconds),y=GTObserver.coast(velY,0,seconds);
+    velX=x.velocity;velY=y.velocity;
+    if(Math.abs(x.angle)>1e-8 || Math.abs(y.angle)>1e-8){
+      qTmp.setFromAxisAngle(AY,x.angle);qTmp2.setFromAxisAngle(AX,y.angle);
+      orbitQuat.premultiply(qTmp).premultiply(qTmp2);syncObserver();render();
     }
   }
 }
@@ -1628,89 +1883,86 @@ if (spinRange){
   spinRange.oninput = function(){ setSpin(+spinRange.value); };
   setSpin(+spinRange.value);
 }
-// Time is a film. It runs from the moment the page opens and keeps running until you stop it; the transport at
-// the bottom is the one from a video player. ⏪ and ⏩ set the direction and go a step faster each press
-// (1x 2x 4x 8x 16x of a month every two seconds); ▶ / ⏸ stops and starts at the current speed; ⏮ and ⏭ jump to
-// the ends. Running backwards is not a rewind of the picture: cards fade in and out exactly as they do going
-// forwards, so you can sit on a month, walk back through what led to it, and stop.
-var SPEEDS = [1, 2, 4, 8, 16];
-var BASE_MONTHS_PER_SEC = 0.5;                                   // 1x: a month every two seconds
-var playDir = 0, speedIx = 0, playAcc = 0, playLast = 0;
+// Playback rate and direction are independent; every entry path shares the same bounds.
+var SPEEDS = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 60];
+var playDir = 0, lastPlayDir = 1, speedIx = 3, playLast = 0, playing = false;
 var playVal = document.getElementById('playVal');
 var playBtn = document.getElementById('playBtn'), rewBtn = document.getElementById('rewBtn'), ffBtn = document.getElementById('ffBtn');
 var toStartBtn = document.getElementById('toStartBtn'), toEndBtn = document.getElementById('toEndBtn');
-function yearsPerSecNow(){ return BASE_MONTHS_PER_SEC * SPEEDS[speedIx] / 12; }
+var speedSelect = document.getElementById('speedSelect');
+var footageSeek = document.getElementById('footageSeek'), returnHistory = document.getElementById('returnHistory');
+function boundedTime(t){ return TIME.clamp(t, ERAS[0].from, presentTime()); }
+function yearsPerSecNow(){
+  var era = ERAS[WINDOWS[wi].era];
+  return (era.slider ? 1 / 24 : era.step / 4) * SPEEDS[speedIx];
+}
+function clipClock(seconds){ seconds=Math.max(0,seconds||0);return Math.floor(seconds/60)+':'+String(Math.floor(seconds%60)).padStart(2,'0'); }
 function showSpeed(){
+  document.getElementById('rail').classList.toggle('footage-mode',!!FOOTAGE);
+  var phaseLabel = document.getElementById('transportPhase');
+  if (phaseLabel) phaseLabel.textContent = FOOTAGE ? 'Event footage · '+clipClock(FOOTAGE.live.position)+' / '+clipClock(FOOTAGE.live.duration) : 'History';
+  if (returnHistory) returnHistory.hidden = !FOOTAGE;
+  if (footageSeek){ footageSeek.hidden=!FOOTAGE; if(FOOTAGE){footageSeek.max=FOOTAGE.live.duration;footageSeek.value=FOOTAGE.live.position;} }
+  var note=document.getElementById('footageNote');if(note){note.hidden=!FOOTAGE;if(FOOTAGE && !FOOTAGE.live.seeker.error())note.textContent='Recording day held at '+dayLabel(FOOTAGE.recordingDate)+'. Rewinding past the start of this clip returns to history.';}
+
   if (playBtn){ playBtn.innerHTML = playDir ? '&#10074;&#10074;' : '&#9654;'; playBtn.setAttribute('aria-pressed', playDir ? 'true' : 'false'); }
+  if (speedSelect) speedSelect.value = String(SPEEDS[speedIx]);
   if (playVal){
-    var secPerMonth = 1 / (BASE_MONTHS_PER_SEC * SPEEDS[speedIx]);
-    var rate = secPerMonth >= 1 ? 'A MONTH / ' + (secPerMonth >= 10 ? Math.round(secPerMonth) : secPerMonth.toFixed(1)) + ' S' : Math.round(1 / secPerMonth) + ' MONTHS / S';
-    playVal.textContent = playDir === 0 ? 'PAUSED · ' + SPEEDS[speedIx] + '×' : (playDir < 0 ? '◀ ' : '▶ ') + SPEEDS[speedIx] + '× · ' + rate;
+    var rate = yearsPerSecNow(), text = rate < 1 ? (rate * TIME.daysInYear(Math.floor(nowT))).toFixed(1) + ' DAYS / S' : rate.toLocaleString(undefined,{maximumFractionDigits:1}) + ' YEARS / S';
+    if (FOOTAGE) text = SPEEDS[speedIx] + '× CLIP SPEED';
+    playVal.textContent = (playDir === 0 ? 'PAUSED' : playDir < 0 ? 'REVERSE' : 'FORWARD') + ' · ' + text;
   }
 }
 function setPlayDir(dir){
-  playDir = dir; playAcc = 0; playLast = clockNow();
-  showSpeed();
+  nowT = boundedTime(nowT);
+  if (!FOOTAGE && (dir > 0 && nowT >= presentTime() - 1e-8 || dir < 0 && nowT <= ERAS[0].from)) dir = 0;
+  if (dir) lastPlayDir = dir < 0 ? -1 : 1;
+  if (FOOTAGE && dir > 0 && FOOTAGE.live.position >= FOOTAGE.live.duration) dir = 0;
+  playDir = dir; playing = dir !== 0; playLast = clockNow(); showSpeed();
+  if (!dir || dir < 0 || FOOTAGE) silenceTransportSound();
+  if (!dir && skyCatalogPoints){
+    setSkyDate(dateOfNow()); syncHeader(); placeHandle(); writeHash(); render();
+  }
 }
-// a press in the running direction goes one step faster; a press the other way turns round at 1x
-function runToward(dir){
-  if (playDir === dir) speedIx = Math.min(SPEEDS.length - 1, speedIx + 1);
-  else speedIx = 0;
-  if (dir > 0 && wi >= WINDOWS.length - 1) setWindow(0);
-  if (dir < 0 && wi <= 0) setWindow(WINDOWS.length - 1);
-  setPlayDir(dir);
-}
-if (playBtn){
-  playBtn.onclick = function(){
-    if (playDir) { setPlayDir(0); return; }
-    if (wi >= WINDOWS.length - 1) setWindow(0);                       // at the far end: start over from the beginning
-    setPlayDir(1);
-  };
-}
+function setSpeed(rate){ var i = SPEEDS.indexOf(+rate); if (i >= 0){ speedIx = i; showSpeed(); } }
+if (speedSelect) speedSelect.onchange = function(){ setSpeed(this.value); };
+function runToward(dir){ setPlayDir(dir); }
+if (playBtn) playBtn.onclick = function(){ setPlayDir(playDir ? 0 : lastPlayDir); };
 if (rewBtn) rewBtn.onclick = function(){ runToward(-1); };
 if (ffBtn) ffBtn.onclick = function(){ runToward(1); };
-if (toStartBtn) toStartBtn.onclick = function(){ setWindow(0); };
-if (toEndBtn) toEndBtn.onclick = function(){ setWindow(WINDOWS.length - 1); };
+if (toStartBtn) toStartBtn.onclick = function(){ setPlayDir(0); if(FOOTAGE){FOOTAGE.live.position=0;FOOTAGE.live.seeker.seek(0);showSpeed();}else goToMoment(ERAS[0].from); };
+if (toEndBtn) toEndBtn.onclick = function(){ setPlayDir(0); if(FOOTAGE){FOOTAGE.live.position=FOOTAGE.live.duration;FOOTAGE.live.seeker.seek(FOOTAGE.live.position);showSpeed();}else goToMoment(presentTime()); };
+if(returnHistory) returnHistory.onclick=function(){exitFootage(false);};
+if(footageSeek) footageSeek.oninput=function(){if(!FOOTAGE)return;var position=+this.value;setPlayDir(0);FOOTAGE.live.position=Math.max(0,Math.min(FOOTAGE.live.duration,position));FOOTAGE.live.seeker.seek(FOOTAGE.live.position);showSpeed();};
 showSpeed();
-var playing = false;                                                // kept for the rail drag, which stops the clock
-function setPlaying(on){ if (!on) setPlayDir(0); }
-// The film runs continuously: NOW moves by the speed times the real seconds elapsed, like a video at 2x is
-// literally twice as fast. Cards fade in and out along the way; the month on the rail and the data shards change
-// only when NOW crosses a month boundary.
-var lastDayShown = -1;
+function setPlaying(on){ setPlayDir(on ? 1 : 0); }
+var lastDayShown = '', lastSkyAt = -Infinity;
 function tickPlay(now){
-  playing = playDir !== 0;
+  var dt = Math.min(0.25, Math.max(0, (now - playLast) / 1000)); playLast = now;
+  clipFrameSeconds = playDir ? dt : 0;
   if (!playDir) return;
-  var era = ERAS[WINDOWS[wi].era];
-  var dt = Math.min(0.25, (now - playLast) / 1000); playLast = now;
-  if (!era.slider){                                                 // era tabs: step, as before
-    playAcc += dt * yearsPerSecNow();
-    var step = WINDOWS[wi].end - WINDOWS[wi].start;
-    while (playAcc >= step){ playAcc -= step; var nx = wi + playDir; if (nx < 0 || nx >= WINDOWS.length){ setPlayDir(0); return; } setWindow(nx); }
-    return;
+  if (FOOTAGE){
+    var L=FOOTAGE.live, step=window.GTMediaTransport.advance(L.position,L.duration,dt,playDir,SPEEDS[speedIx],false);
+    L.position=step.position; L.seeker.seek(L.position); showSpeed();
+    if(step.boundary==='end'){setPlayDir(0);return;}
+    if(step.boundary==='start'){
+      exitFootage(true);dt=step.remaining;clipFrameSeconds=dt;
+      if(!dt || !playDir)return;
+    }else return;
   }
-  nowT += dt * yearsPerSecNow() * playDir;
-  var first = WINDOWS[era.first].end, last = WINDOWS[era.first + era.count - 1].end + STEP;
-  if (nowT <= first){ nowT = first; setPlayDir(0); }
-  if (nowT >= last){ nowT = last - 1e-6; setPlayDir(0); }
-  var index = era.first + Math.floor((nowT - first) * 12 + 1e-7);
-  if (index !== wi) setWindow(index, true);
-  else bindNow();
-  var day = Math.floor(nowT * 365.25);
-  if (day !== lastDayShown){
-    lastDayShown = day;
-    syncHeader(); placeHandle();
-    if (!selected && day % 3 === 0) setSkyDate(dateOfNow());       // the sky keeps up, every few days
-    if (day % 7 === 0) resetTicker();                                // the line under the globe follows the week
-  }
+  var era = ERAS[WINDOWS[wi].era], proposed = era.slider
+    ? TIME.addDays(nowT, dt * yearsPerSecNow() * TIME.daysInYear(Math.floor(nowT)) * playDir)
+    : nowT + dt * yearsPerSecNow() * playDir;
+  nowT = boundedTime(proposed);
+  if (nowT !== proposed || nowT <= ERAS[0].from || nowT >= presentTime() - 1e-8) setPlayDir(0);
+  var index = windowIndexFor(nowT);
+  if (index !== wi) setWindow(index, true); else bindNow();
+  var day = Math.floor(TIME.toDay(nowT));
+  if (day !== lastDayShown){ lastDayShown = day; syncHeader(); placeHandle(); resetTicker(); }
+  if (now - lastSkyAt >= 100){ lastSkyAt = now; setSkyDate(dateOfNow()); }
   render();
 }
-// the calendar date NOW names, at noon UTC
-function dateOfNow(){
-  var year = Math.floor(nowT + 1e-9), frac = nowT - year;
-  var ms = Date.UTC(year, 0, 1) + frac * (Date.UTC(year + 1, 0, 1) - Date.UTC(year, 0, 1));
-  var d = new Date(ms); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12));
-}
+function dateOfNow(){ return TIME.toDate(nowT); }
 
 // ---------- rail ----------
 var track = document.getElementById('track');
@@ -1752,25 +2004,21 @@ function placeHandle(){
   handle.style.width = (segW / era.count) + '%';
   handle.textContent = '';
 }
-var grabOffset = null;   // years between the pointer and the window start while dragging the slider
-function railSet(clientX, first){
-  var rect = track.getBoundingClientRect();
-  var f = Math.max(0, Math.min(0.9999, (clientX - rect.left) / rect.width));
-  if (ERAS[0].slider){
-    var era = ERAS[0], width = era.width, yearAt = era.from + f * (era.to - era.from);
-    var w = WINDOWS[wi];
-    if (first) grabOffset = (yearAt >= w.start && yearAt <= w.end) ? yearAt - w.start : width / 2;
-    setWindow(Math.round((yearAt - grabOffset - era.from) / era.step));
-    return;
-  }
-  var ei = Math.floor(f * ERAS.length), within = f * ERAS.length - ei, era2 = ERAS[ei];
-  setWindow(era2.first + Math.min(era2.count - 1, Math.floor(within * era2.count)));
+function railSet(clientX){
+  var rect = track.getBoundingClientRect(), f = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  if (ERAS[0].slider){ goToMoment(ERAS[0].from + f * (presentTime() - ERAS[0].from)); return; }
+  var ef = Math.min(ERAS.length - 1e-8, f * ERAS.length), era = ERAS[Math.floor(ef)];
+  goToMoment(era.from + (ef - Math.floor(ef)) * (era.to - era.from));
 }
+
 var railDrag = false;
 track.addEventListener('pointerdown', function(ev){ if (playing) setPlaying(false); railDrag = true; track.setPointerCapture(ev.pointerId); railSet(ev.clientX, true); });
 track.addEventListener('pointermove', function(ev){ if (railDrag) railSet(ev.clientX); });
 track.addEventListener('pointerup', function(){ railDrag = false; });
 window.addEventListener('keydown', function(ev){
+  if(ev.key==='Escape'){closePanel();return;}
+  if (/^(INPUT|SELECT|TEXTAREA)$/.test(ev.target.tagName)) return;
+  if(FOOTAGE && (ev.key==='ArrowLeft'||ev.key==='ArrowRight')){setPlayDir(0);FOOTAGE.live.position=Math.max(0,Math.min(FOOTAGE.live.duration,FOOTAGE.live.position+(ev.key==='ArrowLeft'?-1:1)*(ev.shiftKey?5:1)));FOOTAGE.live.seeker.seek(FOOTAGE.live.position);showSpeed();ev.preventDefault();return;}
   var stepN = ERAS[0].slider && ev.shiftKey ? Math.round(1 / ERAS[0].step) : 1;     // shift + arrow: a whole year
   if (ev.key === 'ArrowLeft'){ setWindow(wi - stepN); ev.preventDefault(); }
   if (ev.key === 'ArrowRight'){ setWindow(wi + stepN); ev.preventDefault(); }
@@ -1778,28 +2026,36 @@ window.addEventListener('keydown', function(ev){
   if (ev.key === ' ' && ev.target === document.body && playBtn){ playBtn.onclick(); ev.preventDefault(); }
 });
 function setWindow(next, keepNow){
+  if(!keepNow){if(FOOTAGE)closePanel();navigationGeneration++;ANIMS.length=0;pendingEventHash=null;}
   next = Math.max(0, Math.min(WINDOWS.length - 1, next));
-  if (next === wi && !keepNow){ if (nowT !== WINDOWS[wi].end){ nowT = WINDOWS[wi].end; bindNow(); syncHeader(); placeHandle(); render(); } return; }
-  if (next === wi) return;
   wi = next;
-  if (!keepNow) nowT = WINDOWS[wi].end;                                          // a jump lands on the first day of the month
+  if (!keepNow) nowT = boundedTime(ERAS[WINDOWS[wi].era].slider ? WINDOWS[wi].end : WINDOWS[wi].start);
   hovered = null; document.getElementById('tip').classList.remove('on'); canvas.style.cursor = '';
-  if (selected && !inWindow(selected, WINDOWS[wi])) closePanel();
-  else if (selected) openPanel(selected);
-  if (!selected) setSkyDate(dateOfNow());                                          // the sky is the sky of the moment shown
-  bindWindow(); syncHeader(); placeHandle(); render(); writeHash(); resetTicker();   // the globe keeps turning while the slider moves
-  ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added, latest){ if (added && latest){ bindWindow(); render(); resetTicker(); } });
+  if (selected && !inView(selected, nowT, WINDOWS[wi])) closePanel();
+  setSkyDate(dateOfNow());
+  bindWindow(); syncHeader(); placeHandle(); render(); writeHash(); resetTicker(); showSpeed();
+  ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added){ if (added){ bindWindow(); render(); resetTicker(); } resolvePendingEvent(); });
 }
+
 function syncHeader(){
-  var w = WINDOWS[wi], era = ERAS[w.era];
-  var span = w.end - w.start;
-  var stepLabel = span >= 1000000 ? (span/1000000) + ' MILLION-YEAR' : span >= 1000 ? (span/1000) + ',000-YEAR' : Math.round(span) + '-YEAR';
-  var nowText = era.slider ? monthLabel(w.end) : rangeLabel(w.start, w.end);
-  if (era.slider){ var dn = dateOfNow(); nowText = dn.getUTCDate() + ' ' + MONTHS[dn.getUTCMonth()] + ' ' + dn.getUTCFullYear(); }
-  document.getElementById('now').innerHTML = '<span class="nowlab">NOW</span><b>' + nowText + '</b>' +
-    (era.slider ? '<span class="nowsub">new events are loud · long ones settle into the background · ended ones fade</span>' : (era.name ? '<span class="nowsub">' + era.name + ' · ' + stepLabel + ' WINDOW</span>' : ''));
-  track.setAttribute('aria-valuetext', 'now ' + nowText);
+  var w = WINDOWS[wi], era = ERAS[w.era], b = viewBounds(nowT, w), p = TIME.parts(nowT);
+  var nowText = era.slider ? p.day + ' ' + MONTHS[p.month - 1] + ' ' + p.year : rangeLabel(w.start, w.end);
+  var detail = FOOTAGE ? 'EVENT FOOTAGE · RECORDING DAY HELD' : era.slider ? (temporalView === 'moment' ? 'MOMENT · events on this date' : 'PERIOD · ' + monthLabel(b.start) + ' — ' + monthLabel(b.end)) : era.name + ' · PERIOD OVERVIEW';
+  document.getElementById('now').innerHTML = '<span class="nowlab">' + (era.slider ? 'TIME' : 'PERIOD') + '</span><b>' + nowText + '</b><span class="nowsub">' + detail + '</span>';
+  var label = document.getElementById('periodLabel'); if (label) label.textContent = detail;
+  track.setAttribute('aria-valuetext', nowText); track.setAttribute('aria-valuemin', String(ERAS[0].from)); track.setAttribute('aria-valuemax', String(presentTime())); track.setAttribute('aria-valuenow', String(nowT));
 }
+var viewSelect = document.getElementById('viewSelect');
+if (viewSelect) viewSelect.onchange = function(){
+  if(FOOTAGE) closePanel();
+  temporalView = this.value === 'moment' ? 'moment' : 'period';
+  if (temporalView === 'period') periodDays = +this.value;
+  bindWindow(); syncHeader(); render(); writeHash();
+  ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added){ if (added){ bindWindow(); render(); } });
+};
+var photosOnly = document.getElementById('photosOnly'); if (photosOnly) photosOnly.onchange = function(){ PHOTOS_ONLY = this.checked; bindNow(true); render(); };
+var densitySelect = document.getElementById('densitySelect');
+if (densitySelect) densitySelect.onchange = function(){ densityLevel = +this.value; bindNow(true); render(); };
 
 // ---------- filters ----------
 var fWrap = document.getElementById('filters');
@@ -1807,6 +2063,7 @@ Object.keys(CATS).forEach(function(k){
   var b = document.createElement('button'); b.className = 'f'; b.setAttribute('aria-pressed', 'true');
   b.innerHTML = '<img src="' + ICON_URL[k] + '" alt="">' + CATS[k].label;
   b.onclick = function(){
+    if(FOOTAGE) closePanel();
     off[k] = !off[k]; b.setAttribute('aria-pressed', off[k] ? 'false' : 'true');
     bindWindow(); if (selected && off[selected.cat]) closePanel(); render();
   };
@@ -1815,51 +2072,63 @@ Object.keys(CATS).forEach(function(k){
 
 // ---------- mode switch ----------
 function setMode(next, keepYear){
-  if (next === mode) return;
-  var year = keepYear != null ? keepYear : WINDOWS[wi].start;
+  if (!ERA_SETS[next]) return;
+  cancelFootage();navigationGeneration++;ANIMS.length=0;pendingEventHash=null;
+  var year = keepYear != null ? keepYear : nowT;
   mode = next; ERAS = ERA_SETS[mode]; buildWindows(); buildRail();
-  wi = WINDOWS.findIndex(function(w){ return Math.abs(w.start - year) < 0.02; });
-  if (wi < 0) wi = WINDOWS.findIndex(function(w){ return w.start <= year && w.end > year; });
-  if (wi < 0) wi = WINDOWS.length - 1;
-  Array.prototype.forEach.call(document.querySelectorAll('#modes button'), function(b){ b.setAttribute('aria-pressed', b.dataset.mode === mode ? 'true' : 'false'); });
-  closePanel(); bindWindow(); syncHeader(); placeHandle(); render(); writeHash(); resetTicker();
-  ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added, latest){ if (added && latest){ bindWindow(); render(); resetTicker(); } });
+  nowT = boundedTime(year); wi = windowIndexFor(nowT);
+  selected = null; document.getElementById('panel').classList.remove('on');
+  setWindow(wi, true);
+  var control = document.getElementById('eraSelect'); if (control) control.value = mode;
 }
+var eraSelect = document.getElementById('eraSelect');
+if (eraSelect) eraSelect.onchange = function(){ setMode(this.value); };
+
 Array.prototype.forEach.call(document.querySelectorAll('#modes button'), function(b){
   b.onclick = function(){ setMode(b.dataset.mode); };
 });
 
 // ---------- URL state: #mode=century&y=1965&e=Apollo_11 ----------
 function windowIndexFor(t){
-  var era = ERAS[0];
-  if (!era.slider) return wi;
-  var first = WINDOWS[era.first].end;
-  return Math.max(era.first, Math.min(era.first + era.count - 1, era.first + Math.floor((t - first) * 12 + 1e-7)));
+  t = boundedTime(t);
+  for (var i = WINDOWS.length - 1; i >= 0; i--){
+    var w = WINDOWS[i];
+    if (t >= (ERAS[w.era].slider ? w.end : w.start)) return i;
+  }
+  return 0;
 }
-// jump the clock to a moment: the month changes if it must, and NOW lands on the day
 function goToMoment(t){
-  var i = windowIndexFor(t);
-  nowT = t;
-  if (i !== wi) setWindow(i, true); else { bindNow(); syncHeader(); placeHandle(); render(); }
+  if(FOOTAGE)closePanel();navigationGeneration++;ANIMS.length=0;pendingEventHash=null;
+  nowT = boundedTime(t); var i = windowIndexFor(nowT);
+  setWindow(i, true);
 }
 function writeHash(){
-  var parts = ['mode=' + mode, 'y=' + (Math.round(nowT * 1000) / 1000)];
-  if (selected) parts.push('e=' + encodeURIComponent(selected.slug));
+  var parts = ['mode=' + mode, 'y=' + String(nowT), 'view=' + (temporalView === 'moment' ? 'moment' : periodDays)];
+  var eventId = pendingEventHash || selected && selected.stableId;
+  if (eventId) parts.push('event=' + encodeURIComponent(eventId));
   history.replaceState(null, '', '#' + parts.join('&'));
 }
-function readHash(){
-  var h = {}; location.hash.slice(1).split('&').forEach(function(p){ var kv = p.split('='); if (kv[0]) h[kv[0]] = decodeURIComponent(kv[1] || ''); });
-  if (h.mode && ERA_SETS[h.mode] && h.mode !== mode) setMode(h.mode, h.y ? +h.y : null);
-  else if (h.y && ERAS[0].slider){ var y = +h.y; if (isFinite(y)){ var i = windowIndexFor(y); if (i !== wi){ wi = i; } nowT = Math.max(WINDOWS[wi].end, Math.min(WINDOWS[wi].end + STEP - 1e-6, y)); bindWindow(); syncHeader(); placeHandle(); resetTicker(); } }
-  if (h.e){
-    var matches = EVENTS.filter(function(x){ if (x.slug === h.e) return true; try { return decodeURIComponent(x.slug) === h.e; } catch (err){ return false; } });
-    var e = matches[0];
-    if (e){
-      goToMoment(e.t0 + 1 / 365);                                    // the day after it happened: it is on the globe, bright
-      flyTo(e, function(){ openPanel(e); });
-    }
-  }
+var pendingEventHash = null;
+function resolvePendingEvent(){
+  if (!pendingEventHash) return;
+  var e = EVENTS.find(function(x){ return x.stableId === pendingEventHash || x.slug === pendingEventHash; });
+  if (!e || !eligibleEvent(e)) return;
+  pendingEventHash = null;
+  goToMoment(e.t0);
+  flyTo(e, function(){ openPanel(e); });
 }
+function readHash(){
+  var h = Object.fromEntries(new URLSearchParams(location.hash.slice(1)));
+  var requestedEvent = h.event || h.e || null;
+  if(FOOTAGE)closePanel();
+  if (h.view){ temporalView = h.view === 'moment' ? 'moment' : 'period'; if ([30,365,1825].indexOf(+h.view) >= 0) periodDays = +h.view; if (viewSelect) viewSelect.value = temporalView === 'moment' ? 'moment' : String(periodDays); }
+  if (h.mode && ERA_SETS[h.mode] && h.mode !== mode) setMode(h.mode, Number.isFinite(+h.y) ? +h.y : nowT);
+  if (h.y && Number.isFinite(+h.y)) goToMoment(+h.y);
+  pendingEventHash = requestedEvent;
+  writeHash();
+  resolvePendingEvent();
+}
+window.addEventListener('hashchange', readHash);
 
 // ---------- 'while this was happening' ticker ----------
 function continentOf(e){ return e.normal; }
@@ -1872,7 +2141,7 @@ var TICKER_APART_KM = 2500;
 function partnerQuality(e){
   // an event no rule can name (a franchise, a festival) and a headline that is only "name — description" are both
   // signs of a weak line; a real photograph is a sign of a real event
-  var q = IMAGES[e.slug] ? 2 : 0;
+  var q = photoFor(e) ? 2 : 0;
   if (kindOf(e) === KIND_DEFAULT[e.cat]) q -= 2;
   if (/ — | – /.test(e.title)) q -= 2;                // "name — description", or a sub-event ("Fencing at the Olympics – men's foil")
   if (/: [a-z]/.test(e.title)) q -= 1.5;           // "2006 Turkish Grand Prix: Formula One motor race" is a label, not news
@@ -1895,8 +2164,8 @@ function coincidences(){
 function linesWithin(w, now, reach){
   var byDay = {};
   EVENTS.forEach(function(e){
-    if (!e.date || e.w < 3 || off[e.cat] || !inWindow(e, w)) return;
-    if (e.t0 > now + 1 / 365 || now - e.t0 > reach) return;        // up to today, and the reach before it
+    if (!e.date || e.datePrecision !== 'day' || e.w < 3 || off[e.cat] || !inWindow(e, w)) return;
+    if (e.t0 > now || now - e.t0 > reach) return;        // up to today, and the reach before it
     if (e.title.split(/\s+/).length < 3) return;                   // "Megaclite introduced" is not a line anyone can read
     if (/^\(\d+\)|^\d{4} [A-Z]{2}\d/.test(e.title)) return;         // a catalogue number is not news
     (byDay[e.date] = byDay[e.date] || []).push(e);
@@ -1962,38 +2231,46 @@ function resetTicker(){
   tickerPairs = coincidences(); tickerIndex = 0; showTicker();
   tickerShownAt = clockNow();                                       // the next line comes TICKER_HOLD_MS later, on the app's clock
 }
-document.getElementById('aboutCounts').textContent = EVENTS.length.toLocaleString() + ' events · ' + Object.keys(IMAGES).length.toLocaleString() + ' photographs';
+document.getElementById('aboutCounts').textContent = EVENTS.length.toLocaleString() + ' events · ' + PHOTO_INDEX.size.toLocaleString() + ' events with verified photographs';
 document.getElementById('aboutBtn').onclick = function(){ document.getElementById('about').classList.toggle('on'); };
 document.getElementById('aboutClose').onclick = function(){ document.getElementById('about').classList.remove('on'); };
 window.addEventListener('resize', resize);
-nowT = WINDOWS[wi].end; buildSkyStatic(); setSkyDate(dateOfNow());
-bindWindow(); syncHeader(); placeHandle(); resize(); tick(); readHash(); resetTicker(); setTimeout(placeHandle, 60);
-// The film starts rolling on its own. A link that opens on a particular event stays paused on that moment, since
-// whoever shared it meant that month; otherwise time runs forward at 1x from wherever the page opened, and from
-// the beginning if it opened at the very end.
-if (!selected && !/[#&]e=/.test(location.hash)){
-  if (!/[#&]y=/.test(location.hash)){
-    // no month asked for: open on January 2020 and roll from there, so the first thing a visitor sees is the
-    // pandemic year arriving rather than the last frame of the film
-    var opening = WINDOWS.findIndex(function(w){ return Math.abs(w.end - 2020) < 0.02; });   // a window is named by its NOW, its end
-    if (opening >= 0) setWindow(opening);
+var initialHash = location.hash;
+nowT = TIME.parseISO('2014-08-01T12:00:00Z'); wi = windowIndexFor(nowT);
+buildSkyStatic(); setSkyDate(dateOfNow());
+bindWindow(); syncHeader(); placeHandle(); resize(); tick();
+if (initialHash){ history.replaceState(null, '', initialHash); readHash(); }
+resetTicker(); setTimeout(placeHandle, 60);
+ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added){ if (added){ bindWindow(); render(); resetTicker(); } resolvePendingEvent(); });
+function refreshPresentBounds(){
+  var end = presentTime(), previous = ERAS[ERAS.length - 1].to;
+  var rebuild = TIME.monthStart(previous) !== TIME.monthStart(end) ||
+    mode === 'century' && ERAS[0].from !== Math.floor(end) - 100;
+  ERAS[ERAS.length - 1].to = end;
+  if (rebuild){
+    buildWindows(); nowT = boundedTime(nowT); wi = windowIndexFor(nowT); buildRail(); setWindow(wi, true);
+  } else {
+    if (nowT > end) goToMoment(end);
+    syncHeader(); placeHandle();
   }
-  if (wi >= WINDOWS.length - 1) setWindow(0);
-  setPlayDir(1);
+  if (!playDir){ setSkyDate(dateOfNow()); render(); }
 }
-ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added){ if (added){ bindWindow(); render(); resetTicker(); if (!selected && /[#&]e=/.test(location.hash)) readHash(); } });
-setInterval(function(){ if (!selected && !playDir) setSkyDate(dateOfNow()); }, 60000);
+setInterval(refreshPresentBounds, 60000);
+window.__gtDensity = function(){ return Object.assign({}, densityStats, {rendered:shown.filter(function(e){return e._sx != null;}).length, renderedPhotos:shown.filter(function(e){return e._sx != null && photoFor(e);}).length, folded:shown.reduce(function(n,e){return n+(e.folded ? e.folded.length : 0);},0)}); };
+window.__gtState = function(){ return { time:nowT, date:dateOfNow() && dateOfNow().toISOString(), present:presentTime(), mode:mode, direction:playDir, speed:SPEEDS[speedIx], view:temporalView, periodDays:periodDays, selected:selected && selected.stableId, loaded:EVENTS.length, range:{from:ERAS[0].from,to:ERAS[ERAS.length-1].to,lastMonth:WINDOWS[WINDOWS.length-1].end}, shards:shardLoader && shardLoader.status() }; };
+window.__gtControls = { time:goToMoment, mode:setMode, speed:setSpeed, direction:setPlayDir, select:openPanel, close:closePanel, refreshBounds:refreshPresentBounds, view:function(v){ viewSelect.value = String(v); viewSelect.onchange(); } };
+
 };
 // Load data files, then start the app.
 (function(){
   if (window.__GT){ window.__gtStart(); return; }   // playground build: data already inlined
   function get(url){ return fetch(url).then(function(r){ if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); }); }
   Promise.all([ get('data/events.json'), get('data/images.json'), get('assets/countries-110m.json'), get('assets/skylabels.json'),
-                get('data/media.json').catch(function(){ return {}; }), get('data/index.json').catch(function(){ return null; }), get('data/links.json').catch(function(){ return []; }),
-                get('data/skyfacts.json').catch(function(){ return {}; }) ])
+                get('data/event-media.json'), get('data/index.json').catch(function(){ return null; }), get('data/links.json').catch(function(){ return []; }),
+                get('data/skyfacts.json').catch(function(){ return {}; }), get('assets/stars-catalog.json'), get('data/event-photos.json') ])
     .then(function(res){
-      window.__GT = { events:res[0], images:res[1], borders:res[2], skyLabels:res[3], media:res[4], shards: res[5] && res[5].years ? { years:res[5].years, dir:'data/y/' } : null, links:res[6], skyFacts:res[7] };
+      window.__GT = { events:res[0], images:res[1], borders:res[2], skyLabels:res[3], media:res[4], shards: res[5] && res[5].years ? { years:res[5].years, dir:'data/y/' } : null, links:res[6], skyFacts:res[7], eventPhotos:res[9], starCatalog:res[8] };
       window.__gtStart();
     })
-    .catch(function(err){ document.getElementById('note').textContent = 'COULD NOT LOAD DATA — ' + err.message; console.error(err); });
+    .catch(function(err){ document.getElementById('dataStatus').hidden = false; document.getElementById('dataStatus').textContent = 'Could not load events. Reload to retry.'; console.error(err); });
 })();

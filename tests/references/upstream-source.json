@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Earth.txt",
+    "source": "https://raw.githubusercontent.com/cosinekitty/astronomy/865d3da7d8112bbc7911238052c6af4aaf877181/generate/barystate/Earth.txt",
+    "commit": "865d3da7d8112bbc7911238052c6af4aaf877181",
+    "sha256": "0937c02ec33a9a9aac3226de80e8e3634d6935a34b2b52edfaf0f83c2260ca66",
+    "bytes": 630544
+  },
+  {
+    "name": "Moon.txt",
+    "source": "https://raw.githubusercontent.com/cosinekitty/astronomy/865d3da7d8112bbc7911238052c6af4aaf877181/generate/barystate/Moon.txt",
+    "commit": "865d3da7d8112bbc7911238052c6af4aaf877181",
+    "sha256": "7c5f107230f6c8a8ddcb8a38108abf9f18ace030f69a0a34eb52b65b496b4621",
+    "bytes": 689443
+  },
+  {
+    "name": "README.md",
+    "source": "https://raw.githubusercontent.com/cosinekitty/astronomy/865d3da7d8112bbc7911238052c6af4aaf877181/generate/barystate/README.md",
+    "commit": "865d3da7d8112bbc7911238052c6af4aaf877181",
+    "sha256": "096734cae6d57899ea9534833a88c4b7b9b679b9e0482e4e1950587fafd6f419",
+    "bytes": 796
+  },
+  {
+    "name": "Sun.txt",
+    "source": "https://raw.githubusercontent.com/cosinekitty/astronomy/865d3da7d8112bbc7911238052c6af4aaf877181/generate/barystate/Sun.txt",
+    "commit": "865d3da7d8112bbc7911238052c6af4aaf877181",
+    "sha256": "c4f69048156fce45a5fa4c76c3c66778fb7505e228a091f700705a1ac0e27afc",
+    "bytes": 786216
+  },
+  {
+    "name": "Venus.txt",
+    "source": "https://raw.githubusercontent.com/cosinekitty/astronomy/865d3da7d8112bbc7911238052c6af4aaf877181/generate/barystate/Venus.txt",
+    "commit": "865d3da7d8112bbc7911238052c6af4aaf877181",
+    "sha256": "508422725d171ddcdb3dda4e6696f28c52215e41b134993b106e45f3c0429d98",
+    "bytes": 629977
+  }
+]

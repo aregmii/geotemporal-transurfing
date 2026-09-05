@@ -25,7 +25,7 @@ import requests
 
 USER_AGENT = "GeotemporalTransurfing/0.6 (https://github.com/aregmii/geotemporal-transurfing)"
 WDQS = "https://query.wikidata.org/sparql"
-CACHE_DIR = "facts_cache_v2"   # v2: end dates at month and year precision are kept (the v1 cache stored only day-precision ends)
+CACHE_DIR = "facts_cache_precision_v3"   # Precision stays separate from the padded source timestamp.
 BATCH = 60
 
 QUERY = """
@@ -82,18 +82,12 @@ def query_batch(slugs):
                         pass
                 if val("start") and val("startPrec") == "11" and not f.get("start"):
                     f["start"] = val("start").split("T")[0]
-                # An end date is worth having at month or year precision too: a war that "ended in 2021" must
-                # stay on the globe until 2021, not vanish the month it began. Month precision -> the 28th of
-                # that month, year precision -> 31 December, so the event lasts to the end of what is known.
+                    f["startPrecision"] = "day"
                 if val("end") and not f.get("end"):
-                    end_precision = val("endPrec")
-                    end_date = val("end").split("T")[0]
-                    if end_precision == "11":
-                        f["end"] = end_date
-                    elif end_precision == "10":
-                        f["end"] = end_date[:7] + "-28"
-                    elif end_precision == "9":
-                        f["end"] = end_date[:4] + "-12-31"
+                    precision = {"11": "day", "10": "month", "9": "year"}.get(val("endPrec"))
+                    if precision:
+                        f["end"] = val("end").split("T")[0]
+                        f["endPrecision"] = precision
             os.makedirs(CACHE_DIR, exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(out, f)
@@ -121,7 +115,7 @@ def main():
     if os.path.exists(args.out):
         with open(args.out, "r", encoding="utf-8") as f:
             facts = json.load(f)
-    slugs = sorted(set(r[9] for r in rows if r[9] and not r[9].startswith("Q") and r[9] not in facts))
+    slugs = sorted(set(r[9] for r in rows if r[9] and not r[9].startswith("Q") and (r[9] not in facts or (facts[r[9]].get("end") and not facts[r[9]].get("endPrecision")))))
     print(str(len(slugs)) + " events to look up in " + str((len(slugs) + BATCH - 1) // BATCH) + " batches", file=sys.stderr)
     for i in range(0, len(slugs), BATCH):
         batch = slugs[i:i + BATCH]

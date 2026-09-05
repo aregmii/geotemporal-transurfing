@@ -1,0 +1,61 @@
+[
+  {
+    "match": {
+      "slug": "New_START",
+      "date": "2010-04-08"
+    },
+    "title": "New START signed in Prague",
+    "date": "2010-04-08",
+    "kind": "point",
+    "precision": "day",
+    "source": "https://obamawhitehouse.archives.gov/photos-and-video/video/signing-new-start-nuclear-arms-treaty-with-russia",
+    "note": "The signing occurred on April 8, 2010. The treaty's later entry into force is a separate event and must not extend the signing ceremony."
+  },
+  {
+    "match": {
+      "slug": "2015_Rugby_World_Cup",
+      "date": "2015-09-18",
+      "id": "evt-10zos9g-3jw8jo"
+    },
+    "title": "2015 Rugby World Cup",
+    "date": "2015-09-18",
+    "endDate": "2015-10-31",
+    "kind": "interval",
+    "precision": "day",
+    "endPrecision": "day",
+    "source": "https://www.world.rugby/news/163399/new-report-confirms-record-breaking-rugby-world-cup-2015-economic-impact?lang=en",
+    "note": "World Rugby gives the tournament dates as September 18 to October 31, 2015. The interval title names the tournament; it does not announce the final winner at the opening."
+  },
+  {
+    "match": {
+      "slug": "2020_FIFA_Club_World_Cup_final",
+      "date": "2021-11-02",
+      "id": "evt-s4mmu6-1bf7bc8"
+    },
+    "date": "2021-02-11",
+    "kind": "point",
+    "precision": "day",
+    "source": "https://inside.fifa.com/tournaments/mens/clubworldcup/qatar2020/news/pavard-completes-sextuple-for-dominant-bayern",
+    "note": "FIFA dates the Bayern Munich versus Tigres final to February 11, 2021. The prior November 2 value inverted the day and month."
+  },
+  {
+    "match": {
+      "slug": "2014_Indian_general_election",
+      "date": "2014-05-12",
+      "id": "evt-jbwa4s-4ebfl0"
+    },
+    "title": "2014 Indian general election",
+    "source": "https://www.eci.gov.in/general-elections",
+    "note": "Remove an incorrect automatically inferred winner. The record falls on the final polling day, May 12; the Election Commission scheduled counting for May 16. The neutral title does not announce a result before counting."
+  },
+  {
+    "match": {
+      "slug": "Wedding_of_Victoria,_Crown_Princess_of_Sweden,_and_Daniel_Westling",
+      "date": "2010-06-19",
+      "id": "evt-1ykcirn-1hdcddb"
+    },
+    "title": "Wedding of Crown Princess Victoria and Daniel Westling",
+    "source": "https://commons.wikimedia.org/wiki/File:SwedishRoyalWeddingBrideAndGroomLeavesOnABoat_full.ogv",
+    "note": "Use a concise event name rather than appending a redundant automatically generated description. Source identifies the couple and the June 19, 2010 wedding."
+  }
+]

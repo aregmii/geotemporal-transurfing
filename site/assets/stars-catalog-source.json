@@ -1,0 +1,9 @@
+{
+  "source": "https://raw.githubusercontent.com/ofrohn/d3-celestial/7e720a3de062059d4c5400a379146a601d9010e0/data/stars.6.json",
+  "commit": "7e720a3de062059d4c5400a379146a601d9010e0",
+  "sha256": "0297b8fa3adfbce1dc26566f61c4abcc1df4f29c6a28729ca06b56d1c6d25602",
+  "count": 5044,
+  "downloadedUtc": "2026-09-05T17:41:32.907646+00:00",
+  "licenseSource": "https://raw.githubusercontent.com/ofrohn/d3-celestial/7e720a3de062059d4c5400a379146a601d9010e0/LICENSE",
+  "catalog": "d3-celestial stars.6, HYG bright stars, J2000 directions"
+}

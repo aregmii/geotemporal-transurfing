@@ -39,7 +39,7 @@ import requests
 
 ENDPOINT = "https://query.wikidata.org/sparql"
 USER_AGENT = "GeotemporalTransurfing/0.6 (https://github.com/aregmii/geotemporal-transurfing)"
-CACHE_DIR = "wdqs_cache"
+CACHE_DIR = "wdqs_cache_precision_v1"
 PAUSE_SECONDS = 2.0
 MAX_EVENTS = 250000
 PERSON_MIN_SITELINKS = 150
@@ -110,13 +110,13 @@ MIN_SITELINKS_OVERRIDE = {"Q3882219": 15, "Q2223653": 15, "Q1071027": 10, "Q4023
 SUBCLASS_WALK = {"Q2401485", "Q5389", "Q7692360", "Q8092", "Q1338037", "Q209715", "Q5916", "Q12772819", "Q1371849", "Q1084566", "Q2761147"}
 
 EVENT_QUERY = """
-SELECT ?item ?itemLabel ?itemDescription ?when ?start ?end ?coord ?placeLabel ?placeCoord ?article ?sitelinks WHERE {
+SELECT ?item ?itemLabel ?itemDescription ?when ?start ?end ?coord ?placeLabel ?placeCoord ?article ?sitelinks ?whenPrec ?startPrec ?endPrec WHERE {
   ?item %(class_path)s wd:%(class_qid)s .
   ?item wikibase:sitelinks ?sitelinks .
   FILTER(?sitelinks >= %(min_sitelinks)d)
-  OPTIONAL { ?item wdt:P585 ?when . }
-  OPTIONAL { ?item wdt:P580 ?start . }
-  OPTIONAL { ?item wdt:P582 ?end . }
+  OPTIONAL { ?item wdt:P585 ?when . OPTIONAL { ?item p:P585/psv:P585 ?whenValue . ?whenValue wikibase:timeValue ?when ; wikibase:timePrecision ?whenPrec . } }
+  OPTIONAL { ?item wdt:P580 ?start . OPTIONAL { ?item p:P580/psv:P580 ?startValue . ?startValue wikibase:timeValue ?start ; wikibase:timePrecision ?startPrec . } }
+  OPTIONAL { ?item wdt:P582 ?end . OPTIONAL { ?item p:P582/psv:P582 ?endValue . ?endValue wikibase:timeValue ?end ; wikibase:timePrecision ?endPrec . } }
   OPTIONAL { ?item wdt:P625 ?coord . }
   OPTIONAL { ?item wdt:P276 ?place . ?place wdt:P625 ?placeCoord . }
   OPTIONAL { ?item wdt:P1001 ?jurisdiction . ?jurisdiction wdt:P625 ?countryCoord . }
@@ -131,8 +131,8 @@ SELECT ?item ?itemLabel ?itemDescription ?when ?start ?end ?coord ?placeLabel ?p
 # then where the discoverer worked (P937 work location, or the headquarters P159 of their employer P108).
 DISCOVERY_QUERY = """
 SELECT ?item ?itemLabel ?itemDescription ?when ?coord ?placeLabel ?placeCoord ?siteLabel ?siteCoord
-       ?who ?whoLabel ?workLabel ?workCoord ?orgLabel ?orgCoord ?article ?sitelinks WHERE {
-  ?item wdt:P575 ?when . hint:Prior hint:rangeSafe true .
+       ?who ?whoLabel ?workLabel ?workCoord ?orgLabel ?orgCoord ?article ?sitelinks ?whenPrec WHERE {
+  ?item wdt:P575 ?when . hint:Prior hint:rangeSafe true . OPTIONAL { ?item p:P575/psv:P575 ?whenValue . ?whenValue wikibase:timeValue ?when ; wikibase:timePrecision ?whenPrec . }
   FILTER(?when >= "%(date_from)s"^^xsd:dateTime && ?when < "%(date_to)s"^^xsd:dateTime)
   ?item wikibase:sitelinks ?sitelinks .
   FILTER(?sitelinks >= %(min_sitelinks)d)
@@ -153,8 +153,8 @@ DISCOVERY_MIN_SITELINKS = 12
 # Spacecraft launches: anything with a launch date (P619). Located by launch site (P?) is unreliable, so: own coordinate,
 # then the operator's headquarters, then the country.
 LAUNCH_QUERY = """
-SELECT ?item ?itemLabel ?itemDescription ?when ?coord ?orgLabel ?orgCoord ?countryCoord ?article ?sitelinks WHERE {
-  ?item wdt:P619 ?when . hint:Prior hint:rangeSafe true .
+SELECT ?item ?itemLabel ?itemDescription ?when ?coord ?orgLabel ?orgCoord ?countryCoord ?article ?sitelinks ?whenPrec WHERE {
+  ?item wdt:P619 ?when . hint:Prior hint:rangeSafe true . OPTIONAL { ?item p:P619/psv:P619 ?whenValue . ?whenValue wikibase:timeValue ?when ; wikibase:timePrecision ?whenPrec . }
   ?item wikibase:sitelinks ?sitelinks .
   FILTER(?sitelinks >= %(min_sitelinks)d)
   OPTIONAL { ?item wdt:P625 ?coord . }
@@ -167,11 +167,11 @@ SELECT ?item ?itemLabel ?itemDescription ?when ?coord ?orgLabel ?orgCoord ?count
 
 # Well-known scientific publications (Q591041, UNVERIFIED): located where the author worked.
 PUBLICATION_QUERY = """
-SELECT ?item ?itemLabel ?itemDescription ?when ?who ?whoLabel ?workLabel ?workCoord ?orgLabel ?orgCoord ?article ?sitelinks WHERE {
+SELECT ?item ?itemLabel ?itemDescription ?when ?who ?whoLabel ?workLabel ?workCoord ?orgLabel ?orgCoord ?article ?sitelinks ?whenPrec WHERE {
   ?item wdt:P31 wd:Q591041 .
   ?item wikibase:sitelinks ?sitelinks .
   FILTER(?sitelinks >= %(min_sitelinks)d)
-  ?item wdt:P577 ?when .
+  ?item wdt:P577 ?when . OPTIONAL { ?item p:P577/psv:P577 ?whenValue . ?whenValue wikibase:timeValue ?when ; wikibase:timePrecision ?whenPrec . }
   OPTIONAL { ?item wdt:P50 ?who .
              OPTIONAL { ?who wdt:P937 ?work . ?work wdt:P625 ?workCoord . }
              OPTIONAL { ?who wdt:P108 ?org . ?org wdt:P159 ?hq . ?hq wdt:P625 ?orgCoord . } }
@@ -181,15 +181,15 @@ SELECT ?item ?itemLabel ?itemDescription ?when ?who ?whoLabel ?workLabel ?workCo
 """
 
 PERSON_QUERY = """
-SELECT ?item ?itemLabel ?itemDescription ?born ?died ?birthPlaceLabel ?birthCoord ?deathPlaceLabel ?deathCoord ?article ?sitelinks WHERE {
+SELECT ?item ?itemLabel ?itemDescription ?born ?died ?birthPlaceLabel ?birthCoord ?deathPlaceLabel ?deathCoord ?article ?sitelinks ?bornPrec ?diedPrec WHERE {
   hint:Query hint:optimizer "None" .
-  ?item wdt:P569 ?born . hint:Prior hint:rangeSafe true .
+  ?item wdt:P569 ?born . hint:Prior hint:rangeSafe true . OPTIONAL { ?item p:P569/psv:P569 ?bornValue . ?bornValue wikibase:timeValue ?born ; wikibase:timePrecision ?bornPrec . }
   FILTER(?born >= "%(date_from)s"^^xsd:dateTime && ?born < "%(date_to)s"^^xsd:dateTime)
   ?item wdt:P31 wd:Q5 .
   ?item wikibase:sitelinks ?sitelinks .
   FILTER(?sitelinks >= %(min_sitelinks)d)
   OPTIONAL { ?item wdt:P19 ?birthPlace . ?birthPlace wdt:P625 ?birthCoord . }
-  OPTIONAL { ?item wdt:P570 ?died . }
+  OPTIONAL { ?item wdt:P570 ?died . OPTIONAL { ?item p:P570/psv:P570 ?diedValue . ?diedValue wikibase:timeValue ?died ; wikibase:timePrecision ?diedPrec . } }
   OPTIONAL { ?item wdt:P20 ?deathPlace . ?deathPlace wdt:P625 ?deathCoord . }
   OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
@@ -208,7 +208,7 @@ SELECT ?item ?itemLabel ?itemDescription ?when ?coord ?placeLabel ?placeCoord ?c
     FILTER(?when >= "%(date_from)s"^^xsd:dateTime && ?when < "%(date_to)s"^^xsd:dateTime) }
   ?item wikibase:sitelinks ?sitelinks . FILTER(?sitelinks >= %(min_sitelinks)d)
   FILTER NOT EXISTS { ?item wdt:P31 wd:Q5 }
-  ?item p:%(prop)s ?st . ?st psv:%(prop)s ?tv . ?tv wikibase:timePrecision 11 .
+  ?item p:%(prop)s ?st . ?st psv:%(prop)s ?tv . ?tv wikibase:timeValue ?when ; wikibase:timePrecision 11 .
   OPTIONAL { ?item wdt:P625 ?coord . }
   OPTIONAL { ?item wdt:P276 ?place . ?place wdt:P625 ?placeCoord . }
   OPTIONAL { ?item wdt:P17 ?country . ?country wdt:P625 ?countryCoord . }
@@ -226,9 +226,9 @@ SELECT ?item ?itemLabel ?itemDescription ?born ?died ?birthPlaceLabel ?birthCoor
   ?item wdt:P569 ?born . hint:Prior hint:rangeSafe true .
   FILTER(?born >= "%(date_from)s"^^xsd:dateTime && ?born < "%(date_to)s"^^xsd:dateTime)
   ?item wikibase:sitelinks ?sitelinks . FILTER(?sitelinks >= %(min_sitelinks)d)
-  ?item p:P569 ?bs . ?bs psv:P569 ?bv . ?bv wikibase:timePrecision 11 .
+  ?item p:P569 ?bs . ?bs psv:P569 ?bv . ?bv wikibase:timeValue ?born ; wikibase:timePrecision 11 .
   OPTIONAL { ?item wdt:P19 ?birthPlace . ?birthPlace wdt:P625 ?birthCoord . }
-  OPTIONAL { ?item wdt:P570 ?died . ?item p:P570 ?ds . ?ds psv:P570 ?dv . ?dv wikibase:timePrecision 11 . }
+  OPTIONAL { ?item wdt:P570 ?died . ?item p:P570 ?ds . ?ds psv:P570 ?dv . ?dv wikibase:timeValue ?died ; wikibase:timePrecision 11 . }
   OPTIONAL { ?item wdt:P20 ?deathPlace . ?deathPlace wdt:P625 ?deathCoord . }
   OPTIONAL { ?item wdt:P106 ?occ . }
   ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> .
@@ -345,20 +345,23 @@ def year_of(iso_date_string):
         return None
     if negative:
         year = -year - 1   # Wikidata's year -479 is 480 BCE; curated rows write 480 BCE as -480
-    return year
+    return -1 if year == 0 else year
 
 
-def date_of(iso_date_string):
-    # "1945-08-06T00:00:00Z" -> "1945-08-06". The truthy wdt: value carries no precision, and Wikidata pads
-    # year-only and month-only dates to the 1st, so a date on the 1st of January is treated as year precision
-    # and dropped (a real 1 January event loses its day; a query on p:/psv: with wikibase:timePrecision
-    # would fix both). Returns None if missing.
-    if iso_date_string is None:
+def date_of(iso_date_string, precision=None):
+    # A padded January 1 is ambiguous without the statement precision. A proven January 1 is retained.
+    if iso_date_string is None or str(precision) != "11":
         return None
-    date = iso_date_string.split("T")[0]
-    if date.endswith("-01-01"):
-        return None
-    return date
+    return iso_date_string.split("T")[0]
+
+
+def date_info(binding, key, prop):
+    value = value_of(binding, key)
+    precision = {"11": "day", "10": "month", "9": "year"}.get(value_of(binding, key + "Prec"), "year")
+    return {"iso": value.split("T")[0] if value and value_of(binding, key + "Prec") else None,
+            "precision": precision,
+            "source": {"type": "wikidata", "property": prop, "url": value_of(binding, "item"),
+                       "note": None if value_of(binding, key + "Prec") else "Statement precision unavailable; only the year is retained."}}
 
 
 def parse_point(wkt_point):
@@ -440,7 +443,10 @@ def collect_events():
                 "sitelinks": sitelinks, "place": place_label or "",
                 "description": description, "slug": slug_of(value_of(binding, "article")),
                 "confidence": confidence,
-                "date": date_of(value_of(binding, "when")) or date_of(value_of(binding, "start")),
+                "date": date_of(value_of(binding, "when"), value_of(binding, "whenPrec")) if when_year is not None else date_of(value_of(binding, "start"), value_of(binding, "startPrec")),
+                "date_info": date_info(binding, "when" if when_year is not None else "start", "P585" if when_year is not None else "P580"),
+                "end_info": date_info(binding, "end", "P582") if when_year is None and value_of(binding, "end") else None,
+                "temporal_kind": "point" if when_year is not None else "interval",
             })
     return rows
 
@@ -485,7 +491,7 @@ def collect_discoveries():
                 "sitelinks": int(value_of(binding, "sitelinks")), "place": place,
                 "description": value_of(binding, "itemDescription") or "", "slug": slug_of(value_of(binding, "article")),
                 "confidence": confidence, "source": "discovery",
-                "date": date_of(value_of(binding, "when")), "who": value_of(binding, "whoLabel"),
+                "date_info": date_info(binding, "when", "P575"), "date": date_of(value_of(binding, "when"), value_of(binding, "whenPrec")), "who": value_of(binding, "whoLabel"),
             })
     return rows
 
@@ -508,7 +514,7 @@ def collect_launches():
             "sitelinks": int(value_of(binding, "sitelinks")), "place": value_of(binding, "orgLabel") or "",
             "description": value_of(binding, "itemDescription") or "", "slug": slug_of(value_of(binding, "article")),
             "confidence": {"coord": "exact", "orgCoord": "workplace", "countryCoord": "country"}[key], "source": "launch",
-            "date": date_of(value_of(binding, "when")), "who": None,
+            "date_info": date_info(binding, "when", "P619"), "date": date_of(value_of(binding, "when"), value_of(binding, "whenPrec")), "who": None,
         })
     return rows
 
@@ -531,7 +537,7 @@ def collect_publications():
             "sitelinks": int(value_of(binding, "sitelinks")), "place": value_of(binding, "workLabel") or value_of(binding, "orgLabel") or "",
             "description": value_of(binding, "itemDescription") or "", "slug": slug_of(value_of(binding, "article")),
             "confidence": "workplace", "source": "publication",
-            "date": date_of(value_of(binding, "when")), "who": value_of(binding, "whoLabel"),
+            "date_info": date_info(binding, "when", "P577"), "date": date_of(value_of(binding, "when"), value_of(binding, "whenPrec")), "who": value_of(binding, "whoLabel"),
         })
     return rows
 
@@ -560,7 +566,7 @@ def collect_people():
                     "start": born_year, "end": born_year, "category": "cul",
                     "sitelinks": sitelinks, "place": value_of(binding, "birthPlaceLabel") or "",
                     "description": description, "slug": slug, "confidence": "associated", "source": "person",
-                    "date": date_of(value_of(binding, "born")), "who": None,
+                    "date_info": date_info(binding, "born", "P569"), "date": date_of(value_of(binding, "born"), value_of(binding, "bornPrec")), "who": None,
                 })
             died_year = year_of(value_of(binding, "died"))
             death_point = parse_point(value_of(binding, "deathCoord"))
@@ -571,7 +577,7 @@ def collect_people():
                     "start": died_year, "end": died_year, "category": "cul",
                     "sitelinks": sitelinks, "place": value_of(binding, "deathPlaceLabel") or "",
                     "description": description, "slug": slug, "confidence": "associated", "source": "person",
-                    "date": date_of(value_of(binding, "died")), "who": None,
+                    "date_info": date_info(binding, "died", "P570"), "date": date_of(value_of(binding, "died"), value_of(binding, "diedPrec")), "who": None,
                 })
     return rows
 
@@ -641,9 +647,10 @@ def collect_dated(rows):
             if year is None:
                 continue
             category = category_from_label(value_of(binding, "classLabel"), CLASS_CATEGORY, None)
-            if qid in best:
-                if category and not best[qid]["_cat"]:
-                    best[qid]["category"] = category; best[qid]["_cat"] = True
+            event_key = (qid, when, point[0], point[1])
+            if event_key in best:
+                if category and not best[event_key]["_cat"]:
+                    best[event_key]["category"] = category; best[event_key]["_cat"] = True
                 continue
             row = {
                 "qid": qid, "title": value_of(binding, "itemLabel"), "lat": point[0], "lon": point[1],
@@ -652,7 +659,7 @@ def collect_dated(rows):
                 "description": value_of(binding, "itemDescription") or "", "slug": slug_of(value_of(binding, "article")),
                 "confidence": {"coord": "exact", "placeCoord": "place", "countryCoord": "country"}[point_key], "source": "dated", "date": when.split("T")[0], "who": None, "_cat": bool(category),
             }
-            best[qid] = row
+            best[event_key] = row
             rows.append(row)
     for row in rows:
         del row["_cat"]
@@ -712,11 +719,11 @@ def main():
         all_rows += dated_rows + deep_rows
         print("wide pull: " + str(len(dated_rows)) + " dated rows, " + str(len(deep_rows)) + " birth/death rows", file=sys.stderr)
 
-    # Dedupe on (qid, title) — the same item can appear under several classes.
+    # An article can describe several dated occurrences or places; collapse only the same source event.
     seen = {}
     unique_rows = []
     for row in all_rows:
-        key = row["qid"] + "|" + row["title"]
+        key = (row["qid"], row["title"], row.get("date") or row["start"], row["lat"], row["lon"])
         if key in seen:
             continue
         seen[key] = True
@@ -732,7 +739,11 @@ def main():
             row["start"], row["end"], row["category"], weight_of(row["sitelinks"]),
             row["place"], row["description"], row["slug"] or row["qid"],
             row["confidence"], row["sitelinks"], row.get("source", "event"),
-            row.get("date"), row.get("who"),
+            row.get("date"), row.get("who"), None,
+            {"sourceIdentity": "|".join(str(x) for x in (row["qid"], row["title"], row.get("date") or row["start"], row["lat"], row["lon"])),
+             "kind": row.get("temporal_kind", "interval" if row["end"] > row["start"] else "point"),
+             "start": row.get("date_info") or {"iso": row.get("date"), "precision": "day" if row.get("date") else "year", "source": {"type": "wikidata", "url": "https://www.wikidata.org/wiki/" + row["qid"]}},
+             "end": row.get("end_info")},
         ])
 
     with open(arguments.out, "w", encoding="utf-8") as output_file:

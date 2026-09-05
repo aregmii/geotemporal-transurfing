@@ -1,6 +1,8 @@
 // Merge curated rows with Wikidata rows into one event array for the prototype.
 // usage: node merge.js out.json curated1.json curated2.json ... --wikidata events_wikidata.json
 const fs = require('fs');
+const temporal = require('./event-metadata.js');
+const dateOverrides = require('./event_overrides.json');
 const argv = process.argv.slice(2);
 const outPath = argv[0];
 const curatedFiles = [];
@@ -14,11 +16,11 @@ for (let i = 1; i < argv.length; i++) {
 function normalizeTitle(title) {
   return String(title).toLowerCase().replace(/^the /, '').replace(/[^a-z0-9]+/g, ' ').trim();
 }
-function slugKey(slug, title) {
-  // A person's birth and death share one article; keep them distinct.
-  const kind = /^(birth|death|discovery) of /i.test(title) ? title.split(' ')[0].toLowerCase() : '';
-  return slug + '|' + kind;
+function slugKey(slug, title, date, year, lat, lon) {
+  const kind = /^(birth|death|discovery|invention) of /i.test(title) ? title.split(' ')[0].toLowerCase() : '';
+  return [slug, kind, date || year, lat, lon].join('|');
 }
+function titleKeyFor(row, date) { return [normalizeTitle(row[0]), date || row[3], row[1], row[2]].join('|'); }
 function weightFromSitelinks(sitelinks) {
   if (sitelinks >= 120) return 4;
   if (sitelinks >= 70) return 3;
@@ -45,10 +47,13 @@ for (const file of curatedFiles) {
     const slug = (row[9] || '').toLowerCase();
     while (row.length < 12) row.push(null);
     if (!row[10] && row[9] && curatedDates[row[9]]) row[10] = curatedDates[row[9]];
-    row._curated = true;                     // hand-written title and text: left alone by the headline step
-    if (slug) { seenSlug.add(slugKey(slug, row[0])); curatedBySlug.set(slugKey(slug, row[0]), row); }
-    seenTitle.add(normalizeTitle(row[0]));
-    curatedByTitle.set(normalizeTitle(row[0]), row);
+    row._curated = true;
+    row._meta = temporal.metadata(row, {sourceType:'curated', file});
+    const sk = slugKey(slug, row[0], row[10], row[3], row[1], row[2]);
+    const tk = titleKeyFor(row, row[10]);
+    if (slug) { seenSlug.add(sk); curatedBySlug.set(sk, row); }
+    seenTitle.add(tk);
+    curatedByTitle.set(tk, row);
     out.push(row);
   }
 }
@@ -89,16 +94,15 @@ for (const file of wikidataFiles) {
   const rows = JSON.parse(fs.readFileSync(file, 'utf8'));
   for (const row of rows) {
     const slug = (row[9] || '').toLowerCase();
-    const titleKey = normalizeTitle(row[0]);
+    const titleKey = titleKeyFor(row, row[13]);
     // year-page rows link a related article, not necessarily the event's own; they dedupe on date + headline,
     // and drop out when a Wikidata row already covers the linked article as an event
     const yearPage = row[12] === 'yearpage';
-    const sk = yearPage ? 'yp|' + row[13] + '|' + titleKey : slugKey(slug, row[0]);
-    if (yearPage && slug && seenSlug.has(slug + '|')) { wikidataDropped++; continue; }
+    const sk = yearPage ? 'yp|' + titleKey : slugKey(slug, row[0], row[13], row[3], row[1], row[2]);
     if ((slug && seenSlug.has(sk)) || seenTitle.has(titleKey)) {
       const twin = curatedBySlug.get(sk) || curatedByTitle.get(titleKey);
       if (twin && twin[3] === row[3]) {
-        if (!twin[10] && typeof row[13] === 'string' && /^-?\d{1,5}-\d\d-\d\d$/.test(row[13])) twin[10] = row[13];
+        if (!twin[10] && typeof row[13] === 'string' && /^-?\d{1,6}-\d\d-\d\d$/.test(row[13])) { twin[10] = row[13]; twin._meta.start = temporal.metadata(row, {raw:true,file}).start; }
         if (!twin[11] && typeof row[14] === 'string') twin[11] = row[14];
       }
       wikidataDropped++; continue;
@@ -128,7 +132,8 @@ for (const file of wikidataFiles) {
     if (!copy[8] || copy[8].length < 12) copy[8] = 'No description yet — run fetch_summaries.py to pull the Wikipedia lead paragraph.';
     if (!copy[7]) copy[7] = '';
     const trimmed = copy.slice(0, 10); trimmed._sitelinks = copy._sitelinks; trimmed._yearpage = yearPage;
-    trimmed[10] = typeof copy[13] === 'string' && /^-?\d{1,5}-\d\d-\d\d$/.test(copy[13]) ? copy[13] : null;   // exact date YYYY-MM-DD when Wikidata has one
+    trimmed._meta = temporal.metadata(row, {raw:true,file});
+    trimmed[10] = typeof copy[13] === 'string' && /^-?\d{1,6}-\d\d-\d\d$/.test(copy[13]) ? copy[13] : null;   // exact date YYYY-MM-DD when Wikidata has one
     trimmed[11] = typeof copy[14] === 'string' ? copy[14] : null;   // discoverer / author
     out.push(trimmed);
     wikidataKept++;
@@ -378,9 +383,12 @@ for (const r of out) {
   // year-page rows already read as headlines — they only need shortening
   if (r._yearpage) r[0] = polish(trimSentence(r[0]));
   else if (!r._curated) r[0] = polish(written[r[9]] ? written[r[9]] : headline(r));
-  delete r._curated; delete r._yearpage;
-  if (!r[10] && f.start) r[10] = f.start;         // exact start when the class query only had a year
-  r[12] = f.end && f.end !== r[10] ? f.end : null; // exact end: the event persists over its whole span
+  r[12] = typeof r[12] === 'string' && /^-?\d{1,6}-\d\d-\d\d$/.test(r[12]) ? r[12] : null;
+  const meta = r._meta || temporal.metadata(r);
+  temporal.applyDates(r, meta, f);
+  temporal.applyOverride(r, meta, dateOverrides);
+  r[14] = meta;
+  delete r._curated; delete r._yearpage; delete r._meta;
 }
 
 // Weight by rank among Wikidata rows: top 8% -> 4, next 17% -> 3, next 30% -> 2, rest 1.

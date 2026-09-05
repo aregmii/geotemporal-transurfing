@@ -233,3 +233,51 @@ canvas.drag{cursor:grabbing}
 .vctl input[type=range]::-moz-range-track{background:rgba(255,255,255,.35)}
 .vctl input[type=range]::-webkit-slider-thumb{background:var(--dis); box-shadow:0 0 0 3px rgba(13,17,27,.9)}
 .vctl input[type=range]::-moz-range-thumb{background:var(--dis)}
+
+/* Optional independent observer controls remain separate from normal globe dragging. */
+.observer-controls {position:absolute;right:18px;top:44px;z-index:4;text-align:right;font:10px "IBM Plex Mono",monospace;color:#afbacb;max-width:360px;}
+.observer-controls button {background:rgba(9,14,25,.84);border:1px solid #344155;border-radius:4px;padding:8px;margin:0 0 5px 5px;color:#dce5f0;font:10px "IBM Plex Mono",monospace;cursor:pointer;}
+.observer-controls button[aria-pressed="true"] {border-color:#92bfd6;color:#b5e4fc;}
+#observerCoordinates,#observerHint {background:rgba(9,14,25,.78);padding:5px 7px;line-height:1.6;}
+#observerMove[hidden],#observerHint[hidden] {display:none;}
+@media(max-width:640px){.observer-controls{top:56px;right:8px;max-width:280px;}.observer-controls button{padding:7px 5px;font-size:9px;}#observerHint{font-size:8px;}}
+
+.exploration-controls{display:flex;align-items:center;gap:16px;padding:7px 14px;background:#090e18;border-bottom:1px solid var(--rule);font-size:11px;color:var(--ink-2);flex-wrap:wrap}
+.exploration-controls label,.speed-label{display:flex;align-items:center;gap:6px;white-space:nowrap}
+select{background:#121b2c;color:var(--ink);border:1px solid #3b4860;border-radius:4px;padding:4px 6px;font:inherit;cursor:pointer}
+#periodLabel{margin-left:auto;color:#ddb976;font:10px "IBM Plex Mono",monospace;letter-spacing:.03em}
+#dataStatus{border:1px solid #89784f;background:#1a1c20;color:#e3c780;border-radius:4px;padding:4px 8px;font:inherit;cursor:pointer}
+#dataStatus[disabled]{border-color:transparent;background:transparent;cursor:default}
+.speed-label{font-size:11px;color:var(--ink-2);margin-left:8px}.speed-label select{min-width:54px}
+.photo-date{font-size:11px;color:var(--ink-2);line-height:1.5;margin:6px 0 14px}
+@media(max-width:850px){.exploration-controls{gap:8px}#periodLabel{flex-basis:100%;margin:0}.transport{flex-wrap:wrap}.rate{font-size:9px!important}.brand{font-size:12px}.observer-controls{max-width:95%}}
+@media(max-width:640px){
+  header{flex-wrap:wrap;gap:6px;padding:6px 12px}
+  header .spacer{display:none}
+  header .now{margin-left:auto}
+  header .vol{margin-left:auto}
+  header .filters{order:3;flex-basis:100%}
+  .hint{max-width:48%;font-size:8px}.count{max-width:44%;font-size:8px}
+}
+
+@media(max-width:640px){
+  #rail{flex-direction:column;align-items:stretch;gap:6px;padding:8px 12px}
+  .transport{width:100%;justify-content:center;flex-wrap:wrap}
+  .track{flex:none;width:100%;height:40px}
+  .ticker{max-width:calc(100% - 32px);width:calc(100% - 32px);bottom:40px;font-size:11px}
+  .ticker.on{display:block}.ticker .tk{display:block;margin-bottom:3px}.ticker .tw{margin:0 5px}
+}
+
+/* One transport controls either the held recording or the historical clock. */
+#transportPhase{font:10px "IBM Plex Mono",ui-monospace,monospace;color:#a9c6db;white-space:nowrap}
+#returnHistory{width:auto;padding:0 9px;font:10px "IBM Plex Mono",ui-monospace,monospace;color:#bdd4e7}
+#returnHistory[hidden],#footageSeek[hidden],#footageNote[hidden]{display:none}
+#footageNote{font:10px "IBM Plex Mono",ui-monospace,monospace;color:#9db6ca;text-align:center;padding:3px 12px}
+#footageSeek{display:block;width:calc(100% - 40px);height:12px;margin:2px 20px 8px;accent-color:#d8b884}
+#footageScreen video{display:block;width:100%;height:auto;max-height:44vh;object-fit:contain;background:#05080e}
+
+#rail.footage-mode{flex-wrap:wrap;gap:4px 12px}
+.footage-mode .transport{flex-basis:100%;justify-content:center;flex-wrap:wrap}
+.footage-mode #footageNote{flex-basis:100%;order:2}
+.footage-mode #footageSeek{flex:1 0 calc(100% - 40px);order:3}
+.footage-mode #track{order:4;flex-basis:100%;height:24px;opacity:.45;pointer-events:none}

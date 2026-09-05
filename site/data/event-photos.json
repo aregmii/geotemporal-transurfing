@@ -1,0 +1,1839 @@
+{
+  "version": 1,
+  "auditedAt": "2026-09-05",
+  "identity": "encodeURIComponent(slug)|source ISO date or source year|latitude|longitude",
+  "policy": "Only exact reviewed event associations. Photo dates and locations describe the photograph, not a live view or necessarily the globe marker. Context and aftermath remain labeled.",
+  "events": [
+    {
+      "key": "1934_FIFA_World_Cup_final|1934-06-10|41.93|12.47",
+      "match": {
+        "slug": "1934_FIFA_World_Cup_final",
+        "start": "1934-06-10",
+        "lat": 41.93,
+        "lon": 12.47
+      },
+      "eventTitle": "Italy men's national association football team wins 1934 FIFA World Cup Final",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "7076240e21e55a3c.jpg",
+          "author": "Unknown photographer",
+          "license": "Public domain",
+          "licenseUrl": "",
+          "source": "Italy_celebrating_1934.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Italy_celebrating_1934.jpg",
+          "eventDate": "1934-06-10",
+          "photoDate": "1934-06-10",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Stadio Nazionale, Rome, Italy",
+          "verifiedAt": "2026-09-05",
+          "notes": "Italy celebrates the World Cup final. Commons identifies the match and date.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "1938_FIFA_World_Cup_final|1938-06-19|48.93|2.25",
+      "match": {
+        "slug": "1938_FIFA_World_Cup_final",
+        "start": "1938-06-19",
+        "lat": 48.93,
+        "lon": 2.25
+      },
+      "eventTitle": "Italy men's national association football team wins 1938 FIFA World Cup Final",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "292f035cbef519a4.jpg",
+          "author": "Unknown photographer",
+          "license": "Public domain",
+          "licenseUrl": "",
+          "source": "Italy_v_Hungary_WC_1938_(2).jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Italy_v_Hungary_WC_1938_%282%29.jpg",
+          "eventDate": "1938-06-19",
+          "photoDate": "1938-06-19",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Stade Olympique de Colombes, France",
+          "verifiedAt": "2026-09-05",
+          "notes": "Italy celebrates the final against Hungary; archival source and date agree.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "Eurovision_Song_Contest_1965|1965-03-20|40.83|14.19",
+      "match": {
+        "slug": "Eurovision_Song_Contest_1965",
+        "start": "1965-03-20",
+        "lat": 40.83,
+        "lon": 14.19
+      },
+      "eventTitle": "Eurovision Song Contest 1965: 10th edition of the Eurovision Song Contest",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "889263c8b4c0757f.jpg",
+          "author": "Keystone-France / Gamma-Keystone",
+          "license": "Public domain",
+          "licenseUrl": "",
+          "source": "1965 Eurovision Song Contest - France Gall.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:1965_Eurovision_Song_Contest_-_France_Gall.jpg",
+          "eventDate": "1965-03-20",
+          "photoDate": "1965-03-20",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "RAI production centre, Naples, Italy",
+          "verifiedAt": "2026-09-05",
+          "notes": "France Gall performs during the contest; this is an event photograph rather than a generic portrait.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "Eurovision_Song_Contest_1966|1966-03-05|49.61|6.12",
+      "match": {
+        "slug": "Eurovision_Song_Contest_1966",
+        "start": "1966-03-05",
+        "lat": 49.61,
+        "lon": 6.12
+      },
+      "eventTitle": "Eurovision Song Contest 1966: 11th edition of the Eurovision Song Contest",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "fd8bd396ccac1f1e.jpg",
+          "author": "Anefo",
+          "license": "CC0",
+          "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+          "source": "Eurovisie Songfestival 1966 te Luxemburg. De winnaar Udo Jürgens met de winnares, Bestanddeelnr 918-9215.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Eurovisie_Songfestival_1966_te_Luxemburg._De_winnaar_Udo_J%C3%BCrgens_met_de_winnares%2C_Bestanddeelnr_918-9215.jpg",
+          "eventDate": "1966-03-05",
+          "photoDate": "1966-03-06",
+          "photoDatePrecision": "day",
+          "photoRole": "context",
+          "location": "Luxembourg",
+          "verifiedAt": "2026-09-05",
+          "notes": "France Gall congratulates winner Udo Jurgens. The archive dates the photograph the day after the March 5 contest.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "1970_FIFA_World_Cup_final|1970-06-21|19.3|-99.15",
+      "match": {
+        "slug": "1970_FIFA_World_Cup_final",
+        "start": "1970-06-21",
+        "lat": 19.3,
+        "lon": -99.15
+      },
+      "eventTitle": "Brazil wins 1970 FIFA World Cup Final",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "f2054bd3dccdda98.jpg",
+          "author": "Unknown photographer",
+          "license": "Public domain",
+          "licenseUrl": "",
+          "source": "Brazil_v_italy_1970_06.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Brazil_v_italy_1970_06.jpg",
+          "eventDate": "1970-06-21",
+          "photoDate": "1970-06-21",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Estadio Azteca, Mexico City, Mexico",
+          "verifiedAt": "2026-09-05",
+          "notes": "Both teams line up before the final.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "Miracle_on_Ice|1980-02-22|44.28|-73.99",
+      "match": {
+        "slug": "Miracle_on_Ice",
+        "start": "1980-02-22",
+        "lat": 44.28,
+        "lon": -73.99
+      },
+      "eventTitle": "Miracle on Ice: ice hockey game during the 1980 Winter Olympics in Lake Placid",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "f11ba007238d1774.jpg",
+          "author": "Henry Zbyszynski",
+          "license": "CC BY 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+          "source": "USA_-_Soviet_Union_1980_match.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:USA_-_Soviet_Union_1980_match.jpg",
+          "eventDate": "1980-02-22",
+          "photoDate": "1980-02-22",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Olympic Center, Lake Placid, United States",
+          "verifiedAt": "2026-09-05",
+          "notes": "United States versus Soviet Union during the Olympic hockey match.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "Solar_eclipse_of_August_11%2C_1999|1999-08-11|45.08|24.29",
+      "match": {
+        "slug": "Solar_eclipse_of_August_11,_1999",
+        "start": "1999-08-11",
+        "lat": 45.08,
+        "lon": 24.29
+      },
+      "eventTitle": "Solar eclipse of August 11, 1999",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "12ee9b8a67fb0553.jpg",
+          "author": "Luc Viatour / https://Lucnix.be",
+          "license": "CC BY-SA 3.0",
+          "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+          "source": "Solar_eclipse_1999_4.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Solar_eclipse_1999_4.jpg",
+          "eventDate": "1999-08-11",
+          "photoDate": "1999-08-11",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "France",
+          "verifiedAt": "2026-09-05",
+          "notes": "Photograph of the same eclipse from France. The event marker is an eclipse reference point, not the camera location.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "Solar_eclipse_of_July_22%2C_2009|2009-07-22|24.2|144.1",
+      "match": {
+        "slug": "Solar_eclipse_of_July_22,_2009",
+        "start": "2009-07-22",
+        "lat": 24.2,
+        "lon": 144.1
+      },
+      "eventTitle": "Solar eclipse of July 22, 2009",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "046aaa9449771927.jpg",
+          "author": "Lutfar Rahman Nirjhar",
+          "license": "CC BY 3.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+          "source": "Solar_eclipse_22_July_2009_taken_by_Lutfar_Rahman_Nirjhar_from_Bangladesh.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Solar_eclipse_22_July_2009_taken_by_Lutfar_Rahman_Nirjhar_from_Bangladesh.jpg",
+          "eventDate": "2009-07-22",
+          "photoDate": "2009-07-22",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Kurigram District, Bangladesh",
+          "verifiedAt": "2026-09-05",
+          "notes": "Same eclipse observed from Bangladesh; camera location differs from the event reference point.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "Solar_eclipse_of_January_15%2C_2010|2010-01-15|1.6|69.3",
+      "match": {
+        "slug": "Solar_eclipse_of_January_15,_2010",
+        "start": "2010-01-15",
+        "lat": 1.6,
+        "lon": 69.3
+      },
+      "eventTitle": "Solar eclipse of January 15, 2010",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "78c8c24b674f9c91.jpg",
+          "author": "A013231",
+          "license": "CC BY-SA 3.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+          "source": "Solar_annular_eclipse_of_January_15,_2010_in_Jinan,_China.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Solar_annular_eclipse_of_January_15%2C_2010_in_Jinan%2C_China.jpg",
+          "eventDate": "2010-01-15",
+          "photoDate": "2010-01-15",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Jinan, China",
+          "verifiedAt": "2026-09-05",
+          "notes": "Same annular eclipse observed from Jinan; camera location differs from the event reference point.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "Brazil_v_Germany_(2014_FIFA_World_Cup)|2014-07-08|-19.87|-43.97",
+      "match": {
+        "slug": "Brazil_v_Germany_(2014_FIFA_World_Cup)",
+        "start": "2014-07-08",
+        "lat": -19.87,
+        "lon": -43.97
+      },
+      "eventTitle": "Germany men's national association football team wins Brazil v Germany (2014 FIFA World Cup)",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "aa393effb39e02c1.jpg",
+          "author": "dronepicr",
+          "license": "CC BY 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+          "source": "Stadion_Belo_Horizonte_Halbfinale_WM_2014_(22117986076).jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Stadion_Belo_Horizonte_Halbfinale_WM_2014_%2822117986076%29.jpg",
+          "eventDate": "2014-07-08",
+          "photoDate": "2014-07-08",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Mineirao, Belo Horizonte, Brazil",
+          "verifiedAt": "2026-09-05",
+          "notes": "Stadium during the Brazil-Germany World Cup semifinal, photographed at 16:41 before kickoff.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "2015_Rugby_World_Cup|2015-09-18|53|-1",
+      "match": {
+        "slug": "2015_Rugby_World_Cup",
+        "start": "2015-09-18",
+        "lat": 53,
+        "lon": -1
+      },
+      "eventTitle": "New Zealand wins 2015 Rugby World Cup",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "48932201546a8937.jpg",
+          "author": "Alasdair Massie from Cambridge, UK",
+          "license": "CC BY-SA 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+          "source": "15-09 RWC New Zealand vs Argentina 036 (21580002625).jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:15-09_RWC_New_Zealand_vs_Argentina_036_%2821580002625%29.jpg",
+          "eventDate": "2015-09-18",
+          "photoDate": "2015-09-20",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Wembley Stadium, London, United Kingdom",
+          "verifiedAt": "2026-09-05",
+          "notes": "New Zealand versus Argentina during the tournament. This is not the October 31 final or trophy ceremony.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "Solar_eclipse_of_March_20%2C_2015|2015-03-20|64.4|-6.6",
+      "match": {
+        "slug": "Solar_eclipse_of_March_20,_2015",
+        "start": "2015-03-20",
+        "lat": 64.4,
+        "lon": -6.6
+      },
+      "eventTitle": "Solar eclipse of March 20, 2015",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "498df5896e50d02a.jpg",
+          "author": "Damien Deltenre",
+          "license": "CC BY-SA 3.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+          "source": "Total_solar_eclipse_of_March_20,_2015_by_Damien_Deltenre_(licensed_for_free_use)._(32844461616).jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Total_solar_eclipse_of_March_20%2C_2015_by_Damien_Deltenre_%28licensed_for_free_use%29._%2832844461616%29.jpg",
+          "eventDate": "2015-03-20",
+          "photoDate": "2015-03-20",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Longyearbyen, Spitsbergen, Norway",
+          "verifiedAt": "2026-09-05",
+          "notes": "Same eclipse viewed from Longyearbyen. Original photograph identifies the photographer and camera coordinates. Use the original CC BY-SA 3.0 terms rather than the downstream Penn State CC BY 2.0 label.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true,
+          "originalFilePage": "https://commons.wikimedia.org/wiki/File:20th_March_2015_total_solar_eclipse.JPG"
+        }
+      ]
+    },
+    {
+      "key": "2016_Summer_Olympics_opening_ceremony|2016-08-05|-22.91|-43.23",
+      "match": {
+        "slug": "2016_Summer_Olympics_opening_ceremony",
+        "start": "2016-08-05",
+        "lat": -22.91,
+        "lon": -43.23
+      },
+      "eventTitle": "2016 Summer Olympics opening ceremony",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "2cbd633d51889c74.jpg",
+          "author": "Fernando Frazao / Agencia Brasil",
+          "license": "CC BY 3.0 br",
+          "licenseUrl": "https://creativecommons.org/licenses/by/3.0/br/deed.en",
+          "source": "2016_Summer_Olympics_opening_ceremony_1035310-05082016-_mg_2086_04.08.16.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:2016_Summer_Olympics_opening_ceremony_1035310-05082016-_mg_2086_04.08.16.jpg",
+          "eventDate": "2016-08-05",
+          "photoDate": "2016-08-05",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Maracana Stadium, Rio de Janeiro, Brazil",
+          "verifiedAt": "2026-09-05",
+          "notes": "Rio opening ceremony. Commons creation date and camera metadata agree despite the filename ending in 04.08.16.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "2018_FIFA_World_Cup_final|2018-07-15|55.72|37.55",
+      "match": {
+        "slug": "2018_FIFA_World_Cup_final",
+        "start": "2018-07-15",
+        "lat": 55.72,
+        "lon": 37.55
+      },
+      "eventTitle": "France men's national association football team wins 2018 FIFA World Cup Final",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "7a9aa348524314c2.jpg",
+          "author": "MX",
+          "license": "CC BY-SA 4.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+          "source": "2018_World_Cup_Final_-_France_v_Croatia_-_1st_Half.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:2018_World_Cup_Final_-_France_v_Croatia_-_1st_Half.jpg",
+          "eventDate": "2018-07-15",
+          "photoDate": "2018-07-15",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Luzhniki Stadium, Moscow, Russia",
+          "verifiedAt": "2026-09-05",
+          "notes": "First half of the France-Croatia World Cup final. MX is the credited photographer; Morogris is the uploader.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "Solar_eclipse_of_June_21%2C_2020|2020-06-21|30.5|79.7",
+      "match": {
+        "slug": "Solar_eclipse_of_June_21,_2020",
+        "start": "2020-06-21",
+        "lat": 30.5,
+        "lon": 79.7
+      },
+      "eventTitle": "Solar eclipse of June 21, 2020",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "e38ef671fffbb9c3.jpg",
+          "author": "Littlebtc",
+          "license": "CC BY-SA 4.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+          "source": "Solar_eclipse_of_21_June_2020_in_Beigang,_Yunlin,_Taiwan.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Solar_eclipse_of_21_June_2020_in_Beigang%2C_Yunlin%2C_Taiwan.jpg",
+          "eventDate": "2020-06-21",
+          "photoDate": "2020-06-21",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Beigang, Yunlin, Taiwan",
+          "verifiedAt": "2026-09-05",
+          "notes": "Same annular eclipse viewed from Beigang. Camera position differs from the event reference point.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "2022_FIFA_World_Cup_final|2022-12-18|25.42|51.49",
+      "match": {
+        "slug": "2022_FIFA_World_Cup_final",
+        "start": "2022-12-18",
+        "lat": 25.42,
+        "lon": 51.49
+      },
+      "eventTitle": "Argentina wins 2022 FIFA World Cup Final",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "b706dc0699cd7958.jpg",
+          "author": "Sebas",
+          "license": "CC BY 3.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+          "source": "Argentina_3-3_Francia_-_Copa_Mundial_2022_-_Montiel_patea_el_penal_de_la_victoria.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Argentina_3-3_Francia_-_Copa_Mundial_2022_-_Montiel_patea_el_penal_de_la_victoria.jpg",
+          "eventDate": "2022-12-18",
+          "photoDate": "2022-12-18",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Lusail Stadium, Qatar",
+          "verifiedAt": "2026-09-05",
+          "notes": "Frame from spectator video of Gonzalo Montiel taking the winning penalty. It is real event footage, not a synthetic image.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "2022_FIFA_World_Cup_Group_A|2022-11-20|25.27|51.21",
+      "match": {
+        "slug": "2022_FIFA_World_Cup_Group_A",
+        "start": "2022-11-20",
+        "lat": 25.27,
+        "lon": 51.21
+      },
+      "eventTitle": "2022 FIFA World Cup Group A",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "9fcedd4305e6f172.jpg",
+          "author": "حسین ظهروند",
+          "license": "CC BY 4.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+          "source": "2022_FIFA_World_Cup_Qatar_0–2_Ecuador_-_(13).jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:2022_FIFA_World_Cup_Qatar_0%E2%80%932_Ecuador_-_%2813%29.jpg",
+          "eventDate": "2022-11-20",
+          "photoDate": "2022-11-20",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Al Bayt Stadium, Al Khor, Qatar",
+          "verifiedAt": "2026-09-05",
+          "notes": "Qatar versus Ecuador is a match within Group A. The broad group marker is not the photographer location.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "2022_FIFA_World_Cup_Group_C|2022-11-22|25.27|51.21",
+      "match": {
+        "slug": "2022_FIFA_World_Cup_Group_C",
+        "start": "2022-11-22",
+        "lat": 25.27,
+        "lon": 51.21
+      },
+      "eventTitle": "2022 FIFA World Cup Group C",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "98663e20d787e620.jpg",
+          "author": "Hossein Zohrevand",
+          "license": "CC BY 4.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+          "source": "2022_FIFA_World_Cup_Match_24,_Argentina_v_Mexico_-_04.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:2022_FIFA_World_Cup_Match_24%2C_Argentina_v_Mexico_-_04.jpg",
+          "eventDate": "2022-11-22",
+          "photoDate": "2022-11-26",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Lusail Stadium, Qatar",
+          "verifiedAt": "2026-09-05",
+          "notes": "Argentina versus Mexico is a match within Group C; photo date is not the group start date.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "2022_FIFA_World_Cup_Group_D|2022-11-22|25.27|51.21",
+      "match": {
+        "slug": "2022_FIFA_World_Cup_Group_D",
+        "start": "2022-11-22",
+        "lat": 25.27,
+        "lon": 51.21
+      },
+      "eventTitle": "2022 FIFA World Cup Group D",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "ada72312def5751f.jpg",
+          "author": "حسین ظهروند",
+          "license": "CC BY 4.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+          "source": "2022_FIFA_World_Cup_France_4–1_Australia_-_(11).jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:2022_FIFA_World_Cup_France_4%E2%80%931_Australia_-_%2811%29.jpg",
+          "eventDate": "2022-11-22",
+          "photoDate": "2022-11-22",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Al Janoub Stadium, Al Wakrah, Qatar",
+          "verifiedAt": "2026-09-05",
+          "notes": "France versus Australia is a match within Group D.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "2022_FIFA_World_Cup_Group_G|2022-11-24|25.27|51.21",
+      "match": {
+        "slug": "2022_FIFA_World_Cup_Group_G",
+        "start": "2022-11-24",
+        "lat": 25.27,
+        "lon": 51.21
+      },
+      "eventTitle": "2022 FIFA World Cup Group G",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "5c65dca73e4c1dd4.jpg",
+          "author": "Adnen1985",
+          "license": "CC BY-SA 4.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+          "source": "Brazil_vs_Serbia.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Brazil_vs_Serbia.jpg",
+          "eventDate": "2022-11-24",
+          "photoDate": "2022-11-24",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Lusail Stadium, Qatar",
+          "verifiedAt": "2026-09-05",
+          "notes": "Brazil versus Serbia is a match within Group G.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "2022_FIFA_World_Cup_Group_H|2022-11-24|25.27|51.21",
+      "match": {
+        "slug": "2022_FIFA_World_Cup_Group_H",
+        "start": "2022-11-24",
+        "lat": 25.27,
+        "lon": 51.21
+      },
+      "eventTitle": "2022 FIFA World Cup Group H",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "89878b083edfdaad.jpg",
+          "author": "Adnen1985",
+          "license": "CC BY-SA 4.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+          "source": "Uruguay_vs_Portugal.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Uruguay_vs_Portugal.jpg",
+          "eventDate": "2022-11-24",
+          "photoDate": "2022-11-28",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Lusail Stadium, Qatar",
+          "verifiedAt": "2026-09-05",
+          "notes": "Portugal versus Uruguay is a match within Group H.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "Solar_eclipse_of_April_8%2C_2024|2024-04-08|25.29|-104.12",
+      "match": {
+        "slug": "Solar_eclipse_of_April_8,_2024",
+        "start": "2024-04-08",
+        "lat": 25.29,
+        "lon": -104.12
+      },
+      "eventTitle": "Solar eclipse of April 8, 2024: visible across a band covering parts of North America",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "cf3ba96d718e054f.jpg",
+          "author": "NASA Headquarters / NASA/Keegan Barber",
+          "license": "Public domain",
+          "licenseUrl": "",
+          "source": "2024_Total_Solar_Eclipse_(NHQ202404080102).jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:2024_Total_Solar_Eclipse_%28NHQ202404080102%29.jpg",
+          "eventDate": "2024-04-08",
+          "photoDate": "2024-04-08",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Dallas, Texas, United States",
+          "verifiedAt": "2026-09-05",
+          "notes": "NASA photograph of the same eclipse in Dallas; camera location differs from the event reference point.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "Solar_eclipse_of_December_14%2C_2020|2020-12-14|-40.34|-67.94",
+      "match": {
+        "slug": "Solar_eclipse_of_December_14,_2020",
+        "start": "2020-12-14",
+        "lat": -40.34,
+        "lon": -67.94
+      },
+      "eventTitle": "Solar eclipse of December 14, 2020",
+      "auditOrigin": "new",
+      "photos": [
+        {
+          "file": "3aa1253347221b0d.jpg",
+          "author": "CuervoNN",
+          "license": "CC BY-SA 4.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+          "source": "Eclipse_total_Gorbea_2020.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Eclipse_total_Gorbea_2020.jpg",
+          "eventDate": "2020-12-14",
+          "photoDate": "2020-12-14",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Gorbea, Chile",
+          "verifiedAt": "2026-09-05",
+          "notes": "Same total eclipse viewed from Gorbea; camera location differs from the event reference point.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "Egyptian_revolution_of_2011|2011-01-25|30.04|31.24",
+      "match": {
+        "slug": "Egyptian_revolution_of_2011",
+        "start": "2011-01-25",
+        "lat": 30.04,
+        "lon": 31.24
+      },
+      "eventTitle": "Tahrir Square protests",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "af33c61d9513df85.jpg",
+          "author": "Mona",
+          "license": "CC BY 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+          "source": "Tahrir_Square_during_8_February_2011.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Tahrir_Square_during_8_February_2011.jpg",
+          "eventDate": "2011-01-25",
+          "photoDate": "2011-02-08",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Tahrir Square, Cairo, Egypt",
+          "verifiedAt": "2026-09-05",
+          "notes": "A later day in the protest movement, not its first day.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "2011_T%25C5%258Dhoku_earthquake_and_tsunami|2011-03-11|38.32|142.37",
+      "match": {
+        "slug": "2011_T%C5%8Dhoku_earthquake_and_tsunami",
+        "start": "2011-03-11",
+        "lat": 38.32,
+        "lon": 142.37
+      },
+      "eventTitle": "2011 Tōhoku earthquake and tsunami — megathrust earthquake off the east coast of Japan",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "7ee271c46e92a692.jpg",
+          "author": "U.S. Navy photo",
+          "license": "Public domain",
+          "licenseUrl": "",
+          "source": "SH-60B_helicopter_flies_over_Sendai.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:SH-60B_helicopter_flies_over_Sendai.jpg",
+          "eventDate": "2011-03-11",
+          "photoDate": "2011-03-12",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Port of Sendai, Japan",
+          "verifiedAt": "2026-09-05",
+          "notes": "Relief helicopter over the damaged port the day after the earthquake and tsunami.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "Wedding_of_Prince_William_and_Catherine_Middleton|2011-04-29|51.5|-0.13",
+      "match": {
+        "slug": "Wedding_of_Prince_William_and_Catherine_Middleton",
+        "start": "2011-04-29",
+        "lat": 51.5,
+        "lon": -0.13
+      },
+      "eventTitle": "Wedding of Prince William and Catherine Middleton",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "0dcc9b2de8876d0c.jpg",
+          "author": "Robbie Dale",
+          "license": "CC BY-SA 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+          "source": "All_smiles_Wedding_of_Prince_William_of_Wales_and_Kate_Middleton.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:All_smiles_Wedding_of_Prince_William_of_Wales_and_Kate_Middleton.jpg",
+          "eventDate": "2011-04-29",
+          "photoDate": "2011-04-29",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "London, United Kingdom",
+          "verifiedAt": "2026-09-05",
+          "notes": "Royal wedding photographed on the event date.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "Occupy_Wall_Street|2011-09-17|40.71|-74.01",
+      "match": {
+        "slug": "Occupy_Wall_Street",
+        "start": "2011-09-17",
+        "lat": 40.71,
+        "lon": -74.01
+      },
+      "eventTitle": "Occupy Wall Street: left-wing populist and progressive movement against economic…",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "8a88d7e47f2cb461.jpg",
+          "author": "David Shankbone",
+          "license": "CC BY 3.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+          "source": "Day_28_Occupy_Wall_Street_Tom_Morello_2011_Shankbone.JPG",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Day_28_Occupy_Wall_Street_Tom_Morello_2011_Shankbone.JPG",
+          "eventDate": "2011-09-17",
+          "photoDate": "2011-10-13",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "New York City, United States",
+          "verifiedAt": "2026-09-05",
+          "notes": "Tom Morello performs during Occupy Wall Street; photograph is later than the start of the movement.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "Fukushima_nuclear_accident|2011-03-11|37.42|141.03",
+      "match": {
+        "slug": "Fukushima_nuclear_accident",
+        "start": "2011-03-11",
+        "lat": 37.42,
+        "lon": 141.03
+      },
+      "eventTitle": "Fukushima Daiichi disaster",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "fa768df770396a12.jpg",
+          "author": "Digital Globe",
+          "license": "CC BY-SA 3.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+          "source": "Fukushima_I_by_Digital_Globe.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Fukushima_I_by_Digital_Globe.jpg",
+          "eventDate": "2011-03-11",
+          "photoDate": "2011-03-16",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Fukushima Daiichi Nuclear Power Plant, Japan",
+          "verifiedAt": "2026-09-05",
+          "notes": "Satellite photograph five days after the earthquake.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "2011_Norway_attacks|2011-07-22|60.02|10.25",
+      "match": {
+        "slug": "2011_Norway_attacks",
+        "start": "2011-07-22",
+        "lat": 60.02,
+        "lon": 10.25
+      },
+      "eventTitle": "2011 Norway attacks: 77 killed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "fa515b909aa581bb.jpg",
+          "author": "User:N.Andersen",
+          "license": "CC0",
+          "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+          "source": "Oslo_view_of_city_after_July_2011_bombing.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Oslo_view_of_city_after_July_2011_bombing.jpg",
+          "eventDate": "2011-07-22",
+          "photoDate": "2011-07-22",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Oslo, Norway",
+          "verifiedAt": "2026-09-05",
+          "notes": "Oslo shortly after the bombing. The photograph is not from Utoya, although the event record covers both attacks.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "2011_England_riots|2011-08-06|51.59|-0.07",
+      "match": {
+        "slug": "2011_England_riots",
+        "start": "2011-08-06",
+        "lat": 51.59,
+        "lon": -0.07
+      },
+      "eventTitle": "2011 England riots",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "036cf14cd9402b4a.jpg",
+          "author": "Alan Stanton",
+          "license": "CC BY-SA 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+          "source": "Carpetright_store_after_Tottenham_riots.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Carpetright_store_after_Tottenham_riots.jpg",
+          "eventDate": "2011-08-06",
+          "photoDate": "2011-08-07",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Tottenham, London, United Kingdom",
+          "verifiedAt": "2026-09-05",
+          "notes": "Damaged Carpetright store following the riot.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "2011_Christchurch_earthquake|2011-02-22|-43.58|172.7",
+      "match": {
+        "slug": "2011_Christchurch_earthquake",
+        "start": "2011-02-22",
+        "lat": -43.58,
+        "lon": 172.7
+      },
+      "eventTitle": "M6.8 February 2011 Christchurch earthquake, 185 killed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "f50fa67b540494cc.jpg",
+          "author": "Greg O'Beirne",
+          "license": "CC BY-SA 3.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+          "source": "ChristchurchBasilicaPostEarthquake_gobeirne.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:ChristchurchBasilicaPostEarthquake_gobeirne.jpg",
+          "eventDate": "2011-02-22",
+          "photoDate": "2011-04-22",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Christchurch, New Zealand",
+          "verifiedAt": "2026-09-05",
+          "notes": "Cathedral photographed two months after the earthquake; not a contemporaneous view of the shaking.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "2011_Lorca_earthquake|2011-05-11|37.7|-1.56",
+      "match": {
+        "slug": "2011_Lorca_earthquake",
+        "start": "2011-05-11",
+        "lat": 37.7,
+        "lon": -1.56
+      },
+      "eventTitle": "M5.1 2011 Lorca earthquake, 9 killed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "1409841c647fc3b5.jpg",
+          "author": "aperiago",
+          "license": "CC BY-SA 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+          "source": "Lorca_earthquake.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Lorca_earthquake.jpg",
+          "eventDate": "2011-05-11",
+          "photoDate": "2011-05-12",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Lorca, Spain",
+          "verifiedAt": "2026-09-05",
+          "notes": "Damaged train station the day after the earthquake.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "Arab_Spring|2010|35.04|9.49",
+      "match": {
+        "slug": "Arab_Spring",
+        "start": 2010,
+        "lat": 35.04,
+        "lon": 9.49
+      },
+      "eventTitle": "Arab Spring begins",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "26db30bca41e98d4.jpg",
+          "author": "cjb",
+          "license": "CC BY 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+          "source": "Tunisian_Revolution_Protest.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Tunisian_Revolution_Protest.jpg",
+          "eventDate": 2010,
+          "photoDate": "2011-01-20",
+          "photoDatePrecision": "day",
+          "photoRole": "context",
+          "location": "Avenue Bourguiba, Tunis, Tunisia",
+          "verifiedAt": "2026-09-05",
+          "notes": "Protests after the December 2010 beginning represented by the event row. The curated source identity preserves its original year; the chronology layer supplies any reviewed display dates.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "2007_Peru_earthquake|2007-08-15|-13.35|-76.51",
+      "match": {
+        "slug": "2007_Peru_earthquake",
+        "start": "2007-08-15",
+        "lat": -13.35,
+        "lon": -76.51
+      },
+      "eventTitle": "M7.9 2007 Peru earthquake, 519 killed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "df77c9787546b324.jpg",
+          "author": "Martin St-Amant (S23678)",
+          "license": "CC BY-SA 3.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+          "source": "40_-_Tremblement_de_terre_-_Août_2007.JPG",
+          "filePage": "https://commons.wikimedia.org/wiki/File:40_-_Tremblement_de_terre_-_Ao%C3%BBt_2007.JPG",
+          "eventDate": "2007-08-15",
+          "photoDate": "2007-08-21",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Pan-American Highway between Ica and Lima, Peru",
+          "verifiedAt": "2026-09-05",
+          "notes": "Earthquake damage six days after the event, not a live view of the earthquake.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "Saffron_Revolution|2007-08-15|22|96",
+      "match": {
+        "slug": "Saffron_Revolution",
+        "start": "2007-08-15",
+        "lat": 22,
+        "lon": 96
+      },
+      "eventTitle": "Saffron Revolution: series of economic and political protests and demonstrations",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "3a8b22f0b46fbfc8.jpg",
+          "author": "racoles",
+          "license": "CC BY 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+          "source": "2007_Myanmar_protests_7.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:2007_Myanmar_protests_7.jpg",
+          "eventDate": "2007-08-15",
+          "photoDate": "2007-09-24",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Shwedagon Pagoda, Yangon, Myanmar",
+          "verifiedAt": "2026-09-05",
+          "notes": "Monks during the later September phase. This photograph does not depict the August 15 fuel-price change.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "UEFA_Euro_2012_final|2012-07-01|50.43|30.52",
+      "match": {
+        "slug": "UEFA_Euro_2012_final",
+        "start": "2012-07-01",
+        "lat": 50.43,
+        "lon": 30.52
+      },
+      "eventTitle": "Spain wins UEFA Euro 2012 finals",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "f9c13900d8da8124.jpg",
+          "author": "Ahonc",
+          "license": "CC BY-SA 3.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+          "source": "Фінал_Євро-2012._1-й_тайм.JPG",
+          "filePage": "https://commons.wikimedia.org/wiki/File:%D0%A4%D1%96%D0%BD%D0%B0%D0%BB_%D0%84%D0%B2%D1%80%D0%BE-2012._1-%D0%B9_%D1%82%D0%B0%D0%B9%D0%BC.JPG",
+          "eventDate": "2012-07-01",
+          "photoDate": "2012-07-01",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Olimpiyskiy National Sports Complex, Kyiv, Ukraine",
+          "verifiedAt": "2026-09-05",
+          "notes": "First half of the UEFA Euro final.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "2014_FIFA_World_Cup_final|2014-07-13|-22.91|-43.23",
+      "match": {
+        "slug": "2014_FIFA_World_Cup_final",
+        "start": "2014-07-13",
+        "lat": -22.91,
+        "lon": -43.23
+      },
+      "eventTitle": "Germany men's national association football team wins 2014 FIFA World Cup Final",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "ea878b9a2fbfa338.jpg",
+          "author": "Danilo Borges/copa2014.gov.br  Licença Creative Commons Atribuição 3.0 Brasil",
+          "license": "CC BY 3.0 br",
+          "licenseUrl": "https://creativecommons.org/licenses/by/3.0/br/deed.en",
+          "source": "Germany_and_Argentina_face_off_in_the_final_of_the_World_Cup_2014_-2014-07-13_(6).jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Germany_and_Argentina_face_off_in_the_final_of_the_World_Cup_2014_-2014-07-13_%286%29.jpg",
+          "eventDate": "2014-07-13",
+          "photoDate": "2014-07-13",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Maracana Stadium, Rio de Janeiro, Brazil",
+          "verifiedAt": "2026-09-05",
+          "notes": "Germany versus Argentina in the final.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": true
+        }
+      ]
+    },
+    {
+      "key": "2002_European_floods|2002-08-01|45.25|15.47",
+      "match": {
+        "slug": "2002_European_floods",
+        "start": "2002-08-01",
+        "lat": 45.25,
+        "lon": 15.47
+      },
+      "eventTitle": "2002 European floods: 45 killed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "2bf3ae88e416cf4f.jpg",
+          "author": "Stefan Malsch",
+          "license": "CC BY-SA 3.0",
+          "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+          "source": "Schillergarten_Dresden_August_2002.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Schillergarten_Dresden_August_2002.jpg",
+          "eventDate": "2002-08-01",
+          "photoDate": "2002-08",
+          "photoDatePrecision": "month",
+          "photoRole": "contemporaneous",
+          "location": "Blasewitz, Dresden, Germany",
+          "verifiedAt": "2026-09-05",
+          "notes": "Flood at Schillergarten. Source dates this only to approximately August; do not invent a day. The broad European-flood marker is not the camera position.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "Air_China_Flight_129|2002-04-15|35.23|128.93",
+      "match": {
+        "slug": "Air_China_Flight_129",
+        "start": "2002-04-15",
+        "lat": 35.23,
+        "lon": 128.93
+      },
+      "eventTitle": "Air China Flight 129 crashed into a hill named Mount Dotdae near Gimhae Airport, 129 killed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "f416db9cfdf612db.jpg",
+          "author": "Korea Aviation Accident Investigation Board",
+          "license": "Korea Open Government License Type I",
+          "licenseUrl": "https://www.kogl.or.kr/info/licenseTypeEn.do",
+          "source": "Crash_site_of_Air_China_Flight_129.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Crash_site_of_Air_China_Flight_129.jpg",
+          "eventDate": "2002-04-15",
+          "photoDate": "2002-04-15",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Accident site near Gimhae, South Korea",
+          "verifiedAt": "2026-09-05",
+          "notes": "Accident-site photograph. Current Commons license is Korea Open Government License Type I, replacing the old public-domain label.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "Iraq_War|2003|33.32|44.37",
+      "match": {
+        "slug": "Iraq_War",
+        "start": 2003,
+        "lat": 33.32,
+        "lon": 44.37
+      },
+      "eventTitle": "Iraq War begins",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "c59d9e5b25bf6cf7.jpg",
+          "author": "Technical Sergeant John L. Houghton, Jr., United States Air Force",
+          "license": "Public domain",
+          "licenseUrl": "",
+          "source": "UStanks_baghdad_2003.JPEG",
+          "filePage": "https://commons.wikimedia.org/wiki/File:UStanks_baghdad_2003.JPEG",
+          "eventDate": 2003,
+          "photoDate": "2003-11-13",
+          "photoDatePrecision": "day",
+          "photoRole": "context",
+          "location": "Victory Arch, Baghdad, Iraq",
+          "verifiedAt": "2026-09-05",
+          "notes": "Soldiers pose months after the invasion began. This photo is not a picture of the March 20 start. The curated source identity preserves its original year; the chronology layer supplies any reviewed display dates.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "2004_Indian_Ocean_earthquake_and_tsunami|2004-12-26|3.32|95.85",
+      "match": {
+        "slug": "2004_Indian_Ocean_earthquake_and_tsunami",
+        "start": "2004-12-26",
+        "lat": 3.32,
+        "lon": 95.85
+      },
+      "eventTitle": "Indian Ocean tsunami",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "befa0e87a14d3ab2.jpg",
+          "author": "U.S. Navy photo by Photographer's Mate 2nd Class Philip A. McDaniel",
+          "license": "Public domain",
+          "licenseUrl": "",
+          "source": "US_Navy_050102-N-9593M-040_A_village_near_the_coast_of_Sumatra_lays_in_ruin_after_the_Tsunami_that_struck_South_East_Asia.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:US_Navy_050102-N-9593M-040_A_village_near_the_coast_of_Sumatra_lays_in_ruin_after_the_Tsunami_that_struck_South_East_Asia.jpg",
+          "eventDate": "2004-12-26",
+          "photoDate": "2005-01-02",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Coast of Sumatra, Indonesia",
+          "verifiedAt": "2026-09-05",
+          "notes": "Tsunami damage photographed a week after the earthquake.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "2004_Madrid_train_bombings|2004-03-11|40.41|-3.69",
+      "match": {
+        "slug": "2004_Madrid_train_bombings",
+        "start": "2004-03-11",
+        "lat": 40.41,
+        "lon": -3.69
+      },
+      "eventTitle": "2004 Madrid train bombings: 193 killed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "bd87be7405eadf9e.jpg",
+          "author": "Ramón Peco (desdetasmania)",
+          "license": "CC BY 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+          "source": "Atentado_11M.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Atentado_11M.jpg",
+          "eventDate": "2004-03-11",
+          "photoDate": "2004-03-15",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Madrid, Spain",
+          "verifiedAt": "2026-09-05",
+          "notes": "Remains of a train after the March 11 bombings.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "Hurricane_Katrina|2005-08-29|29.95|-90.07",
+      "match": {
+        "slug": "Hurricane_Katrina",
+        "start": "2005-08-29",
+        "lat": 29.95,
+        "lon": -90.07
+      },
+      "eventTitle": "Hurricane Katrina",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "382d25b17daa2b71.jpg",
+          "author": "NASA",
+          "license": "Public domain",
+          "licenseUrl": "",
+          "source": "Katrina_2005-08-28_1700Z.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Katrina_2005-08-28_1700Z.jpg",
+          "eventDate": "2005-08-29",
+          "photoDate": "2005-08-28",
+          "photoDatePrecision": "day",
+          "photoRole": "context",
+          "location": "Gulf of Mexico",
+          "verifiedAt": "2026-09-05",
+          "notes": "Satellite view of Hurricane Katrina before the August 29 landfall date used by this event record.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "7_July_2005_London_bombings|2005-07-07|51.5|-0.08",
+      "match": {
+        "slug": "7_July_2005_London_bombings",
+        "start": "2005-07-07",
+        "lat": 51.5,
+        "lon": -0.08
+      },
+      "eventTitle": "7 July 2005 London bombings: 56 killed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "45d5349ee7ef6dc6.jpg",
+          "author": "Francis Tyers",
+          "license": "CC BY-SA 3.0",
+          "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+          "source": "Russell_square_ambulances.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Russell_square_ambulances.jpg",
+          "eventDate": "2005-07-07",
+          "photoDate": "2005-07-07",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Russell Square, London, United Kingdom",
+          "verifiedAt": "2026-09-05",
+          "notes": "Ambulances after the bombings. Use the photographer-supplied date; the camera metadata has a default January 2001 timestamp.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "2005_Kashmir_earthquake|2005-10-08|34.49|73.63",
+      "match": {
+        "slug": "2005_Kashmir_earthquake",
+        "start": "2005-10-08",
+        "lat": 34.49,
+        "lon": 73.63
+      },
+      "eventTitle": "M7.6 2005 Kashmir earthquake, 73,338 killed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "78d6fd7f1380aaf4.jpg",
+          "author": "Tech. Sgt. Mike Buytas / U.S. Air Force",
+          "license": "Public domain",
+          "licenseUrl": "",
+          "source": "US_Navy_051021-F-9085B-053_Pakistani_soldiers_unload_disaster_relief_supplies_from_a_U.S._Navy_MH-53_Sea_Dragon_helicopter_at_Balakot,_Pakistan.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:US_Navy_051021-F-9085B-053_Pakistani_soldiers_unload_disaster_relief_supplies_from_a_U.S._Navy_MH-53_Sea_Dragon_helicopter_at_Balakot%2C_Pakistan.jpg",
+          "eventDate": "2005-10-08",
+          "photoDate": "2005-10-21",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Balakot, Pakistan",
+          "verifiedAt": "2026-09-05",
+          "notes": "Earthquake relief thirteen days later; source caption identifies U.S. Air Force photographer Mike Buytas.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "Air_France_Flight_358|2005-08-02|43.66|-79.62",
+      "match": {
+        "slug": "Air_France_Flight_358",
+        "start": "2005-08-02",
+        "lat": 43.66,
+        "lon": -79.62
+      },
+      "eventTitle": "Air France Flight 358 overran",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "b2bdde0bc16a1dc6.jpg",
+          "author": "Paul Cardin – Special Projects IR",
+          "license": "CC BY-SA 3.0",
+          "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+          "source": "Airfranceflight358_(cropped).jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Airfranceflight358_%28cropped%29.jpg",
+          "eventDate": "2005-08-02",
+          "photoDate": "2005-08-03",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Toronto Pearson airport, Canada",
+          "verifiedAt": "2026-09-05",
+          "notes": "Source caption specifies one day after the August 2 crash.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "2006_Lebanon_War|2006-07-12|33.85|35.51",
+      "match": {
+        "slug": "2006_Lebanon_War",
+        "start": "2006-07-12",
+        "lat": 33.85,
+        "lon": 35.51
+      },
+      "eventTitle": "2006 Lebanon War: 34-day armed conflict in Lebanon",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "bf2732ab4cf912e4.jpg",
+          "author": "Masser",
+          "license": "CC BY-SA 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+          "source": "Tyre_air_strike.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Tyre_air_strike.jpg",
+          "eventDate": "2006-07-12",
+          "photoDate": "2006-07-26",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Tyre, Lebanon",
+          "verifiedAt": "2026-09-05",
+          "notes": "Airstrike during the conflict, not at its start date or the broad event marker in Beirut.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "2006_Mumbai_train_bombings|2006-07-11|19.08|72.88",
+      "match": {
+        "slug": "2006_Mumbai_train_bombings",
+        "start": "2006-07-11",
+        "lat": 19.08,
+        "lon": 72.88
+      },
+      "eventTitle": "2006 Mumbai train bombings: 209 killed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "0fe53c1f3d5b4df7.jpg",
+          "author": "Manoj Nair",
+          "license": "CC BY-SA 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+          "source": "Mahim_train_blast.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Mahim_train_blast.jpg",
+          "eventDate": "2006-07-11",
+          "photoDate": "2006-07-12",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Mahim, Mumbai, India",
+          "verifiedAt": "2026-09-05",
+          "notes": "Damaged train photographed the day after the bombings.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "TAM_Airlines_Flight_3054|2007-07-17|-23.62|-46.66",
+      "match": {
+        "slug": "TAM_Airlines_Flight_3054",
+        "start": "2007-07-17",
+        "lat": -23.62,
+        "lon": -46.66
+      },
+      "eventTitle": "TAM Airlines Flight 3054 overran, 187 killed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "9dad20c139b8f93d.jpg",
+          "author": "Milton Mansilha",
+          "license": "CC BY 3.0 br",
+          "licenseUrl": "https://creativecommons.org/licenses/by/3.0/br/deed.en",
+          "source": "Acidentetam0.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Acidentetam0.jpg",
+          "eventDate": "2007-07-17",
+          "photoDate": "2007-07-17",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Congonhas airport, Sao Paulo, Brazil",
+          "verifiedAt": "2026-09-05",
+          "notes": "Firefighters at the crash site on the event date.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "Hurricane_Dean|2007-08-13|21.98|-79.03",
+      "match": {
+        "slug": "Hurricane_Dean",
+        "start": "2007-08-13",
+        "lat": 21.98,
+        "lon": -79.03
+      },
+      "eventTitle": "Hurricane Dean: most powerful and destructive tropical cyclone of the 2007…",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "955e48488407590c.jpg",
+          "author": "National Oceanic and Atmospheric Administration (NOAA), data superimposed by CooperScience",
+          "license": "Public domain",
+          "licenseUrl": "",
+          "source": "Dean_2007-08-21_0845Z.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Dean_2007-08-21_0845Z.jpg",
+          "eventDate": "2007-08-13",
+          "photoDate": "2007-08-21",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Quintana Roo, Mexico",
+          "verifiedAt": "2026-09-05",
+          "notes": "Satellite view of Hurricane Dean making landfall, later than storm formation.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "Russo-Georgian_War|2008-08-08|41.99|44.42",
+      "match": {
+        "slug": "Russo-Georgian_War",
+        "start": "2008-08-08",
+        "lat": 41.99,
+        "lon": 44.42
+      },
+      "eventTitle": "Russo-Georgian War: war waged against Georgia by the Russian Federation…",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "cd5b96a812f6b272.jpg",
+          "author": "Lt. Jim Hoeft, U.S. Navy",
+          "license": "Public domain",
+          "licenseUrl": "",
+          "source": "Ruins_of_a_burnt_apartment_building_in_Gori.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Ruins_of_a_burnt_apartment_building_in_Gori.jpg",
+          "eventDate": "2008-08-08",
+          "photoDate": "2008-08-25",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Gori, Georgia",
+          "verifiedAt": "2026-09-05",
+          "notes": "Conflict damage photographed after the active war.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "2008_Mumbai_attacks|2008-11-26|18.92|72.83",
+      "match": {
+        "slug": "2008_Mumbai_attacks",
+        "start": "2008-11-26",
+        "lat": 18.92,
+        "lon": 72.83
+      },
+      "eventTitle": "26/11 Mumbai attacks: 241 killed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "f7368a8f6af2b706.jpg",
+          "author": "Nicholas (Nichalp)",
+          "license": "CC BY-SA 3.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+          "source": "2008_Mumbai_terror_attacks_Taj_dome_burned_2.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:2008_Mumbai_terror_attacks_Taj_dome_burned_2.jpg",
+          "eventDate": "2008-11-26",
+          "photoDate": "2008-12-03",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Taj Mahal Palace Hotel, Mumbai, India",
+          "verifiedAt": "2026-09-05",
+          "notes": "Damaged dome photographed after the November attacks.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "2008_Tibetan_unrest|2008-03-10|31.71|86.94",
+      "match": {
+        "slug": "2008_Tibetan_unrest",
+        "start": "2008-03-10",
+        "lat": 31.71,
+        "lon": 86.94
+      },
+      "eventTitle": "2008 Tibetan unrest: series of protests and demonstrations",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "a915f1083f212764.jpg",
+          "author": "SFT HQ (Students for a Free Tibet)",
+          "license": "CC BY 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+          "source": "Tibetan_Monks_arrested_in_2008_遭逮捕的西藏僧侶.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Tibetan_Monks_arrested_in_2008_%E9%81%AD%E9%80%AE%E6%8D%95%E7%9A%84%E8%A5%BF%E8%97%8F%E5%83%A7%E4%BE%B6.jpg",
+          "eventDate": "2008-03-10",
+          "photoDate": "2008-04-05",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Tibet; precise photo location not specified by the source",
+          "verifiedAt": "2026-09-05",
+          "notes": "Photograph of arrested monks during the unrest. Do not interpret the event marker as precise camera coordinates.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "British_Airways_Flight_38|2008-01-17|51.47|-0.43",
+      "match": {
+        "slug": "British_Airways_Flight_38",
+        "start": "2008-01-17",
+        "lat": 51.47,
+        "lon": -0.43
+      },
+      "eventTitle": "British Airways Flight 38 crash-landed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "1af983403a2ae72f.jpg",
+          "author": "Dennis HKG",
+          "license": "CC BY 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+          "source": "British_Airways_-_Boeing_777-200ER_-_G-YMMM_-_London_Heathrow_crash_of_flight_BAW038.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:British_Airways_-_Boeing_777-200ER_-_G-YMMM_-_London_Heathrow_crash_of_flight_BAW038.jpg",
+          "eventDate": "2008-01-17",
+          "photoDate": "2008-01-17",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Heathrow airport, London, United Kingdom",
+          "verifiedAt": "2026-09-05",
+          "notes": "Aircraft at the crash site on the event date.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "Islamabad_Marriott_Hotel_bombing|2008-09-20|33.73|73.09",
+      "match": {
+        "slug": "Islamabad_Marriott_Hotel_bombing",
+        "start": "2008-09-20",
+        "lat": 33.73,
+        "lon": 73.09
+      },
+      "eventTitle": "Islamabad Marriott Hotel bombing: 54 killed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "9f5d4a1bb9da25a1.jpg",
+          "author": "Jawad Zakariya",
+          "license": "CC BY 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+          "source": "Marriot_Hotel_Islamabad_Pakistan_bombing.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Marriot_Hotel_Islamabad_Pakistan_bombing.jpg",
+          "eventDate": "2008-09-20",
+          "photoDate": "2008-09-20",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Marriott Hotel, Islamabad, Pakistan",
+          "verifiedAt": "2026-09-05",
+          "notes": "Hotel shortly after the bombing.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "US_Airways_Flight_1549|2009-01-15|40.77|-74",
+      "match": {
+        "slug": "US_Airways_Flight_1549",
+        "start": "2009-01-15",
+        "lat": 40.77,
+        "lon": -74
+      },
+      "eventTitle": "US Airways Flight 1549 ditched",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "82000f94991b628c.jpg",
+          "author": "Greg L",
+          "license": "CC BY 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+          "source": "US_Airways_Flight_1549_(N106US)_after_crashing_into_the_Hudson_River_(crop_2).jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:US_Airways_Flight_1549_%28N106US%29_after_crashing_into_the_Hudson_River_%28crop_2%29.jpg",
+          "eventDate": "2009-01-15",
+          "photoDate": "2009-01-15",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Hudson River, New York City, United States",
+          "verifiedAt": "2026-09-05",
+          "notes": "Aircraft in the river shortly after ditching.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "2010_Chile_earthquake|2010-02-27|-35.91|-72.73",
+      "match": {
+        "slug": "2010_Chile_earthquake",
+        "start": "2010-02-27",
+        "lat": -35.91,
+        "lon": -72.73
+      },
+      "eventTitle": "M8.8 2010 Chile earthquake, 520 killed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "eb476133a32155c7.jpg",
+          "author": "Claudio Núñez",
+          "license": "CC BY-SA 2.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+          "source": "2010_Chile_earthquake_-_Building_destroyed_in_Concepción.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:2010_Chile_earthquake_-_Building_destroyed_in_Concepci%C3%B3n.jpg",
+          "eventDate": "2010-02-27",
+          "photoDate": "2010-03-01",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Concepcion, Chile",
+          "verifiedAt": "2026-09-05",
+          "notes": "Collapsed Alto Rio building photographed two days after the earthquake.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "2010_eruptions_of_Eyjafjallaj%25C3%25B6kull|2010-03-20|63.63|-19.6",
+      "match": {
+        "slug": "2010_eruptions_of_Eyjafjallaj%C3%B6kull",
+        "start": "2010-03-20",
+        "lat": 63.63,
+        "lon": -19.6
+      },
+      "eventTitle": "2010 eruptions of Eyjafjallajökull — volcanic events in Iceland",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "6a19839be6908ae6.jpg",
+          "author": "Árni Friðriksson",
+          "license": "CC BY-SA 3.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+          "source": "Eyjafjallajokull-April-17.JPG",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Eyjafjallajokull-April-17.JPG",
+          "eventDate": "2010-03-20",
+          "photoDate": "2010-04-17",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Eyjafjallajokull, Iceland",
+          "verifiedAt": "2026-09-05",
+          "notes": "April eruption photograph, later than the March onset of the eruption sequence.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "New_START|2010-04-08|50.09|14.42",
+      "match": {
+        "slug": "New_START",
+        "start": "2010-04-08",
+        "lat": 50.09,
+        "lon": 14.42
+      },
+      "eventTitle": "New START: nuclear arms reduction treaty between the United States…",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "93f9b5f6665990a8.jpg",
+          "author": "Kremlin.ru",
+          "license": "CC BY 4.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+          "source": "Obama_and_Medvedev_sign_Prague_Treaty_2010.jpeg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Obama_and_Medvedev_sign_Prague_Treaty_2010.jpeg",
+          "eventDate": "2010-04-08",
+          "photoDate": "2010-04-08",
+          "photoDatePrecision": "day",
+          "photoRole": "contemporaneous",
+          "location": "Prague, Czech Republic",
+          "verifiedAt": "2026-09-05",
+          "notes": "After the New START signing. This association belongs to the signing event, not the treaty being in force.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "Costa_Concordia_disaster|2012-01-13|42.37|10.92",
+      "match": {
+        "slug": "Costa_Concordia_disaster",
+        "start": "2012-01-13",
+        "lat": 42.37,
+        "lon": 10.92
+      },
+      "eventTitle": "Costa Concordia disaster: 32 killed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "ec51f3aa2e80a977.jpg",
+          "author": "Rvongher",
+          "license": "CC BY-SA 3.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+          "source": "Collision_of_Costa_Concordia_11.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:Collision_of_Costa_Concordia_11.jpg",
+          "eventDate": "2012-01-13",
+          "photoDate": "2012-01-14",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "Giglio Island, Italy",
+          "verifiedAt": "2026-09-05",
+          "notes": "Ship photographed the day after the collision.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    },
+    {
+      "key": "Asiana_Airlines_Flight_214|2013-07-06|37.61|-122.36",
+      "match": {
+        "slug": "Asiana_Airlines_Flight_214",
+        "start": "2013-07-06",
+        "lat": 37.61,
+        "lon": -122.36
+      },
+      "eventTitle": "Asiana Airlines Flight 214 crashed on final approach into Runway 28L of San Francisco, 3 killed",
+      "auditOrigin": "prior-demo",
+      "photos": [
+        {
+          "file": "9761d56f7b68f412.jpg",
+          "author": "NTSB",
+          "license": "Public domain",
+          "licenseUrl": "",
+          "source": "NTSBAsiana214Fuselage2.jpg",
+          "filePage": "https://commons.wikimedia.org/wiki/File:NTSBAsiana214Fuselage2.jpg",
+          "eventDate": "2013-07-06",
+          "photoDate": "2013-07-07",
+          "photoDatePrecision": "day",
+          "photoRole": "aftermath",
+          "location": "San Francisco International Airport, United States",
+          "verifiedAt": "2026-09-05",
+          "notes": "NTSB photograph one day after the crash.",
+          "changes": "Resized and re-encoded as JPEG by the existing image pipeline.",
+          "promotionRecommended": false
+        }
+      ]
+    }
+  ]
+}

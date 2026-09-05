@@ -1,0 +1,441 @@
+{
+  "method": "Archived JPL Horizons DE441 geometric ICRF barycentric vectors; exact common epochs subtracted for Moon/Venus. TT is approximated by TDB (<2ms periodic difference). Earth-fixed rotation shared with rendering; independent frame sign check uses Greenwich ObserverVector test. Sun references use cubic Hermite interpolation with JPL velocities, verified against held-out samples. Earth and Sun additionally checked separately at their own reference epochs. These are geometric direction checks, not apparent sky accuracy certification.",
+  "summaries": [
+    {
+      "body": "Moon",
+      "commonEpochs": 365,
+      "observerComparisons": 1460,
+      "maxAngularErrorArcsec": 5.634723067267139,
+      "maxGeocentricPositionErrorKm": 14.66705007940285
+    },
+    {
+      "body": "Venus",
+      "commonEpochs": 2923,
+      "observerComparisons": 11692,
+      "maxAngularErrorArcsec": 19.903572032925275,
+      "maxGeocentricPositionErrorKm": 4570.457813769878
+    },
+    {
+      "body": "Sun",
+      "commonEpochs": 2923,
+      "observerComparisons": 11692,
+      "maxAngularErrorArcsec": 2.422413669464047,
+      "referenceInterpolation": "Sun position cubic Hermite interpolation from 20-day JPL position/velocity samples; Earth samples exact.",
+      "solarInterpolation40DayHoldoutMaxKm": 4.808664966874659
+    }
+  ],
+  "barycentricChecks": [
+    {
+      "body": "Earth",
+      "epochs": 2923,
+      "maxPositionErrorKm": 3436.0063050106937
+    },
+    {
+      "body": "Sun",
+      "epochs": 3653,
+      "maxPositionErrorKm": 1830.3670339927226
+    }
+  ],
+  "samples": [
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 1980-Jan-21 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "angularErrorArcsec": 0.48262639837015975
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 1980-Jan-21 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 3.9
+      },
+      "angularErrorArcsec": 0.6371253011238533
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 1980-Jan-21 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 20,
+        "y": -12,
+        "z": 8
+      },
+      "angularErrorArcsec": 1.6125224733122845
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 1980-Jan-21 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 100,
+        "y": 60,
+        "z": -40
+      },
+      "angularErrorArcsec": 0.8271841678681648
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 1990-Jan-08 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "angularErrorArcsec": 1.8632749251365694
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 1990-Jan-08 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 3.9
+      },
+      "angularErrorArcsec": 1.630762447139192
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 1990-Jan-08 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 20,
+        "y": -12,
+        "z": 8
+      },
+      "angularErrorArcsec": 3.9242048269417227
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 1990-Jan-08 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 100,
+        "y": 60,
+        "z": -40
+      },
+      "angularErrorArcsec": 3.061346609474576
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 1999-Dec-27 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "angularErrorArcsec": 0.5020021519116148
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 1999-Dec-27 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 3.9
+      },
+      "angularErrorArcsec": 0.3761133292188456
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 1999-Dec-27 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 20,
+        "y": -12,
+        "z": 8
+      },
+      "angularErrorArcsec": 1.777468267792427
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 1999-Dec-27 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 100,
+        "y": 60,
+        "z": -40
+      },
+      "angularErrorArcsec": 3.0592002677865375
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 2009-Dec-14 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "angularErrorArcsec": 1.222136451118967
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 2009-Dec-14 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 3.9
+      },
+      "angularErrorArcsec": 1.5635820884711225
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 2009-Dec-14 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 20,
+        "y": -12,
+        "z": 8
+      },
+      "angularErrorArcsec": 1.9918671446820275
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 2009-Dec-14 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 100,
+        "y": 60,
+        "z": -40
+      },
+      "angularErrorArcsec": 1.1452603277373234
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 2019-Dec-02 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "angularErrorArcsec": 1.2450106479382743
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 2019-Dec-02 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 3.9
+      },
+      "angularErrorArcsec": 1.494724227440429
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 2019-Dec-02 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 20,
+        "y": -12,
+        "z": 8
+      },
+      "angularErrorArcsec": 2.7668537655074337
+    },
+    {
+      "body": "Moon",
+      "epochTDB": "A.D. 2019-Dec-02 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 100,
+        "y": 60,
+        "z": -40
+      },
+      "angularErrorArcsec": 1.2881177337768666
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 1980-Jan-01 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "angularErrorArcsec": 1.1285981959901383
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 1980-Jan-01 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 3.9
+      },
+      "angularErrorArcsec": 1.128673047443309
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 1980-Jan-01 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 20,
+        "y": -12,
+        "z": 8
+      },
+      "angularErrorArcsec": 1.128346948399983
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 1980-Jan-01 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 100,
+        "y": 60,
+        "z": -40
+      },
+      "angularErrorArcsec": 1.1243635306285211
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 1989-Dec-29 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "angularErrorArcsec": 5.801808547085545
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 1989-Dec-29 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 3.9
+      },
+      "angularErrorArcsec": 5.801147955036393
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 1989-Dec-29 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 20,
+        "y": -12,
+        "z": 8
+      },
+      "angularErrorArcsec": 5.770752996112133
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 1989-Dec-29 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 100,
+        "y": 60,
+        "z": -40
+      },
+      "angularErrorArcsec": 5.71550225235118
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 2000-Jan-01 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "angularErrorArcsec": 2.2928816011203788
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 2000-Jan-01 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 3.9
+      },
+      "angularErrorArcsec": 2.292805705915494
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 2000-Jan-01 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 20,
+        "y": -12,
+        "z": 8
+      },
+      "angularErrorArcsec": 2.29082055002837
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 2000-Jan-01 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 100,
+        "y": 60,
+        "z": -40
+      },
+      "angularErrorArcsec": 2.2833036151222887
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 2010-Jan-03 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "angularErrorArcsec": 0.703852424973864
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 2010-Jan-03 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 3.9
+      },
+      "angularErrorArcsec": 0.7038005750437737
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 2010-Jan-03 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 20,
+        "y": -12,
+        "z": 8
+      },
+      "angularErrorArcsec": 0.703339884431455
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 2010-Jan-03 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 100,
+        "y": 60,
+        "z": -40
+      },
+      "angularErrorArcsec": 0.7025148165473654
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 2020-Jan-01 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "angularErrorArcsec": 1.2539518722442535
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 2020-Jan-01 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 0,
+        "y": 0,
+        "z": 3.9
+      },
+      "angularErrorArcsec": 1.2540129963306967
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 2020-Jan-01 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 20,
+        "y": -12,
+        "z": 8
+      },
+      "angularErrorArcsec": 1.2532362219845041
+    },
+    {
+      "body": "Venus",
+      "epochTDB": "A.D. 2020-Jan-01 00:00:00.0000 TDB",
+      "observerEarthRadii": {
+        "x": 100,
+        "y": 60,
+        "z": -40
+      },
+      "angularErrorArcsec": 1.248969791576584
+    }
+  ]
+}

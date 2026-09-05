@@ -33,10 +33,28 @@
       <input type="range" id="volRange" min="0" max="100" value="70" aria-label="Volume" title="Volume">
     </div>
   </header>
+  <nav class="exploration-controls" aria-label="Exploration controls">
+    <label>Range <select id="eraSelect"><option value="recent">Since 2000</option><option value="century">Last 100 years</option><option value="all">All history</option></select></label>
+    <label>Show <select id="viewSelect"><option value="moment">This moment</option><option value="30">Past month</option><option value="365">Past year</option><option value="1825" selected>Past five years</option></select></label>
+    <label>Density <select id="densitySelect"><option value="0.7">Calm</option><option value="1" selected>Rich</option><option value="1.5">More</option></select></label>
+    <label class="check-label"><input id="photosOnly" type="checkbox"> Photos & video</label>
+    <button id="dataStatus" hidden type="button" aria-live="polite"></button>
+    <span id="periodLabel"></span>
+  </nav>
   <div id="stage">
     <div id="globewrap">
       <canvas id="c"></canvas>
       <div class="skydate" id="skyDate"></div>
+      <div class="observer-controls">
+        <div><button id="freeViewBtn" aria-pressed="false">EXPLORE XYZ</button><button id="returnEarthBtn">RETURN TO EARTH</button></div>
+        <div id="observerMove" hidden>
+          <button data-observer-axis="0" data-sign="-1" aria-label="Move negative X">X−</button><button data-observer-axis="0" data-sign="1" aria-label="Move positive X">X+</button>
+          <button data-observer-axis="1" data-sign="-1" aria-label="Move negative Y">Y−</button><button data-observer-axis="1" data-sign="1" aria-label="Move positive Y">Y+</button>
+          <button data-observer-axis="2" data-sign="-1" aria-label="Move negative Z">Z−</button><button data-observer-axis="2" data-sign="1" aria-label="Move positive Z">Z+</button>
+          <div id="observerCoordinates"></div>
+        </div>
+        <div id="observerHint" hidden>DRAG TO LOOK · W A S D TO MOVE · Q / E UP / DOWN</div>
+      </div>
       <div class="vctl left" id="spinCtl" title="How fast the globe turns by itself">
         <span class="vlab">SPIN</span>
         <input type="range" id="spinRange" min="0" max="100" value="0" aria-label="Globe turning speed (still by default)">
@@ -51,9 +69,10 @@
         <button class="pclose" id="aboutClose" aria-label="Close">✕</button>
         <b>Geotemporal Transurfing</b>
         <p id="aboutCounts"></p>
+        <p><a href="credits.html" target="_blank" rel="noopener">Full media credits</a></p>
         <p>Events from Wikidata; descriptions from Wikipedia (CC BY-SA); photographs from Wikimedia Commons under the licence shown in each panel.</p>
-        <p>Earth: NASA Blue Marble. Borders: Natural Earth. Sky: rendered from the Yale Bright Star Catalog and Milky Way contours (via d3-celestial) — every star to magnitude 6 at its catalog position and colour. Sun, Moon and planet positions: astronomy-engine.</p>
-        <p>The sky is the real sky for the moment shown: the Moon at its true distance, size and phase, the Sun at its true apparent size, the Earth lit from the Sun's actual direction. Open a dated event and the sky becomes that day's.</p>
+        <p>Earth: NASA Blue Marble. Borders: Natural Earth. Stars: catalog positions from d3-celestial (J2000 epoch), with precession and nutation. Star brightness is adapted for screen visibility; no random stars are added. Sun, Moon and planet positions: astronomy-engine.</p>
+        <p>Explore within 140 Earth radii of the center. XYZ uses an Earth-fixed frame: X points to the equator at Greenwich, Y north, and Z to 90°W. The clock also drives the sky. Solar System bodies use geometric positions, without light travel, aberration or refraction corrections. Catalog star directions omit proper motion. Planet points are enlarged symbols; Sun and Moon angular sizes use their physical radii. Sky coverage: 1900–2100; dates outside this range show no calculated sky. A date without an event time is shown at 00:00 UTC as a viewing assumption.</p>
       </div>
     </div>
     <aside id="panel"></aside>
@@ -62,17 +81,28 @@
     <!-- the transport: time is a film. It runs unless you stop it; the double arrows change speed a step per press. -->
     <div class="transport" id="transport">
       <button id="toStartBtn" title="Jump to the start" aria-label="Jump to the start">|&#9664;</button>
-      <button id="rewBtn" title="Rewind, faster each press" aria-label="Rewind">&#9664;&#9664;</button>
+      <button id="rewBtn" title="Play backward" aria-label="Rewind">&#9664;&#9664;</button>
       <button id="playBtn" title="Play or pause (space)" aria-label="Play or pause" aria-pressed="false">&#9654;</button>
-      <button id="ffBtn" title="Fast forward, faster each press" aria-label="Fast forward">&#9654;&#9654;</button>
+      <button id="ffBtn" title="Play forward" aria-label="Fast forward">&#9654;&#9654;</button>
       <button id="toEndBtn" title="Jump to the end" aria-label="Jump to the end">&#9654;|</button>
-      <span class="rate" id="playVal"></span>
+      <label class="speed-label">Speed <select id="speedSelect" aria-label="Playback speed"><option>0.1</option><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option><option>4</option><option>8</option><option>16</option><option>60</option></select>×</label>
+      <span id="transportPhase">History</span><span class="rate" id="playVal"></span>
+      <button id="returnHistory" hidden>Return to history</button>
     </div>
+    <div id="footageNote" hidden></div>
+    <input id="footageSeek" type="range" min="0" max="1" step="0.01" value="0" aria-label="Event footage position" hidden>
     <div class="track" id="track" tabindex="0" role="slider" aria-label="Time window"></div>
   </div>
 </div>
 <script src="vendor/three.min.js"></script>
 <script src="vendor/astronomy.browser.min.js"></script>
+<script src="time.js"></script>
+<script src="event-model.js"></script>
+<script src="event-photos.js"></script>
+<script src="shard-loader.js"></script>
+<script src="observer.js"></script>
+<script src="event-selection.js"></script>
+<script src="media-transport.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
