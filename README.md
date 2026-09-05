@@ -4,7 +4,7 @@ The Tesseract experience allows you to
 
 - orbit and zoom through space
 - pause, reverse or fast-forward time, and event footage
-- see what was happening elsewhere on the same day
+- see what's happening at a different X, Y, Z coordinate at the time of the event
 
 **[Try it](https://geotemporal-transurfing.pages.dev/)**
 
@@ -28,7 +28,7 @@ The opening projects archival wedding footage among the event cards. The reverse
 
 ## How it works
 
-Events are collected offline from Wikidata, Wikipedia and curated records — every item with an exact date and coordinates — and placed on the globe by date and location. Photos and clips come from Wikimedia Commons under their own licences, credited in each panel. The Earth is static NASA imagery on a 3D globe; the [sky is computed from a star catalog and astronomical models](docs/observer-and-sky-validation.md) for the moment shown, not a live feed. Dated photos and clips share the time controls, and “Meanwhile” takes you to what happened elsewhere that day. The page is static files with nothing fetched at run time; the logic starts in [`site/app.js`](site/app.js).
+Static data is collected from Wikidata, Wikipedia and Wikimedia. The logic is in [`site/app.js`](site/app.js).
 
 ## Run locally
 
