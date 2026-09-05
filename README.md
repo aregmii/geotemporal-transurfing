@@ -1,6 +1,6 @@
 # Geotemporal Transurfing
 
-A prototype for transfusing through space and time.
+Transfusing through the 4 dimensions. 
 
 **[Try it](https://geotemporal-transurfing.pages.dev/)**
 
