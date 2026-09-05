@@ -8,7 +8,7 @@ The Tesseract experience allows you to
 
 **[Try it](https://geotemporal-transurfing.pages.dev/)**
 
-![The Tesseract experience: play, pause, reverse, accelerate, and travel between events](docs/tesseract-tour.gif)
+<img src="docs/tesseract-tour.gif" width="800" alt="The Tesseract experience: play, pause, reverse, accelerate, and travel between events">
 
 ![Throw the globe, approach Stockholm, and open moving footage of the 2010 royal wedding](docs/demo.gif)
 
