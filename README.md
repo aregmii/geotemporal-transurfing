@@ -1,23 +1,16 @@
 # Geotemporal Transurfing
 
-Transfusing through the 4 dimensions. 
+Explore all four dimensions: orbit and zoom through space, move through time, and follow events across the globe.
 
 **[Try it](https://geotemporal-transurfing.pages.dev/)**
 
 ![The Tesseract experience: play, pause, reverse, accelerate, and travel between events](docs/tesseract-tour.gif)
 
-**The Tesseract experience.** 
-
-Current experience includes:
-1. Orbit and zoom through space
-2. Pause, play or rewind time and events
-3. See concurrent events occurring elsewhere for each event.
+**The Tesseract experience.** Orbit and zoom through space, pause or rewind time and event footage, and see what was happening elsewhere on the same date.
 
 ![Throw the globe, approach Stockholm, and open moving footage of the 2010 royal wedding](docs/demo.gif)
 
-**The Tesseract experience**
-
-**Pause. Reverse. Accelerate.** Watch Discovery lift off, freeze the footage, then rewind into earlier history at up to 60×. This walkthrough shows 16×.
+**Pause. Reverse. Accelerate.** Watch Discovery lift off, freeze the footage, then rewind into earlier history. The app supports speeds up to 60×; this walkthrough shows 16×.
 
 ![Play the Discovery launch, pause, reverse the footage, and accelerate into earlier history](docs/reverse-time.gif)
 
