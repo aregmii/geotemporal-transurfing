@@ -2,7 +2,7 @@
 
 Roll the Earth, slide time, pick a moment. Every event stands where it happened; the line under the globe says what else happened that same day on the other side of the world.
 
-**[Try it](#)** · 72,000 events, 2000–2025 · three.js, no build step · MIT
+**[Try it](https://geotemporal-transurfing.pages.dev)** · 72,000 events, 2000–2025 · three.js, no build step · MIT
 
 ![The film: the globe turning, time running from August to September 2001, New York lighting up, the 9/11 panel opening](docs/demo.gif)
 
