@@ -24,8 +24,6 @@ The Tesseract experience allows you to
 
 ![Change time direction and speed, move through XYZ, and return to Earth](docs/time-playback.gif)
 
-The opening projects archival wedding footage among the event cards. The reverse sequence uses NASA’s archival Discovery launch footage. The navigation and XYZ walkthroughs use verified archival photographs. Period views show their date range; Moment view shows events on the selected date. [Recording and media credits](docs/demo-media-credits.md).
-
 ## How it works
 
 Static data is collected from Wikidata, Wikipedia and Wikimedia. The logic is in [`site/app.js`](site/app.js).
