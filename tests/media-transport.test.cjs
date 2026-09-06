@@ -66,11 +66,11 @@ function pendingLinkFixture(){
   const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
   const app=fs.readFileSync(path.join(__dirname,'../site/app.js'),'utf8'),noop=()=>{},loads=[],opened=[];
   const element={classList:{remove:noop},style:{}};
-  const c={URLSearchParams,Object,Number,Math,String,encodeURIComponent,mode:'recent',nowT:2014,temporalView:'period',periodDays:1825,viewSelect:{value:'1825'},
+  const c={MONTHLY:null,URLSearchParams,Object,Number,Math,String,encodeURIComponent,mode:'recent',nowT:2014,temporalView:'period',periodDays:1825,viewSelect:{value:'1825'},
     selected:null,FOOTAGE:null,navigationGeneration:0,ANIMS:[],EVENTS:[],ERA_SETS:{recent:{}},ERAS:[{slider:true}],WINDOWS:[{start:2010,end:2011,era:0}],wi:0,
     location:{hash:'#mode=recent&y=2011.1479452054793&view=1825&event=evt-1ouxa88-1i8lkjy'},window:{addEventListener:noop},document:{getElementById:()=>element},canvas:element,
     boundedTime:t=>t,eligibleEvent:()=>true,inView:()=>true,dateOfNow:()=>new Date(0),setSkyDate:noop,bindWindow:noop,syncHeader:noop,placeHandle:noop,render:noop,resetTicker:noop,showSpeed:noop,
-    ensureYears:(start,end,done)=>loads.push(done),flyTo:(e,done)=>done(),openPanel:e=>{c.selected=e;opened.push(e.stableId);c.writeHash();},closePanel:()=>{c.selected=null;c.pendingEventHash=null;},setMode:noop};
+    ensureYears:(start,end,done)=>loads.push(done),selectEvent:e=>{c.selected=e;opened.push(e.stableId);c.writeHash();},closePanel:()=>{c.selected=null;c.pendingEventHash=null;},setMode:noop};
   c.history={replaceState:(state,title,url)=>{c.location.hash=url;}};
   vm.createContext(c);
   vm.runInContext(app.slice(app.indexOf('function setWindow('),app.indexOf('function syncHeader(')),c);
@@ -100,7 +100,7 @@ test('60× selection keeps reverse direction and advances six clip seconds in 10
   const rates=/var SPEEDS = \[[^\n]+\];/.exec(app)[0];
   const setter=/function setSpeed\(rate\)\{[^\n]+\}/.exec(app)[0];
   const tick=app.slice(app.indexOf('function tickPlay(now){'),app.indexOf('function dateOfNow(){'));
-  const positions=[],context={window:{GTMediaTransport:require('../site/media-transport.js')},Math,speedIx:3,playDir:-1,playLast:0,nowT:2011,
+  const positions=[],context={MONTHLY:null,window:{GTMediaTransport:require('../site/media-transport.js')},Math,speedIx:3,playDir:-1,playLast:0,nowT:2011,
     FOOTAGE:{live:{position:20,duration:30,seeker:{seek:t=>positions.push(t)}}},showSpeed(){}};
   vm.createContext(context);vm.runInContext(rates+'\n'+setter+'\n'+tick,context);
   context.setSpeed('60');context.tickPlay(100);

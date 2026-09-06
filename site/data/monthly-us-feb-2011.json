@@ -1,0 +1,675 @@
+{
+  "version": 1,
+  "month": "2011-02",
+  "country": "United States of America",
+  "updatedAt": "2026-09-05",
+  "policy": "Twelve distinct, primary-source-checked U.S. events for February 2011. Day and country are reviewed; mapped coordinates are approximate venue, city, or regional markers as disclosed per event. Existing identities and media keys are retained for matching catalog events. New entries do not imply available, licensed, or same-day media. This country-month backfill does not claim all countries or all months meet their targets.",
+  "events": [
+    [
+      "Senate blocks a step toward health-law repeal",
+      38.89,
+      -77.01,
+      2011,
+      2011,
+      "con",
+      3,
+      "U.S. Capitol, Washington, D.C., United States",
+      "The Senate rejected a budget-rule waiver for an Affordable Care Act repeal amendment by 47 votes to 51, stopping that attempt to advance repeal.",
+      "US_Senate",
+      "2011-02-02",
+      null,
+      null,
+      "The US Senate blocks a repeal of the Patient Protection and Affordable Care Act with a vote of 51–47",
+      {
+        "id": "evt-hsm423-z9cjhp",
+        "sourceIdentity": "yearpage|US_Senate|The US Senate blocks a repeal of the Patient Protection and Affordable Care Act with a vote of 51–47|2011-02-02|38.27|-90.37",
+        "mediaKey": "US_Senate|2011-02-02|38.27|-90.37",
+        "source": {
+          "type": "yearpage",
+          "file": "events_yearpages.json",
+          "url": "https://en.wikipedia.org/wiki/US_Senate"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-02-02",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1121/vote_112_1_00009.htm",
+            "title": "U.S. Senate: Roll Call Vote 9, February 2, 2011"
+          }
+        },
+        "end": null,
+        "monthCountry": "United States of America",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.senate.gov/legislative/LIS/roll_call_votes/vote1121/vote_112_1_00009.htm",
+            "title": "U.S. Senate: Roll Call Vote 9, February 2, 2011"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "The recorded action was a procedural budget-rule waiver, not passage or defeat of a standalone repeal bill. Replaces the legacy United States centroid in Missouri with the Capitol area.",
+          "coordinates": "Approximate Capitol-area marker. The official Senate roll-call record establishes the institution and date; latitude and longitude are an approximate geographic placement, not a source survey coordinate.",
+          "locationPrecision": "approximate-venue",
+          "originalStart": {
+            "iso": "2011-02-02",
+            "precision": "day",
+            "source": {
+              "type": "yearpage",
+              "file": "events_yearpages.json",
+              "url": "https://en.wikipedia.org/wiki/US_Senate"
+            }
+          },
+          "originalEnd": null,
+          "originalTitle": "The US Senate blocks a repeal of the Patient Protection and Affordable Care Act…",
+          "originalCoordinates": [
+            38.27,
+            -90.37
+          ],
+          "originalPlace": "United States"
+        }
+      }
+    ],
+    [
+      "Texas grid orders rotating power outages",
+      31,
+      -99,
+      2011,
+      2011,
+      "dis",
+      3,
+      "Texas, United States (regional marker)",
+      "ERCOT ordered rotating power outages as extreme cold and generator failures strained the Texas electricity grid.",
+      "2011_Groundhog_Day_blizzard",
+      "2011-02-02",
+      null,
+      null,
+      "Texas grid orders rotating power outages",
+      {
+        "id": "evt-monthly-us-20110202-texas-outages",
+        "sourceIdentity": "monthly-reviewed|2011_Groundhog_Day_blizzard|2011-02-02|31|-99",
+        "mediaKey": "2011_Groundhog_Day_blizzard|2011-02-02|31|-99",
+        "source": {
+          "type": "monthly-reviewed",
+          "url": "https://www.ercot.com/files/docs/2011/02/14/review_of_february_2__2011_eea_event.pdf",
+          "title": "ERCOT: Review of February 2, 2011 Energy Emergency Alert Event"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-02-02",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.ercot.com/files/docs/2011/02/14/review_of_february_2__2011_eea_event.pdf",
+            "title": "ERCOT: Review of February 2, 2011 Energy Emergency Alert Event"
+          }
+        },
+        "end": null,
+        "monthCountry": "United States of America",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.ercot.com/files/docs/2011/02/14/review_of_february_2__2011_eea_event.pdf",
+            "title": "ERCOT: Review of February 2, 2011 Energy Emergency Alert Event"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "One statewide electricity-system event, not a claim that all Texas lost power. February 2 is the outage date, distinct from the January start of the wider winter storm. No separate daily outage entries.",
+          "coordinates": "Approximate central Texas regional marker selected for map display. ERCOT confirms the affected Texas grid, not this latitude and longitude or a single blackout site.",
+          "locationPrecision": "region"
+        }
+      }
+    ],
+    [
+      "World championships: women's moguls final",
+      40.62,
+      -111.49,
+      2011,
+      2011,
+      "cul",
+      2,
+      "Deer Valley Resort, Park City, Utah, United States",
+      "Women competed in the moguls final at the FIS Freestyle World Ski Championships on Deer Valley's Champion course.",
+      "FIS_Freestyle_World_Ski_Championships_2011",
+      "2011-02-02",
+      null,
+      null,
+      "FIS Freestyle World Ski Championships 2011",
+      {
+        "id": "evt-1yxn8ot-6yjxzn",
+        "sourceIdentity": "dated|FIS_Freestyle_World_Ski_Championships_2011|FIS Freestyle World Ski Championships 2011|2011-02-02|40.66|-111.5",
+        "mediaKey": "FIS_Freestyle_World_Ski_Championships_2011|2011-02-02|40.66|-111.5",
+        "source": {
+          "type": "dated",
+          "file": "events_wikidata.json",
+          "url": "https://en.wikipedia.org/wiki/FIS_Freestyle_World_Ski_Championships_2011"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-02-02",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://medias4.fis-ski.com/pdf/2011/FS/8001/2011FS8001FRL.pdf",
+            "title": "FIS: 2011 Women's Moguls Final, Deer Valley, February 2"
+          }
+        },
+        "end": null,
+        "monthCountry": "United States of America",
+        "monthlyReview": {
+          "source": {
+            "url": "https://medias4.fis-ski.com/pdf/2011/FS/8001/2011FS8001FRL.pdf",
+            "title": "FIS: 2011 Women's Moguls Final, Deer Valley, February 2"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "Narrowed the broad legacy championship label to this independently dated final. January team arrivals and later disciplines are not counted as additional February events. The final's source date is February 2.",
+          "coordinates": "Approximate Deer Valley mountain-area marker. The official result names the Champion course at Deer Valley; the plotted latitude and longitude are approximate and do not purport to locate a precise course gate.",
+          "locationPrecision": "approximate-venue",
+          "originalStart": {
+            "iso": "2011-02-02",
+            "precision": "day",
+            "source": {
+              "type": "dated",
+              "file": "events_wikidata.json",
+              "url": "https://en.wikipedia.org/wiki/FIS_Freestyle_World_Ski_Championships_2011"
+            }
+          },
+          "originalEnd": null,
+          "originalTitle": "FIS Freestyle World Ski Championships 2011",
+          "originalCoordinates": [
+            40.66,
+            -111.5
+          ],
+          "originalPlace": "Park City"
+        }
+      }
+    ],
+    [
+      "Packers win Super Bowl XLV",
+      32.75,
+      -97.09,
+      2011,
+      2011,
+      "cul",
+      4,
+      "Cowboys Stadium, Arlington, Texas, United States",
+      "Green Bay defeated Pittsburgh 31–25 in Super Bowl XLV in Arlington, Texas.",
+      "Super_Bowl_XLV",
+      "2011-02-06",
+      null,
+      null,
+      "Packers win Super Bowl XLV",
+      {
+        "id": "evt-monthly-us-20110206-super-bowl-xlv",
+        "sourceIdentity": "monthly-reviewed|Super_Bowl_XLV|2011-02-06|32.75|-97.09",
+        "mediaKey": "Super_Bowl_XLV|2011-02-06|32.75|-97.09",
+        "source": {
+          "type": "monthly-reviewed",
+          "url": "https://www.packers.com/photos/super-bowl-xlv-anniversary-20339430",
+          "title": "Green Bay Packers: Super Bowl XLV Anniversary"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-02-06",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.packers.com/photos/super-bowl-xlv-anniversary-20339430",
+            "title": "Green Bay Packers: Super Bowl XLV Anniversary"
+          }
+        },
+        "end": null,
+        "monthCountry": "United States of America",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.packers.com/photos/super-bowl-xlv-anniversary-20339430",
+            "title": "Green Bay Packers: Super Bowl XLV Anniversary"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "One championship game, not separate entries for scores, halftime, or the celebration. Uses the stadium's 2011 name.",
+          "coordinates": "Approximate Cowboys Stadium area. The team's dated photographs establish Arlington and the event; the coordinates are an approximate venue marker.",
+          "locationPrecision": "approximate-venue"
+        }
+      }
+    ],
+    [
+      "53rd Grammy Awards",
+      34.04,
+      -118.27,
+      2011,
+      2011,
+      "cul",
+      3,
+      "Staples Center, Los Angeles, California, United States",
+      "The Recording Academy held the 53rd Grammy Awards in Los Angeles, with live musical performances and awards across recording categories.",
+      "53rd_Annual_Grammy_Awards",
+      "2011-02-13",
+      null,
+      null,
+      "53rd Annual Grammy Awards",
+      {
+        "id": "evt-1u0uy6n-12kaiid",
+        "sourceIdentity": "dated|53rd_Annual_Grammy_Awards|53rd Annual Grammy Awards|2011-02-13|34.04|-118.27",
+        "mediaKey": "53rd_Annual_Grammy_Awards|2011-02-13|34.04|-118.27",
+        "source": {
+          "type": "dated",
+          "file": "events_wikidata.json",
+          "url": "https://en.wikipedia.org/wiki/53rd_Annual_Grammy_Awards"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-02-13",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.grammy.com/video/train-in-danny-clinch-at-53rd-annual-grammy-awards/",
+            "title": "Recording Academy: Train at the 53rd Grammy Awards"
+          }
+        },
+        "end": null,
+        "monthCountry": "United States of America",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.grammy.com/video/train-in-danny-clinch-at-53rd-annual-grammy-awards/",
+            "title": "Recording Academy: Train at the 53rd Grammy Awards"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "The Recording Academy's event record explicitly gives February 13, 2011, Staples Center, Los Angeles. Corrected the legacy venue's present-day Crypto.com name to its 2011 name. No media has been downloaded or implied to be licensed.",
+          "coordinates": "Existing catalog marker retained near Staples Center. The primary source confirms the event venue and date, not exact coordinates.",
+          "locationPrecision": "approximate-venue",
+          "originalStart": {
+            "iso": "2011-02-13",
+            "precision": "day",
+            "source": {
+              "type": "dated",
+              "file": "events_wikidata.json",
+              "url": "https://en.wikipedia.org/wiki/53rd_Annual_Grammy_Awards"
+            }
+          },
+          "originalEnd": null,
+          "originalTitle": "53rd Annual Grammy Awards — event held on February 13, 2011",
+          "originalCoordinates": [
+            34.04,
+            -118.27
+          ],
+          "originalPlace": "Crypto.com Arena"
+        }
+      }
+    ],
+    [
+      "Obama presents the Presidential Medal of Freedom",
+      38.9,
+      -77.04,
+      2011,
+      2011,
+      "cul",
+      3,
+      "White House, Washington, D.C., United States",
+      "President Obama honored Medal of Freedom recipients at the White House, including George H. W. Bush, Maya Angelou, and Bill Russell.",
+      "Presidential_Medal_of_Freedom",
+      "2011-02-15",
+      null,
+      null,
+      "Obama presents the Presidential Medal of Freedom",
+      {
+        "id": "evt-monthly-us-20110215-medal-freedom",
+        "sourceIdentity": "monthly-reviewed|Presidential_Medal_of_Freedom|2011-02-15|38.9|-77.04",
+        "mediaKey": "Presidential_Medal_of_Freedom|2011-02-15|38.9|-77.04",
+        "source": {
+          "type": "monthly-reviewed",
+          "url": "https://obamawhitehouse.archives.gov/photos-and-video/video/2011/02/15/2010-presidential-medal-freedom-ceremony/",
+          "title": "White House Archive: 2010 Presidential Medal of Freedom Ceremony, February 15, 2011"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-02-15",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://obamawhitehouse.archives.gov/photos-and-video/video/2011/02/15/2010-presidential-medal-freedom-ceremony/",
+            "title": "White House Archive: 2010 Presidential Medal of Freedom Ceremony, February 15, 2011"
+          }
+        },
+        "end": null,
+        "monthCountry": "United States of America",
+        "monthlyReview": {
+          "source": {
+            "url": "https://obamawhitehouse.archives.gov/photos-and-video/video/2011/02/15/2010-presidential-medal-freedom-ceremony/",
+            "title": "White House Archive: 2010 Presidential Medal of Freedom Ceremony, February 15, 2011"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "The award cohort is styled 2010, but this ceremony took place on February 15, 2011. This entry uses the ceremony date, not the award-cohort year. No recipient is counted as a separate event.",
+          "coordinates": "Approximate White House marker. The official transcript identifies the East Room; the geographic point represents the building area, not an exact indoor location.",
+          "locationPrecision": "approximate-venue"
+        }
+      }
+    ],
+    [
+      "NBA All-Star Game in Los Angeles",
+      34.04,
+      -118.27,
+      2011,
+      2011,
+      "cul",
+      3,
+      "Staples Center, Los Angeles, California, United States",
+      "The Western Conference beat the Eastern Conference 148–143 in the NBA All-Star Game at Staples Center.",
+      "2011_NBA_All-Star_Game",
+      "2011-02-20",
+      null,
+      null,
+      "NBA All-Star Game in Los Angeles",
+      {
+        "id": "evt-monthly-us-20110220-nba-all-star",
+        "sourceIdentity": "monthly-reviewed|2011_NBA_All-Star_Game|2011-02-20|34.04|-118.27",
+        "mediaKey": "2011_NBA_All-Star_Game|2011-02-20|34.04|-118.27",
+        "source": {
+          "type": "monthly-reviewed",
+          "url": "https://www.nba.com/game/est-vs-wst-0031000001",
+          "title": "NBA: East vs. West All-Star Game, February 20, 2011"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-02-20",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.nba.com/game/est-vs-wst-0031000001",
+            "title": "NBA: East vs. West All-Star Game, February 20, 2011"
+          }
+        },
+        "end": null,
+        "monthCountry": "United States of America",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.nba.com/game/est-vs-wst-0031000001",
+            "title": "NBA: East vs. West All-Star Game, February 20, 2011"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "Uses local Los Angeles calendar date February 20; the game's UTC timestamp is February 21 at 01:00. The arena also hosted the Grammys a week earlier, a separate event.",
+          "coordinates": "Approximate Staples Center marker. The official game record confirms the Los Angeles venue; coordinates are approximate.",
+          "locationPrecision": "approximate-venue"
+        }
+      }
+    ],
+    [
+      "Trevor Bayne wins the Daytona 500",
+      29.19,
+      -81.07,
+      2011,
+      2011,
+      "cul",
+      3,
+      "Daytona International Speedway, Daytona Beach, Florida, United States",
+      "Trevor Bayne held the lead at the final restart and won the Daytona 500 for Wood Brothers Racing.",
+      "2011_Daytona_500",
+      "2011-02-20",
+      null,
+      null,
+      "2011 Daytona 500 is won by the Wood Brothers Racing team entrant Trevor Bayne, who became the youngest winner of the race. Carl Edwards was second ahead of Davi",
+      {
+        "id": "evt-149g50a-1yt9ivc",
+        "sourceIdentity": "yearpage|2011_Daytona_500|2011 Daytona 500 is won by the Wood Brothers Racing team entrant Trevor Bayne, who became the youngest winner of the race. Carl Edwards was second ahead of Davi|2011-02-20|38.27|-90.37",
+        "mediaKey": "2011_Daytona_500|2011-02-20|38.27|-90.37",
+        "source": {
+          "type": "yearpage",
+          "file": "events_yearpages.json",
+          "url": "https://en.wikipedia.org/wiki/2011_Daytona_500"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-02-20",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.nascar.com/news-media/2019/02/12/daytona-500-historic-odds-trevor-baynes-2011-victory/",
+            "title": "NASCAR: Trevor Bayne's 2011 Daytona 500 Victory"
+          }
+        },
+        "end": null,
+        "monthCountry": "United States of America",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.nascar.com/news-media/2019/02/12/daytona-500-historic-odds-trevor-baynes-2011-victory/",
+            "title": "NASCAR: Trevor Bayne's 2011 Daytona 500 Victory"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "Corrected the legacy generic U.S. marker in Missouri to the race venue in Florida. One race event, not individual laps or incidents.",
+          "coordinates": "Approximate Daytona International Speedway marker. NASCAR identifies the race and date; the venue-area coordinates are approximate.",
+          "locationPrecision": "approximate-venue",
+          "originalStart": {
+            "iso": "2011-02-20",
+            "precision": "day",
+            "source": {
+              "type": "yearpage",
+              "file": "events_yearpages.json",
+              "url": "https://en.wikipedia.org/wiki/2011_Daytona_500"
+            }
+          },
+          "originalEnd": null,
+          "originalTitle": "2011 Daytona 500 is won by the Wood Brothers Racing team entrant Trevor Bayne…",
+          "originalCoordinates": [
+            38.27,
+            -90.37
+          ],
+          "originalPlace": "United States"
+        }
+      }
+    ],
+    [
+      "Rahm Emanuel wins Chicago's mayoral election",
+      41.88,
+      -87.63,
+      2011,
+      2011,
+      "con",
+      3,
+      "Chicago, Illinois, United States (citywide election)",
+      "Rahm Emanuel won Chicago's mayoral election with 326,331 votes, or 55.27 percent of the total.",
+      "Chicago_mayoral_election,_2011",
+      "2011-02-22",
+      null,
+      null,
+      "Chicago mayoral election, 2011: Former White House Chief of Staff Rahm Emanuel wins the race for mayor with more than 55% of the vote. He will succeed Mayor Ric",
+      {
+        "id": "evt-1c60l0l-1trecbr",
+        "sourceIdentity": "yearpage|Chicago_mayoral_election,_2011|Chicago mayoral election, 2011: Former White House Chief of Staff Rahm Emanuel wins the race for mayor with more than 55% of the vote. He will succeed Mayor Ric|2011-02-22|38.27|-90.37",
+        "mediaKey": "Chicago_mayoral_election%2C_2011|2011-02-22|38.27|-90.37",
+        "source": {
+          "type": "yearpage",
+          "file": "events_yearpages.json",
+          "url": "https://en.wikipedia.org/wiki/Chicago_mayoral_election%2C_2011"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-02-22",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://app.chicagoelections.gov/documents/proclamations/Proc-2011-02-22.pdf",
+            "title": "Chicago Board of Election Commissioners: February 22, 2011 Municipal Election Results"
+          }
+        },
+        "end": null,
+        "monthCountry": "United States of America",
+        "monthlyReview": {
+          "source": {
+            "url": "https://app.chicagoelections.gov/documents/proclamations/Proc-2011-02-22.pdf",
+            "title": "Chicago Board of Election Commissioners: February 22, 2011 Municipal Election Results"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "Uses election day, not certification or inauguration day. The official citywide mayoral results appear on the proclamation's summary report. Replaces the legacy generic U.S. marker in Missouri.",
+          "coordinates": "Approximate central Chicago marker for a citywide election. Votes were cast across the city's precincts; this is not a single polling-place coordinate.",
+          "locationPrecision": "city",
+          "originalStart": {
+            "iso": "2011-02-22",
+            "precision": "day",
+            "source": {
+              "type": "yearpage",
+              "file": "events_yearpages.json",
+              "url": "https://en.wikipedia.org/wiki/Chicago_mayoral_election%2C_2011"
+            }
+          },
+          "originalEnd": null,
+          "originalTitle": "Chicago mayoral election, 2011: Former White House Chief of Staff Rahm Emanuel wins the race…",
+          "originalCoordinates": [
+            38.27,
+            -90.37
+          ],
+          "originalPlace": "United States"
+        }
+      }
+    ],
+    [
+      "Justice Department changes its DOMA defense position",
+      38.89,
+      -77.03,
+      2011,
+      2011,
+      "con",
+      3,
+      "Washington, D.C., United States",
+      "Attorney General Eric Holder announced that the administration would stop defending Section 3 of the Defense of Marriage Act in court while continuing to enforce the law.",
+      "Defense_of_Marriage_Act",
+      "2011-02-23",
+      null,
+      null,
+      "Justice Department changes its DOMA defense position",
+      {
+        "id": "evt-monthly-us-20110223-doma-defense",
+        "sourceIdentity": "monthly-reviewed|Defense_of_Marriage_Act|2011-02-23|38.89|-77.03",
+        "mediaKey": "Defense_of_Marriage_Act|2011-02-23|38.89|-77.03",
+        "source": {
+          "type": "monthly-reviewed",
+          "url": "https://www.justice.gov/archives/opa/pr/statement-attorney-general-litigation-involving-defense-marriage-act",
+          "title": "U.S. Department of Justice: Statement on Litigation Involving DOMA, February 23, 2011"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-02-23",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.justice.gov/archives/opa/pr/statement-attorney-general-litigation-involving-defense-marriage-act",
+            "title": "U.S. Department of Justice: Statement on Litigation Involving DOMA, February 23, 2011"
+          }
+        },
+        "end": null,
+        "monthCountry": "United States of America",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.justice.gov/archives/opa/pr/statement-attorney-general-litigation-involving-defense-marriage-act",
+            "title": "U.S. Department of Justice: Statement on Litigation Involving DOMA, February 23, 2011"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "An announced litigation position, not repeal, a Supreme Court ruling, or nationwide legalization of same-sex marriage. The source is dated and datelined Washington.",
+          "coordinates": "Approximate Washington justice-department area. The press release establishes Washington as the announcement location, not a precise room or surveyed point.",
+          "locationPrecision": "city"
+        }
+      }
+    ],
+    [
+      "Discovery launches on its final mission",
+      28.58,
+      -80.65,
+      2011,
+      2011,
+      "sci",
+      2,
+      "Kennedy Space Center, Pad 39A, Florida, United States",
+      "Space shuttle Discovery launched from Kennedy Space Center on February 24 for STS-133, its final mission.",
+      "STS-133",
+      "2011-02-24",
+      null,
+      null,
+      "STS-133: Space Shuttle Discovery launches from Kennedy Space Center for the final time, carrying the Permanent Multipurpose Module to the International Space St",
+      {
+        "id": "evt-1ouxa88-1i8lkjy",
+        "sourceIdentity": "yearpage|STS-133|STS-133: Space Shuttle Discovery launches from Kennedy Space Center for the final time, carrying the Permanent Multipurpose Module to the International Space St|2011-02-24|28.58|-80.65",
+        "mediaKey": "STS-133|2011-02-24|28.58|-80.65",
+        "source": {
+          "type": "yearpage",
+          "file": "events_yearpages.json",
+          "url": "https://en.wikipedia.org/wiki/STS-133"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-02-24",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.nasa.gov/mission/sts-133/",
+            "title": "NASA: STS-133"
+          }
+        },
+        "end": null,
+        "monthCountry": "United States of America",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.nasa.gov/mission/sts-133/",
+            "title": "NASA: STS-133"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "This is the Earth launch, not the mission's orbital location. NASA confirms February 24, 2011 and Pad 39A. Retains the correctly located year-page identity and reviewed launch-video key; the separate NASA-headquarters row is excluded.",
+          "coordinates": "Existing catalog coordinates retained as an approximate event-area marker; source confirms the named place and country, not exact latitude and longitude.",
+          "originalStart": {
+            "iso": "2011-02-24",
+            "precision": "day",
+            "source": {
+              "type": "yearpage",
+              "file": "events_yearpages.json",
+              "url": "https://en.wikipedia.org/wiki/STS-133"
+            }
+          },
+          "originalEnd": null,
+          "originalTitle": "STS-133: Space Shuttle Discovery launches from Kennedy Space Center for the final time, carrying the Permanent Multipurpose Module to the International Space St"
+        }
+      }
+    ],
+    [
+      "The King's Speech wins Best Picture at the Oscars",
+      34.1,
+      -118.34,
+      2011,
+      2011,
+      "cul",
+      4,
+      "Kodak Theatre, Hollywood, Los Angeles, California, United States",
+      "The King's Speech won Best Picture at the 83rd Academy Awards, which honored films released in 2010.",
+      "83rd_Academy_Awards",
+      "2011-02-27",
+      null,
+      null,
+      "The King's Speech wins Best Picture at the Oscars",
+      {
+        "id": "evt-monthly-us-20110227-academy-awards",
+        "sourceIdentity": "monthly-reviewed|83rd_Academy_Awards|2011-02-27|34.1|-118.34",
+        "mediaKey": "83rd_Academy_Awards|2011-02-27|34.1|-118.34",
+        "source": {
+          "type": "monthly-reviewed",
+          "url": "https://www.oscars.org/oscars/ceremonies/2011",
+          "title": "Academy of Motion Picture Arts and Sciences: The 83rd Academy Awards, 2011"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-02-27",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.oscars.org/oscars/ceremonies/2011",
+            "title": "Academy of Motion Picture Arts and Sciences: The 83rd Academy Awards, 2011"
+          }
+        },
+        "end": null,
+        "monthCountry": "United States of America",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.oscars.org/oscars/ceremonies/2011",
+            "title": "Academy of Motion Picture Arts and Sciences: The 83rd Academy Awards, 2011"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "One awards ceremony, not one entry per award. Uses February 27, 2011, the ceremony date, and Kodak Theatre, its name at that time.",
+          "coordinates": "Approximate Hollywood and Highland theatre marker. The Academy's ceremony record names Kodak Theatre; the latitude and longitude are approximate.",
+          "locationPrecision": "approximate-venue"
+        }
+      }
+    ]
+  ]
+}

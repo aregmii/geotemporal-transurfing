@@ -24,5 +24,11 @@
     }
     return result;
   }
-  return {select:select,identity:identity,cell:cell};
+  function presentation(e,selected,context){
+    var focused=!!selected && identity(e)===identity(selected);
+    var related=(context||[]).some(function(other){return identity(other)===identity(e);});
+    var background=!!selected && !focused && !related;
+    return {scale:focused?1.65:1,cardOpacity:background?.78:focused?1:.96,badgeOpacity:background?.75:1,beamOpacity:background?.16:null,baseOpacity:background?.65:.9};
+  }
+  return {select:select,identity:identity,cell:cell,presentation:presentation};
 });

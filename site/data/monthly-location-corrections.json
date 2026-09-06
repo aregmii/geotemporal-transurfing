@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-05",
+  "policy": "Source-backed corrections to two reported false co-locations. Existing event IDs and media keys remain unchanged. Coordinates mark approximate city centres, not verified building locations. Country grouping follows present-day geography and does not imply that current borders existed in February 2011. Other imported records remain unreviewed.",
+  "events": [
+    [
+      "Southern Sudanese minister Jimmy Lemi Milla is killed in Juba",
+      4.85,
+      31.6,
+      2011,
+      2011,
+      "con",
+      2,
+      "Juba, Southern Sudan (now South Sudan)",
+      "Jimmy Lemi Milla, a minister in the government of Southern Sudan, was killed in Juba on 9 February 2011.",
+      "Jimmy_Lemi_Milla",
+      "2011-02-09",
+      null,
+      null,
+      "Southern Sudanese minister Jimmy Lemi Milla and his bodyguard are shot dead as a result of a personal dispute",
+      {
+        "id": "evt-161g2d7-1q0u3p7",
+        "sourceIdentity": "yearpage|Jimmy_Lemi_Milla|Southern Sudanese minister Jimmy Lemi Milla and his bodyguard are shot dead as a result of a personal dispute|2011-02-09|12.81|29.34",
+        "mediaKey": "Jimmy_Lemi_Milla|2011-02-09|12.81|29.34",
+        "source": {
+          "type": "yearpage",
+          "file": "events_yearpages.json",
+          "url": "https://en.wikipedia.org/wiki/Jimmy_Lemi_Milla"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-02-09",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.gov.uk/government/news/minister-for-africa-shocked-by-murder-of-south-sudanese-minister",
+            "title": "Foreign & Commonwealth Office: Minister for Africa shocked by murder of South Sudanese Minister"
+          }
+        },
+        "end": null,
+        "monthCountry": "South Sudan",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.gov.uk/government/news/minister-for-africa-shocked-by-murder-of-south-sudanese-minister",
+            "title": "Foreign & Commonwealth Office: Minister for Africa shocked by murder of South Sudanese Minister",
+            "publishedAt": "2011-02-09"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "The official statement explicitly identifies Juba and 9 February 2011. Corrects an inherited Sudan-centroid marker. The display describes only the minister's death, which this primary source confirms. Present-day country grouping is South Sudan; the event occurred in autonomous Southern Sudan before independence.",
+          "coordinates": "Approximate Juba city-centre marker, 4.85 N, 31.60 E. The source confirms the city, not these coordinates or an exact building. No new event photograph or clip is implied.",
+          "locationPrecision": "approximate-city",
+          "originalTitle": "Southern Sudanese minister Jimmy Lemi Milla and his bodyguard are shot dead as a result…",
+          "originalCoordinates": [12.81, 29.34],
+          "originalPlace": "Sudan",
+          "originalStart": {
+            "iso": "2011-02-09",
+            "precision": "day",
+            "source": {
+              "type": "yearpage",
+              "file": "events_yearpages.json",
+              "url": "https://en.wikipedia.org/wiki/Jimmy_Lemi_Milla"
+            }
+          },
+          "originalEnd": null
+        }
+      }
+    ],
+    [
+      "Police block an electoral-fraud protest in Khartoum",
+      15.6,
+      32.53,
+      2011,
+      2011,
+      "con",
+      2,
+      "Khartoum, Sudan",
+      "Police and security agents blocked a planned protest in Khartoum. Opposition supporters sought to petition the National Elections Commission about alleged voter-registration irregularities in Southern Kordofan.",
+      "2011_in_Sudan",
+      "2011-02-27",
+      null,
+      null,
+      "A demonstration against electoral fraud in Khartoum is broken up by riot police",
+      {
+        "id": "evt-3o8vkk-g3n8kq",
+        "sourceIdentity": "yearpage|yp:46f1029914|A demonstration against electoral fraud in Khartoum is broken up by riot police|2011-02-27|12.81|29.34",
+        "mediaKey": "yp%3A46f1029914|2011-02-27|12.81|29.34",
+        "source": {
+          "type": "yearpage",
+          "file": "events_yearpages.json",
+          "url": "https://en.wikipedia.org/wiki/yp%3A46f1029914"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-02-27",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://unmis.unmissions.org/sites/default/files/MMR%2028%20Feb%2011.pdf",
+            "title": "UNMIS Media Monitoring Report, 28 February 2011: Sudan clamps down on election protest (Reuters/local dailies)"
+          }
+        },
+        "end": null,
+        "monthCountry": "Sudan",
+        "monthlyReview": {
+          "source": {
+            "url": "https://unmis.unmissions.org/sites/default/files/MMR%2028%20Feb%2011.pdf",
+            "title": "UNMIS Media Monitoring Report, 28 February 2011: Sudan clamps down on election protest (Reuters/local dailies)",
+            "publishedAt": "2011-02-28"
+          },
+          "corroboratingSources": [
+            {
+              "url": "https://www.cihrs.org/wp-content/uploads/2012/06/the-report-e.pdf",
+              "title": "Cairo Institute for Human Rights Studies, 2011 annual report, Sudan: February 27 protest restrictions"
+            }
+          ],
+          "checkedAt": "2026-09-05",
+          "notes": "UNMIS reproduces Reuters/local reporting headed Khartoum, 27-28/02/11, describing the police action on Sunday 27 February. The report publication date is 28 February, not the event date. The CIHRS report explicitly dates the restriction to February 27. Khartoum was the protest location; Southern Kordofan was the subject of the electoral complaint. The old yp: placeholder article slug is replaced with the existing 2011 in Sudan overview while retaining its event and media identity. The UNMIS passage was available in indexed search text; direct PDF retrieval returned a cache miss during this review.",
+          "coordinates": "Approximate Khartoum city-centre marker, 15.60 N, 32.53 E. Sources locate the action around SPLM and National Elections Commission offices in Khartoum, but do not establish these as the offices' exact coordinates. No new event photograph or clip is implied.",
+          "locationPrecision": "approximate-city",
+          "originalTitle": "A demonstration against electoral fraud in Khartoum is broken up by riot police",
+          "originalCoordinates": [12.81, 29.34],
+          "originalPlace": "Sudan",
+          "originalSlug": "yp:46f1029914",
+          "originalStart": {
+            "iso": "2011-02-27",
+            "precision": "day",
+            "source": {
+              "type": "yearpage",
+              "file": "events_yearpages.json",
+              "url": "https://en.wikipedia.org/wiki/yp%3A46f1029914"
+            }
+          },
+          "originalEnd": null
+        }
+      }
+    ]
+  ]
+}

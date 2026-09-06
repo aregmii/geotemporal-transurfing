@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Geotemporal Transurfing</title>
-<meta name="description" content="Spin the Earth, slide through time: every event stands where it happened, with what was happening elsewhere in the world that same day.">
+<meta name="description" content="Explore a monthly Earth-history prototype: selected events from 2011, with independent event playback. Not a live feed.">
 <meta property="og:title" content="Geotemporal Transurfing">
-<meta property="og:description" content="Spin the Earth, slide through time: every event stands where it happened, with what was happening elsewhere in the world that same day.">
+<meta property="og:description" content="Explore selected Earth-history events one month at a time, with independent event playback. A limited 2011 prototype, not a live feed.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://geotemporal-transurfing.pages.dev/">
 <meta property="og:image" content="https://geotemporal-transurfing.pages.dev/assets/og.jpg">
@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=monthly-recommendations-v1">
 </head>
 <body>
 <div id="app">
@@ -27,25 +27,29 @@
     <span class="spacer"></span>
     <!-- "Last 100 years" and "All of history" still work via #mode=century / #mode=all -->
     <div class="vol" id="vol">
-      <button id="soundBtn" aria-pressed="false" aria-label="Sound on or off" title="Clips play louder as you zoom toward them">
+      <span id="soundStatus">Event audio only</span>
+      <button id="soundBtn" disabled aria-pressed="false" aria-label="Enable selected event sound" title="Select an event with an audio recording">
         <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><g id="waves"><path d="M16.5 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></g><path id="mute" d="M17 9.5l5 5m0-5l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       </button>
       <input type="range" id="volRange" min="0" max="100" value="70" aria-label="Volume" title="Volume">
     </div>
   </header>
-  <nav class="exploration-controls" aria-label="Exploration controls">
-    <label>Range <select id="eraSelect"><option value="recent">Since 2000</option><option value="century">Last 100 years</option><option value="all">All history</option></select></label>
-    <label>Show <select id="viewSelect"><option value="moment">This moment</option><option value="30">Past month</option><option value="365">Past year</option><option value="1825" selected>Past five years</option></select></label>
-    <label>Density <select id="densitySelect"><option value="0.7">Calm</option><option value="1" selected>Rich</option><option value="1.5">More</option></select></label>
-    <label class="check-label"><input id="photosOnly" type="checkbox"> Photos & video</label>
+  <nav class="exploration-controls monthly-controls" aria-label="Monthly Earth browsing">
+    <span class="pilot-label">EARTH · 2011 PILOT</span>
+    <button id="previousMonth" type="button" aria-label="Previous month">←</button>
+    <label>Month <input id="monthInput" type="month" min="2011-01" max="2011-12" value="2011-02"></label>
+    <button id="nextMonth" type="button" aria-label="Next month">→</button>
+    <label>Month duration <select id="monthDuration"><option value="10">10 seconds</option><option value="5">5 seconds</option><option value="1">1 second</option></select></label>
+    <label class="check-label"><input id="photosOnly" type="checkbox"> With verified media</label>
     <button id="dataStatus" hidden type="button" aria-live="polite"></button>
     <span id="periodLabel"></span>
   </nav>
+  <div class="prototype-notice">Prototype · Data may be incomplete or inaccurate. Historical records, not live data. Monthly minimums: <strong>12+ per high-income country; 3+ per other country.</strong> Coverage gaps remain.</div>
   <div id="stage">
     <div id="globewrap">
       <canvas id="c"></canvas>
       <div class="skydate" id="skyDate"></div>
-      <div class="observer-controls">
+      <div class="observer-controls" hidden>
         <div><button id="freeViewBtn" aria-pressed="false">EXPLORE XYZ</button><button id="returnEarthBtn">RETURN TO EARTH</button></div>
         <div id="observerMove" hidden>
           <button data-observer-axis="0" data-sign="-1" aria-label="Move negative X">X−</button><button data-observer-axis="0" data-sign="1" aria-label="Move positive X">X+</button>
@@ -61,21 +65,39 @@
         <span class="vval" id="spinVal"></span>
       </div>
       <div id="tip"><div class="tt"></div><div class="ty"></div></div>
-      <div class="hint">FLICK · SCROLL TO ZOOM · ← → TIME · <em>+N</em> = MORE WITHIN 250 KM</div>
+      <details id="monthBrowse" class="month-browse">
+        <summary id="monthBrowseSummary">Browse this month</summary>
+        <label>Country <select id="monthCountry"><option value="">All countries / economies</option></select></label>
+        <p id="countryCoverage" class="coverage-note"></p>
+        <p id="monthCoverageSummary" class="coverage-note" aria-live="polite"></p>
+        <p class="coverage-note">Income groups follow the <a id="incomePolicySource" href="https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups" target="_blank" rel="noopener">World Bank classification</a>. Catalog imports and independently source-checked events are labelled separately.</p>
+        <div id="monthEvents"></div>
+      </details>
+      <div class="hint">DRAG TO ROTATE · SCROLL TO ZOOM · ← → MONTH · CLICK AN EVENT TO EXPLORE</div>
       <div class="count" id="count"></div>
       <div class="ticker" id="ticker"></div>
       <button class="about-btn" id="aboutBtn" aria-label="About and credits">i</button>
       <div class="about" id="about">
         <button class="pclose" id="aboutClose" aria-label="Close">✕</button>
         <b>Geotemporal Transurfing</b>
+        <p>Built with <a href="https://threejs.org/" target="_blank" rel="noopener">Three.js</a> and <a href="https://github.com/cosinekitty/astronomy" target="_blank" rel="noopener">Astronomy Engine</a>.</p>
         <p id="aboutCounts"></p>
         <p><a href="credits.html" target="_blank" rel="noopener">Full media credits</a></p>
-        <p>Events from Wikidata; descriptions from Wikipedia (CC BY-SA); photographs from Wikimedia Commons under the licence shown in each panel.</p>
-        <p>Earth: NASA Blue Marble. Borders: Natural Earth. Stars: catalog positions from d3-celestial (J2000 epoch), with precession and nutation. Star brightness is adapted for screen visibility; no random stars are added. Sun, Moon and planet positions: astronomy-engine.</p>
-        <p>Explore within 140 Earth radii of the center. XYZ uses an Earth-fixed frame: X points to the equator at Greenwich, Y north, and Z to 90°W. The clock also drives the sky. Solar System bodies use geometric positions, without light travel, aberration or refraction corrections. Catalog star directions omit proper motion. Planet points are enlarged symbols; Sun and Moon angular sizes use their physical radii. Sky coverage: 1900–2100; dates outside this range show no calculated sky. A date without an event time is shown at 00:00 UTC as a viewing assumption.</p>
+        <p>The monthly catalog combines dated Wikidata/Wikipedia records with independently source-checked corrections and additions. Imported records are not automatically verified; each panel distinguishes its review status. Photographs come from Wikimedia Commons under the licence shown in each panel.</p>
+        <p>Earth: NASA Blue Marble. Borders: Natural Earth. Illumination supports map readability; it does not reconstruct the sky or weather at the time of each event.</p>
+        <p>This local pilot covers January–December 2011. Each view includes events that began in that month, not every event still in progress. It does not show live activity, calculated skies, or events on other planets. Missing dates, unresolved Earth locations, and uncertain source precision are excluded.</p>
+        <p>Every country has a monthly coverage floor: 12 events for high-income economies, 3 for others. These are minimums, not caps. A country with fewer records is a coverage gap, not a completed month. Current World Bank income groups set the coverage policy; they do not describe historical income status in 2011.</p>
+        <p>Country groups use source-backed event associations or present-day Natural Earth polygons, not historical nationality. All eligible records remain browsable; only the number of simultaneous globe cards is limited for readability. Sound plays only from a selected recording with an audio track, at normal forward speed.</p>
       </div>
     </div>
-    <aside id="panel"></aside>
+    <div id="eventSidebar">
+      <aside id="panel" aria-label="Selected event"></aside>
+      <aside id="monthRecommendations" aria-labelledby="recommendationsHeading">
+        <div class="recommendations-heading"><h2 id="recommendationsHeading">Explore this month</h2><span id="recommendationsMonth"></span></div>
+        <div id="recommendedEvents"></div>
+        <p class="recommendations-note">Suggested from this month’s archive. Open an event for its sources.</p>
+      </aside>
+    </div>
   </div>
   <div id="rail">
     <!-- the transport: time is a film. It runs unless you stop it; the double arrows change speed a step per press. -->
@@ -85,8 +107,7 @@
       <button id="playBtn" title="Play or pause (space)" aria-label="Play or pause" aria-pressed="false">&#9654;</button>
       <button id="ffBtn" title="Play forward" aria-label="Fast forward">&#9654;&#9654;</button>
       <button id="toEndBtn" title="Jump to the end" aria-label="Jump to the end">&#9654;|</button>
-      <label class="speed-label">Speed <select id="speedSelect" aria-label="Playback speed"><option>0.1</option><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option><option>4</option><option>8</option><option>16</option><option>60</option></select>×</label>
-      <span id="transportPhase">History</span><span class="rate" id="playVal"></span>
+      <span id="transportPhase">Monthly Earth</span><span class="rate" id="playVal"></span>
       <button id="returnHistory" hidden>Return to history</button>
     </div>
     <div id="footageNote" hidden></div>
@@ -101,8 +122,11 @@
 <script src="event-photos.js"></script>
 <script src="shard-loader.js"></script>
 <script src="observer.js"></script>
-<script src="event-selection.js"></script>
+<script src="event-selection.js?v=monthly-selection-v2"></script>
 <script src="media-transport.js"></script>
-<script src="app.js"></script>
+<script src="monthly-model.js"></script>
+<script src="monthly-recommendations.js"></script>
+<script src="event-player.js"></script>
+<script src="app.js?v=monthly-recommendations-v1"></script>
 </body>
 </html>

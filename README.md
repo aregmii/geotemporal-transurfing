@@ -1,5 +1,7 @@
 # Geotemporal Transurfing
 
+Built with [Three.js](https://threejs.org/) and [Astronomy Engine](https://github.com/cosinekitty/astronomy) · Earth imagery: [NASA Blue Marble](https://science.nasa.gov/earth/earth-observatory/collections/blue-marble/) · Borders: [Natural Earth](https://www.naturalearthdata.com/).
+
 The Tesseract experience allows you to
 
 - orbit and zoom through space

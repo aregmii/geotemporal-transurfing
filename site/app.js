@@ -5,6 +5,12 @@ var EARTH_SRC = window.__GT.earth || "assets/earth.jpg";
 var IMG_DIR = window.__GT.imgDir != null ? window.__GT.imgDir : "img/";
 var BORDERS = window.__GT.borders;
 var RAW = window.__GT.events;
+var MONTHLY = window.GTMonthly;
+var MONTHLY_POLICY = window.__GT.coveragePolicy || {countries:[]};
+var countryFor = MONTHLY ? MONTHLY.createCountryIndex(BORDERS) : null;
+var monthSelection = {events:[], countries:0, eligibleCount:0, omittedCount:0};
+var monthElapsed = 0, secondsPerMonth = 10, monthLoading = false;
+function mediaCutoff(){ return MONTHLY ? window.GTTime.nextMonth(nowT) : nowT; }
 var IMAGES = window.__GT.images;
 var MEDIA = window.__GT.media || {};
 var PHOTO_INDEX = window.GTEventPhotos.createIndex(window.__GT.eventPhotos || {events:[]});
@@ -15,7 +21,7 @@ function photoFor(e, panel){
     if (panel) return p;
     if (p.photoRole === 'context') continue;
     var date = p.photoDate && p.photoDate.length === 10 ? window.GTTime.parseISO(p.photoDate) : NaN;
-    if (Number.isFinite(date) && date <= nowT) return p;
+    if (Number.isFinite(date) && (window.GTMonthly ? date < mediaCutoff() : date <= nowT)) return p;
   }
   return null;
 }
@@ -24,7 +30,7 @@ function mediaFor(e, panel){
   if (!m) return null;
   if (panel) return m;
   var t = window.GTTime.parseISO(m.mediaDate);
-  return m.autoplayApproved && m.mediaRole === 'contemporaneous' && Number.isFinite(t) && t <= nowT ? m : null;
+  return m.autoplayApproved && m.mediaRole === 'contemporaneous' && Number.isFinite(t) && (window.GTMonthly ? t < mediaCutoff() : t <= nowT) ? m : null;
 }
 
 function visualFor(e){
@@ -52,30 +58,34 @@ var CATS = {
 };
 
 var TIME = window.GTTime, EVENT_MODEL = window.GTEvents;
-var temporalView = 'period', periodDays = 365 * 5, densityLevel = 1;
+var temporalView = MONTHLY ? 'month' : 'period', periodDays = 365 * 5, densityLevel = 1;
 function presentTime(){ return TIME.now(); }
 function parseRow(r, i){ return EVENT_MODEL.parseRow(r, i, TIME); }
 function fracOfDate(iso){ return TIME.parseISO(iso); }
 var STEP = 1 / 12, BACKGROUND = 0.42;
 function viewBounds(t, w){
+  if (MONTHLY) return {start:TIME.monthStart(t),end:TIME.nextMonth(t),overview:true};
   var era = ERAS[w.era];
   if (!era.slider) return { start:w.start, end:Math.min(w.end, presentTime()), overview:true };
   return temporalView === 'moment'
     ? { start:t, end:t, overview:false }
     : { start:TIME.addDays(t, -periodDays), end:t, overview:true };
 }
-function eligibleEvent(e){ return e.t0 <= presentTime(); }
+function eligibleEvent(e){ return e.t0 <= presentTime() && (!MONTHLY || MONTHLY.eligible(e,TIME)); }
 function inView(e, t, w){
   if (!eligibleEvent(e)) return false;
   var b = viewBounds(t, w);
+  if (MONTHLY) return e.t0 >= b.start && e.t0 < b.end;
   return b.overview ? e.t0 <= b.end && e.t1 > b.start : EVENT_MODEL.contains(e, t);
 }
 function prominence(e, now){
   if (!inView(e, now, WINDOWS[wi])) return 0;
+  if (MONTHLY) return 1;
   if (temporalView === 'moment') return 1;
   return e.temporalKind === 'interval' && now > TIME.addDays(e.t0, 30) ? 0.62 : 1;
 }
 function inMonth(e, w){
+  if (MONTHLY) return inView(e,w.end,w);
   var end = Math.min(TIME.nextMonth(w.end), presentTime());
   var begin = temporalView === 'period' ? TIME.addDays(w.end, -periodDays) : w.end;
   return eligibleEvent(e) && e.t0 <= end && e.t1 > begin;
@@ -110,6 +120,7 @@ var ERA_SETS = {
     {name:'CONTEMPORARY',   label:'1990–present',     from:1990,     to:presentTime(),    step:12}
   ]
 };
+if (MONTHLY) ERA_SETS = {recent:[{name:'2011 pilot',label:'2011',from:2011,to:TIME.fromParts(2011,12,1),step:1/12,width:1/12,slider:true,tick:1}]};
 var navigationGeneration = 0;
 var mode = 'recent';
 var ERAS = ERA_SETS[mode];
@@ -118,7 +129,7 @@ function buildWindows(){
   if (mode === 'century') ERAS[0].from = Math.floor(presentTime()) - 100;
   WINDOWS = [];
   ERAS.forEach(function(era, ei){
-    if (ei === ERAS.length - 1) era.to = presentTime();
+    if (!MONTHLY && ei === ERAS.length - 1) era.to = presentTime();
     era.first = WINDOWS.length;
     if (era.slider){
       for (var at = TIME.monthStart(era.from); at <= era.to; at = TIME.nextMonth(at))
@@ -239,14 +250,20 @@ var selected = null, hovered = null, hoveredSky = null, idle = true, idleTimer =
 var VIRTUAL_MS = null;
 function clockNow(){ return VIRTUAL_MS != null ? VIRTUAL_MS : performance.now(); }
 var ANIMS = [];                                        // running tweens: functions of the clock, true when done
-function runAnims(){ var t = clockNow(); for (var i = ANIMS.length - 1; i >= 0; i--){ if (ANIMS[i](t)) ANIMS.splice(i, 1); } }
+function runAnims(){
+  var t = clockNow();
+  ANIMS.slice().reverse().forEach(function(animation){
+    if (ANIMS.indexOf(animation) < 0) return;
+    if (animation(t)){ var index=ANIMS.indexOf(animation); if(index>=0)ANIMS.splice(index,1); }
+  });
+}
 function agoText(ly){ return ly >= 1000000 ? (ly / 1000000).toFixed(1) + ' MILLION YEARS AGO' : ly >= 2 ? Math.round(ly).toLocaleString() + ' YEARS AGO' : 'ABOUT A YEAR AGO'; }
 var off = { con:false, cul:false, sci:false, dis:false };
 var camDist = 3.9;
 var observerMode = 'orbit', orbitQuat = new THREE.Quaternion();
 var observerKeys = {}, observerTickLast = null;
 var observerStatusLast = '', observerRevision=0, observerSignature='', observerBoundRevision=-1, observerLastBind=-Infinity;
-var MAX_OBSERVER_R = 140;
+var MAX_OBSERVER_R = MONTHLY ? 6 : 140;
 
 // ---------- three ----------
 var wrap = document.getElementById('globewrap');
@@ -515,6 +532,12 @@ function monthMidDate(fracYearValue){
 }
 var lastSkyComputed=null;
 function setSkyDate(date){
+  if (MONTHLY){
+    skyAvailable=false; sky.visible=false; bodiesGroup.visible=false;
+    skyDate=null; skyDateText='EARTH · MONTHLY ARCHIVE';
+    sunLight.intensity=0.9; sunLight.position.set(5,3,5);
+    writeViewpoint(); return;
+  }
   skyAvailable=typeof Astronomy!=='undefined' && GTObserver.supportedDate(date);
   sky.visible=skyAvailable; bodiesGroup.visible=skyAvailable;
   if(!skyAvailable){
@@ -686,8 +709,14 @@ var shardLoader = SHARDS && window.GTShards.create({
 function ensureYears(start, end, done){
   if (!shardLoader){ done(false, true); return; }
   var b = viewBounds(nowT, WINDOWS[wi]);
-  var lo = Math.min(start, b.start), hi = Math.min(presentTime(), Math.max(end, TIME.addDays(b.end, 32)));
-  shardLoader.range(lo, hi).then(function(results){ done(results.some(function(r){ return r.added > 0; }), true); });
+  var lo = MONTHLY ? b.start : Math.min(start, b.start), hi = MONTHLY ? TIME.addDays(b.end,-1) : Math.min(presentTime(), Math.max(end, TIME.addDays(b.end, 32)));
+  monthLoading=true;
+  shardLoader.range(lo, hi).then(function(results){
+    var state=shardLoader.status(), year=Math.floor(nowT);
+    monthLoading=state.states[year]!=='loaded';
+    done(results.some(function(r){ return r.added > 0; }), !monthLoading);
+    if(MONTHLY){ renderMonthList(); showSpeed(); }
+  });
 }
 var retryData = document.getElementById('dataStatus');
 if (retryData) retryData.onclick = function(){ ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added){ bindWindow(); render(); resetTicker(); resolvePendingEvent(); }); };
@@ -911,7 +940,77 @@ function bindWindow(){
   // for the moment NOW, the ones that are actually audible and gives them cards.
   var w = WINDOWS[wi];
   monthCands = EVENTS.filter(function(e){ return !off[e.cat] && inWindow(e, w); });
+  if(MONTHLY){
+    monthSelection=MONTHLY.select(EVENTS,w.end,{time:TIME,countryFor:countryFor,policy:MONTHLY_POLICY,rank:function(e){return e.w*10+(visualFor(e)?50:0);}});
+    monthCands=monthSelection.events.filter(function(e){return !off[e.cat];});
+    renderMonthList();
+  }
   bindNow(true);
+}
+function renderMonthList(){
+  if(!MONTHLY) return;
+  var summary=document.getElementById('monthBrowseSummary'), picker=document.getElementById('monthCountry'), list=document.getElementById('monthEvents');
+  if(!summary || !picker || !list) return;
+  var events=monthSelection.events.filter(function(e){return !off[e.cat] && (!PHOTOS_ONLY || !!visualFor(e));});
+  var coverage=monthSelection.coverage, countries=coverage.countries, chosen=picker.value;
+  summary.textContent='Browse '+monthLabel(nowT)+' · '+events.length+' events';
+  picker.replaceChildren(new Option('All countries / economies',''));
+  countries.forEach(function(country){picker.add(new Option(country.name+' · '+country.available+' records / '+country.minimum+'+ target',country.name));});
+  picker.value=countries.some(function(country){return country.name===chosen;}) ? chosen : '';
+  var progress=document.getElementById('monthCoverageSummary'), detail=document.getElementById('countryCoverage');
+  if(progress)progress.textContent=coverage.countriesMeetingTarget+' / '+coverage.totalCountries+' country record targets reached · '+coverage.countriesReviewedToTarget+' independently reviewed to target. Filters do not change these totals.';
+  var country=countries.find(function(c){return c.name===picker.value;});
+  if(detail)detail.textContent=country ? country.name+': '+country.available+' records, '+country.reviewed+' independently reviewed. Minimum '+country.minimum+' per month'+(country.highIncome?' (high-income)':'')+'. '+(country.shortfall ? country.shortfall+' more records needed.' : 'Record count meets the minimum; source review is tracked separately.') : 'Minimum 12 events per high-income economy and 3 per other country/economy, every month. These are coverage floors, not limits; all available records remain browsable.';
+  list.replaceChildren();
+  var filtered=events.filter(function(e){return !picker.value || e.monthCountry===picker.value;});
+  filtered.sort(function(a,b){return a.monthCountry.localeCompare(b.monthCountry) || b.w-a.w;});
+  if(!filtered.length){
+    var empty=document.createElement('p'); empty.className='coverage-note';
+    empty.textContent=monthLoading ? 'Loading this month’s records. Playback will wait.' : country && !country.available ? 'Coverage gap: no records yet for '+country.name+' in '+monthLabel(nowT)+'. This country still needs at least '+country.minimum+' events.' : 'No records match the current category or media filters.';
+    list.appendChild(empty);
+  }
+  filtered.forEach(function(e){
+    var button=document.createElement('button');button.type='button';button.className='month-event';button.dataset.event=e.stableId;
+    var country=document.createElement('small');country.textContent=e.monthCountry+' · '+whenLabel(e);
+    var title=document.createElement('strong');title.textContent=e.title;
+    var tag=document.createElement('span'), media=mediaFor(e), photo=photoFor(e);
+    var reviewed=e.metadata.monthlyReview && e.metadata.monthlyReview.source;
+    tag.textContent=(reviewed?'Source-checked event':'Catalog record · needs source review')+' · '+(media && media.kind==='video' ? 'Archival clip'+(media.hasAudio ? ' · sound' : ' · silent') : photo ? 'Verified photograph' : 'No verified imagery');
+    button.append(country,title,tag);
+    button.onclick=function(){document.getElementById('monthBrowse').open=false;selectEvent(e);};
+    list.appendChild(button);
+  });
+  picker.onchange=renderMonthList;
+  renderRecommendations();
+}
+function renderRecommendations(){
+  var list=document.getElementById('recommendedEvents');
+  if(!MONTHLY || !list || !window.GTMonthlyRecommendations) return;
+  document.getElementById('recommendationsHeading').textContent=selected?'Elsewhere this month':'Explore this month';
+  document.getElementById('recommendationsMonth').textContent=monthLabel(nowT);
+  var events=monthSelection.events.filter(function(e){return !off[e.cat] && (!PHOTOS_ONLY || !!visualFor(e));});
+  var recommended=window.GTMonthlyRecommendations.select(events,{month:MONTHLY.monthKey(nowT,TIME),selected:selected,hasMedia:visualFor,limit:4});
+  list.replaceChildren();
+  document.getElementById('monthRecommendations').scrollTop=0;
+  recommended.forEach(function(e){
+    var button=document.createElement('button');button.type='button';button.className='recommended-event';button.dataset.event=e.stableId;
+    button.setAttribute('aria-label','Explore '+e.title+' · '+e.monthCountry);
+    var media=mediaFor(e),photo=photoFor(e),thumb=document.createElement('span');thumb.className='recommendation-thumb';
+    var image=document.createElement('img');image.alt='';image.loading='lazy';
+    if(photo)image.src=IMG_DIR+photo.file;
+    else if(media && media.poster)image.src=MEDIA_DIR+media.poster;
+    else {image.src=ICON_URL[e.cat];thumb.classList.add('no-photo');}
+    image.onerror=function(){image.onerror=null;image.src=ICON_URL[e.cat];thumb.classList.add('no-photo');};
+    thumb.appendChild(image);
+    var copy=document.createElement('span');copy.className='recommendation-copy';
+    var place=document.createElement('small');place.textContent=e.monthCountry;
+    var title=document.createElement('strong');title.textContent=e.title;
+    var detail=document.createElement('span');detail.textContent=whenLabel(e)+(media && media.kind==='video'?' · Clip':'');
+    copy.append(place,title,detail);button.append(thumb,copy);
+    button.onclick=function(){document.getElementById('monthBrowse').open=false;selectEvent(e);};
+    list.appendChild(button);
+  });
+  if(!recommended.length){var empty=document.createElement('p');empty.className='coverage-note';empty.textContent='No other events match this month and your filters.';list.appendChild(empty);}
 }
 var lastBindT = NaN;
 function bindNow(force){
@@ -1096,7 +1195,8 @@ function render(){
     e.folded = null; e._sx = null;
     if (!front){ behind++; return; }
     var prom = e._p == null ? 1 : e._p;              // loudness now
-    var scale = e.size * zoomBoost * (0.80 + 0.20 * prom);
+    var focusStyle = MONTHLY ? window.GTEventSelection.presentation(e,selected,ctxEls) : null;
+    var scale = e.size * zoomBoost * (0.80 + 0.20 * prom) * (focusStyle ? focusStyle.scale : 1);
     var compact = !visualFor(e);
     e._cw = CARD_W * scale * (compact ? .94 : 1); e._chh = CARD_H * scale * (compact ? .529 : 1); e._prom = prom;
     e._hw = e._cw * pxPerUnit / CARD_H * 0.5; e._hh = e._chh * pxPerUnit / CARD_H * 0.5;
@@ -1164,10 +1264,12 @@ function render(){
     var vis = Math.min(1, e._prom / BACKGROUND);
     var fade = (0.62 + 0.38 * e._prom) * vis;
     var tall = height > HOVER * 1.5;
-    // with a panel open, everything but the event and its same-day partners steps back to a quarter
-    u.card.material.opacity = (dim ? 0.25 : 0.96) * fade; u.badge.material.opacity = (dim ? 0.2 : 1) * fade;
-    u.beam.material.opacity = (dim ? 0.05 : (tall ? 0.4 : 0.22)) * vis * (visualFor(e) ? 1 : .38);
-    u.base.material.opacity = (dim ? 0.2 : 0.9) * vis;
+    // Monthly browsing keeps the surrounding events readable while the selection grows.
+    var focusStyle = MONTHLY ? window.GTEventSelection.presentation(e,selected,ctxEls) : null;
+    u.card.material.opacity = (focusStyle ? focusStyle.cardOpacity : dim ? 0.25 : 0.96) * fade;
+    u.badge.material.opacity = (focusStyle ? focusStyle.badgeOpacity : dim ? 0.2 : 1) * fade;
+    u.beam.material.opacity = (focusStyle ? (focusStyle.beamOpacity == null ? (tall ? 0.4 : 0.22) : focusStyle.beamOpacity) : dim ? 0.05 : (tall ? 0.4 : 0.22)) * vis * (visualFor(e) ? 1 : .38);
+    u.base.material.opacity = (focusStyle ? focusStyle.baseOpacity : dim ? 0.2 : 0.9) * vis;
     if (u.pile) u.pile.material.opacity = vis;
     e.pos.copy(e.normal).multiplyScalar(1.002 + height);
   }
@@ -1230,7 +1332,7 @@ function render(){
 
   if (selected && selected.holder){
     selRing.position.copy(selected.pos);
-    var sz = CARD_W * selected.size * zoomBoost * 1.35; selRing.scale.set(sz, sz, 1);
+    var sz = (selected._cw || CARD_W * selected.size * zoomBoost) * 1.2; selRing.scale.set(sz, sz, 1);
     selRing.visible = visibleNormal(selected) > 0 && eventOnScreen(selected);
   } else selRing.visible = false;
   ctxRings.forEach(function(r, i){
@@ -1246,7 +1348,9 @@ function render(){
   pickSkyLabels();
   renderer.render(scene, camera);
   // one line: what is on screen out of what is in the window. The rest was true and nobody read it.
-  document.getElementById('count').innerHTML =
+  document.getElementById('count').innerHTML = MONTHLY
+    ? monthSelection.events.length+' MONTHLY RECORDS · '+monthSelection.countries+' COUNTRIES<br>12+ HIGH-INCOME · 3+ OTHERS · COVERAGE INCOMPLETE'
+    :
     (windowTotal > list.length ? 'TOP ' + list.length + ' OF ' + windowTotal + ' — ZOOM IN FOR MORE' : list.length + ' EVENT' + (list.length === 1 ? '' : 'S') + ' THIS MONTH');
 }
 
@@ -1269,6 +1373,7 @@ function dayOrdinal(iso){
 var MEANWHILE_MAX = 6, MEANWHILE_APART_KM = 1200, MEANWHILE_DAYS = 3;
 var meanwhileCache = { key:null, list:[] };
 function contextFor(e){
+  if(MONTHLY) return [];
   // "Meanwhile": what else happened on the very same day, in other parts of the world. The anchor is the
   // event's date — for something that ran for months or years, the day it began. Picks are the biggest events of
   // that day, spread out so no two stand within MEANWHILE_APART_KM of each other or of the event itself; when the
@@ -1316,14 +1421,14 @@ function tinyDesc(e){
   return out.replace(/[.\s]*$/, '') + (out.length && !/…$/.test(out) ? '.' : '');
 }
 function openPanel(e){
-  if (!eligibleEvent(e)) return;
+  if (!e || !eligibleEvent(e) || MONTHLY && !inView(e,nowT,WINDOWS[wi])) return false;
   var changedSelection = selected !== e;
   if (changedSelection){ cancelFootage(); navigationGeneration++; ANIMS.length = 0; }
   selected = e;
   if (changedSelection){
     if (playDir) setPlayDir(0);
     if (e.t0 < ERAS[0].from){ setMode('all', e.t0); selected = e; }
-    nowT = boundedTime(e.t0); wi = windowIndexFor(nowT);
+    if(!MONTHLY){ nowT = boundedTime(e.t0); wi = windowIndexFor(nowT); }
     syncHeader(); placeHandle();
   }
   setSkyDate(dateOfNow());
@@ -1336,25 +1441,33 @@ function openPanel(e){
   var when = whenLabel(e);
   var html = '<button class="pclose" id="pclose" aria-label="Close">✕</button>';
   html += '<div class="pcat"><img src="' + ICON_URL[e.cat] + '" alt="">' + CATS[e.cat].label + '</div>';
+  html += '<h2 id="selectedEventHeading" tabindex="-1">' + e.title + '</h2>';
   var im = photoFor(e, true), md = mediaFor(e, true);
   var footageMedia = md && md.kind === 'video' && md.autoplayApproved && md.mediaRole === 'contemporaneous' && Number.isFinite(TIME.parseISO(md.mediaDate)) && TIME.parseISO(md.mediaDate) <= presentTime() ? md : null;
   // the hero: the clip (or the photo, kept moving) magnified
   var centre = md
     ? (md.kind === 'video' ? (footageMedia ? '<div id="footageScreen"></div>' : '<div class="imgslot">Recording unavailable at this date</div>')
                            : (im ? '<img class="kb" src="' + IMG_DIR + im.file + '" alt="">' : '') + '<audio src="' + MEDIA_DIR + md.file + '" controls preload="metadata"></audio>')
-    : im ? '<img class="kb" src="' + IMG_DIR + im.file + '" alt="">' : '<div class="imgslot"><img src="' + ICON_URL[e.cat] + '" alt="" style="width:44px;height:44px;opacity:.7"></div>';
+    : im ? '<img class="kb" src="' + IMG_DIR + im.file + '" alt="">' : MONTHLY ? '' : '<div class="imgslot"><img src="' + ICON_URL[e.cat] + '" alt="" style="width:44px;height:44px;opacity:.7"></div>';
   var credit = (md ? (md.title ? md.title + ' · ' : '') + (md.author ? md.author + ' · ' : '') + '<a href="' + (md.filePage || md.source || '#') + '" target="_blank" rel="noopener">' + (md.license || 'source') + '</a>'
                    : im ? (im.author ? im.author + ' · ' : '') + '<a href="' + im.filePage + '" target="_blank" rel="noopener">' + (im.license || 'Commons') + '</a>' : '');
-  html += '<div class="hero">' + centre + '</div>';
+  if(centre)html += '<div class="hero">' + centre + '</div>';
+  if(MONTHLY && footageMedia) html += '<section class="event-controls" aria-label="Selected event playback"><p><strong>Event playback</strong> · <span id="eventClock">0:00</span></p><div class="event-buttons"><button id="eventRewind" type="button" aria-label="Play event backward">◀ Reverse</button><button id="eventPlay" type="button" aria-label="Play event">▶ Play</button><button id="eventForward" type="button" aria-label="Play event forward">Forward ▶</button></div><label>Clip position<input id="eventSeek" type="range" min="0" max="'+Number(footageMedia.seconds||1)+'" step="0.05" value="0"></label><label>Clip speed<select id="eventSpeed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label><p id="eventAudioStatus" role="status"></p><p class="coverage-note">'+monthLabel(nowT)+' stays fixed. Close this event to resume monthly browsing.</p></section>';
   if (md && md.licenseUrl) credit += ' · <a href="' + md.licenseUrl + '" target="_blank" rel="noopener">License</a>';
   if (credit) html += '<div class="mcredit">' + credit + '</div>';
   if (im && (!md || md.kind !== 'video')) html += '<div class="photo-date">Photo: ' + im.photoDate + ' · ' + im.photoRole + ' · ' + im.location + '</div>';
   if (md) html += '<div class="photo-date">Recording: ' + md.mediaDate + ' · ' + md.mediaRole + ' · ' + md.location + '<details><summary>Recording notes</summary>' + md.notes + '<br>' + md.changes + '</details></div>';
-  html += '<h2>' + e.title + '</h2>';
   html += '<div class="pmeta">' + when + (e.endDate ? ' – ' + (e.endPrecision === 'year' ? yearLabel(e.end) : e.endPrecision === 'month' ? monthLabel(fracOfDate(e.endDate)) : dayLabel(e.endDate)) : '') + (e.who ? '<br>BY ' + e.who : '') + '<br>' + e.place + '</div>';
   if (e.dateUncertain) html += '<div class="photo-date">Date precision is uncertain in the source record.</div>';
-  if (e.datePrecision === 'day') html += '<div class="photo-date">Event time of day unavailable; the sky starts at 00:00 UTC.</div>';
+  if (MONTHLY) html += '<div class="photo-date">Mapped country: '+(e.monthCountry || countryFor(e.lat,e.lon) || 'unresolved')+'. The month shows when this event began.</div>';
+  else if (e.datePrecision === 'day') html += '<div class="photo-date">Event time of day unavailable; the sky starts at 00:00 UTC.</div>';
+  if (e.metadata.monthlyReview && e.metadata.monthlyReview.locationPrecision === 'approximate-city') html += '<div class="photo-date">Approximate city location. Sources confirm the city, not the exact venue.</div>';
   html += '<p class="pdesc">' + tinyDesc(e) + '</p>';
+  if(MONTHLY && e.metadata.monthlyReview && e.metadata.monthlyReview.source){
+    var reviewedSource=e.metadata.monthlyReview.source;
+    html += '<a class="plink" target="_blank" rel="noopener" href="'+reviewedSource.url+'">Source: '+reviewedSource.title+'</a><br><br>';
+  }
+  else if(MONTHLY) html += '<p class="coverage-note">Imported catalog record. Its exact headline, date and location still need independent source review.</p>';
   html += '<a class="plink" target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/' + e.slug + '">Read more →</a>';
   // the events standing on the same spot, which the "+N" chip on the globe counts. Biggest first, so the list
   // opens with the ones a reader is most likely to have been looking for.
@@ -1363,7 +1476,7 @@ function openPanel(e){
     html += '<div class="concurrent"><p>' + here.length + ' more event' + (here.length === 1 ? '' : 's') + ' within ' + FOLD_KM + ' km</p><div class="crow">';
     here.forEach(function(o){
       var th = photoFor(o) ? '<img class="kb" src="' + IMG_DIR + photoFor(o).file + '" alt="">' : '<img class="ic" src="' + ICON_URL[o.cat] + '" alt="">';
-      html += '<button class="nb" data-id="' + o.id + '">' + th + '<b>' + o.title + '</b><span>' + o.place + ' · ' + (o.date ? dayLabel(o.date) : yearLabel(o.start)) + '</span></button>';
+      html += '<button class="nb" data-event="' + encodeURIComponent(o.stableId) + '">' + th + '<b>' + o.title + '</b><span>' + o.place + ' · ' + (o.date ? dayLabel(o.date) : yearLabel(o.start)) + '</span></button>';
     });
     html += '</div></div>';
   }
@@ -1375,20 +1488,34 @@ function openPanel(e){
     ctxEls.forEach(function(o){
       var thumb = photoFor(o) ? '<img class="kb" src="' + IMG_DIR + photoFor(o).file + '" alt="">' : '<img class="ic" src="' + ICON_URL[o.cat] + '" alt="">';
       var gapText = o._gap === 0 ? 'same day' : Math.abs(o._gap) + (Math.abs(o._gap) === 1 ? ' day ' : ' days ') + (o._gap > 0 ? 'later' : 'earlier');
-      html += '<button class="mw" data-id="' + o.id + '">' + thumb + '<span class="mwt">' + (o.place ? '<em>' + o.place + '</em>' : '') + '<i>' + gapText + '</i><b>' + o.title + '</b></span></button>';
+      html += '<button class="mw" data-event="' + encodeURIComponent(o.stableId) + '">' + thumb + '<span class="mwt">' + (o.place ? '<em>' + o.place + '</em>' : '') + '<i>' + gapText + '</i><b>' + o.title + '</b></span></button>';
     });
     html += '</div>';
   }
   if (FOOTAGE && FOOTAGE.live.video.parentNode) FOOTAGE.live.video.parentNode.removeChild(FOOTAGE.live.video);
   p.innerHTML = html;
   p.classList.add('on');
+  if(changedSelection)p.scrollTop=0;
   writeHash();
   document.getElementById('pclose').onclick = closePanel;
   Array.prototype.forEach.call(p.querySelectorAll('.ew, .nb, .mw'), function(b){
-    b.onclick = function(){ var t = EVENTS[+b.dataset.id]; flyTo(t, function(){ openPanel(t); }); };
+    b.onclick = function(){ selectEvent(decodeURIComponent(b.dataset.event)); };
   });
   if (footageMedia) enterFootage(e, footageMedia);
+  if(MONTHLY){ showSpeed(); syncEventSound(); }
   resize();
+  return true;
+}
+function selectEvent(eventOrId){
+  var e=typeof eventOrId==='string' ? EVENTS.find(function(event){return event.stableId===eventOrId;}) : eventOrId;
+  if(!e || !Number.isFinite(e.lat) || !Number.isFinite(e.lon)) return false;
+  // Commit the user's selection before flying. A drag or second click may cancel
+  // the camera tween, but must never silently discard the event they chose.
+  if(!openPanel(e)) return false;
+  var heading=document.getElementById('selectedEventHeading');
+  if(heading && heading.focus)heading.focus({preventScroll:true});
+  flyTo(e);
+  return true;
 }
 function closePanel(){
   cancelFootage(); silenceTransportSound(); navigationGeneration++; ANIMS.length = 0; pendingEventHash = null;
@@ -1397,6 +1524,7 @@ function closePanel(){
   bindWindow();                            // unpin
   document.getElementById('panel').classList.remove('on');
   syncHeader(); placeHandle(); resize(); writeHash();
+  if(MONTHLY){showSpeed();syncEventSound();}
 }
 
 // ---------- live cards: a video clip plays (muted) inside its hologram, so a hurricane loops on the globe ----------
@@ -1432,25 +1560,42 @@ function liveFor(e, media){
 }
 function cancelFootage(){
   if (!FOOTAGE) return;
+  if(FOOTAGE.player) FOOTAGE.player.dispose();
   var L = FOOTAGE.live; FOOTAGE = null; L.on = false; L.seeker.cancel();
   playDir = 0; playing = false; clipFrameSeconds = 0;
   showSpeed();
 }
 function enterFootage(e, media){
   var same = FOOTAGE && FOOTAGE.event === e && FOOTAGE.live.key === clipIdentity(e, media);
+  if(MONTHLY && same && FOOTAGE.player){var existingScreen=document.getElementById('footageScreen');if(existingScreen)existingScreen.appendChild(FOOTAGE.live.video);bindEventControls(FOOTAGE);showSpeed();return;}
   if (!same){
     cancelFootage();
     var L = liveFor(e, media);
     L.position = 0; L.on = true;
     FOOTAGE = {event:e, live:L, recordingDate:media.mediaDate};
-    nowT = boundedTime(TIME.parseISO(media.mediaDate)); wi = windowIndexFor(nowT);
+    if(!MONTHLY){nowT = boundedTime(TIME.parseISO(media.mediaDate)); wi = windowIndexFor(nowT);}
     playDir = 0; lastPlayDir = 1; playing = false; playLast = clockNow(); clipFrameSeconds = 0;
     setSkyDate(dateOfNow()); bindWindow(); syncHeader(); placeHandle(); writeHash();
   }
   var screen = document.getElementById('footageScreen');
   if (screen) screen.appendChild(FOOTAGE.live.video);
+  if(MONTHLY){
+    var held=FOOTAGE; held.live.seeker.cancel();
+    held.player=window.GTEventPlayer.create(held.live.video,{transport:window.GTMediaTransport,hasAudio:media.hasAudio,duration:held.live.duration,onFrame:function(){paintLiveFrame(held.live);},onState:function(state){if(FOOTAGE!==held)return;held.live.position=state.position;held.live.duration=state.duration;playDir=state.direction;playing=!!playDir;showSpeed();}});
+    held.player.setVolume(volume);held.player.setSound(SOUND.on);
+    bindEventControls(held);
+    showSpeed();syncEventSound();return;
+  }
   FOOTAGE.live.on = true; FOOTAGE.live.seeker.seek(FOOTAGE.live.position);
   silenceTransportSound(); showSpeed();
+}
+function bindEventControls(held){
+  document.getElementById('eventPlay').onclick=function(){setPlayDir(playDir?0:1);};
+  document.getElementById('eventRewind').onclick=function(){setPlayDir(-1);};
+  document.getElementById('eventForward').onclick=function(){setPlayDir(1);};
+  document.getElementById('eventSeek').oninput=function(){held.player.seek(+this.value);};
+  document.getElementById('eventSpeed').value=held.player.state().rate;
+  document.getElementById('eventSpeed').onchange=function(){held.player.setRate(+this.value);};
 }
 function exitFootage(retreat){
   if (!FOOTAGE) return;
@@ -1460,10 +1605,11 @@ function exitFootage(retreat){
     var began = clockNow(), to = Math.max(3.9, Math.min(6, from * 1.8));
     ANIMS.push(function(now){ var t = Math.max(0, Math.min(1, (now - began) / 1500)), ease = t * t * (3 - 2 * t); setObserverDistance(from + (to - from) * ease); bindNow(true); render(); return t >= 1; });
   }
-  setPlayDir(direction);
+  setPlayDir(MONTHLY?0:direction);
 }
 function footageState(){
   var L = FOOTAGE && FOOTAGE.live;
+  if(FOOTAGE && FOOTAGE.player) return Object.assign({phase:'footage',month:MONTHLY.monthKey(nowT,TIME),eventId:L.event.stableId,recordingDate:FOOTAGE.recordingDate},FOOTAGE.player.state());
   return {phase:L?'footage':'history',position:L?L.position:null,duration:L?L.duration:null,direction:playDir,rate:SPEEDS[speedIx],lastDirection:lastPlayDir,eventId:L?L.event.stableId:null,eventDate:L?L.event.date:null,recordingDate:FOOTAGE?FOOTAGE.recordingDate:null,error:L&&L.seeker.error()?L.seeker.error().message:null,seekPending:Object.keys(LIVE).some(function(k){return LIVE[k].on && LIVE[k].seeker.pending();})};
 }
 function updateLive(){
@@ -1479,11 +1625,11 @@ function updateLive(){
   cands.slice(0, liveMax()).forEach(function(candidate){
     var L = liveFor(candidate.event, candidate.media); keep[L.key] = true; L.on = true;
     if (!FOOTAGE || FOOTAGE.live !== L){
-      L.position = window.GTMediaTransport.advance(L.position, L.duration, FOOTAGE ? 0 : seconds, playDir, SPEEDS[speedIx], false).position;
+      L.position = window.GTMediaTransport.advance(L.position, L.duration, FOOTAGE ? 0 : seconds, window.GTMonthly?1:playDir, window.GTMonthly?1:SPEEDS[speedIx], !!window.GTMonthly).position;
       L.seeker.seek(L.position);
     }
   });
-  if (FOOTAGE){ FOOTAGE.live.on = true; FOOTAGE.live.seeker.seek(FOOTAGE.live.position); }
+  if (FOOTAGE){ FOOTAGE.live.on = true; if(!FOOTAGE.player) FOOTAGE.live.seeker.seek(FOOTAGE.live.position); }
   Object.keys(LIVE).forEach(function(key){
     var L = LIVE[key];
     if (!keep[key]){
@@ -1589,6 +1735,7 @@ function masterGain(){
 }
 function setVolume(v){
   volume = Math.max(0, Math.min(1, v));
+  if(MONTHLY && FOOTAGE && FOOTAGE.player) FOOTAGE.player.setVolume(volume);
   if (SOUND.ctx && SOUND.master) SOUND.master.gain.setTargetAtTime(volume, SOUND.ctx.currentTime, 0.08);
   try { localStorage.setItem('gt-vol', String(Math.round(volume * 100))); } catch (err) {}
 }
@@ -1614,6 +1761,7 @@ function silenceTransportSound(){
   if(SOUND.ambient) SOUND.ambient.out.gain.setTargetAtTime(0,SOUND.ctx.currentTime,0.03);
 }
 function updateSound(){
+  if(MONTHLY) return;
   if (!SOUND.on || !SOUND.ctx) return;
   if (FOOTAGE || playDir <= 0){ silenceTransportSound(); return; }
   if (!shown.length){ silenceTransportSound(); return; }
@@ -1646,6 +1794,11 @@ function updateSound(){
   });
 }
 function setSound(on){
+  if(MONTHLY){
+    SOUND.on=!!on;
+    if(FOOTAGE && FOOTAGE.player) FOOTAGE.player.setSound(SOUND.on);
+    syncEventSound();return;
+  }
   SOUND.on = on;
   var b = document.getElementById('soundBtn');
   // the button is an icon: the CSS shows the waves when it is on and the cross when it is off
@@ -1660,6 +1813,15 @@ function setSound(on){
     Object.keys(SOUND.nodes).forEach(function(k){ var n = SOUND.nodes[k]; n.el.pause(); n.playing = false; n.gain.gain.value = 0; });
     if (SOUND.ambient) SOUND.ambient.out.gain.setTargetAtTime(0, SOUND.ctx.currentTime, 0.3);
   }
+}
+function syncEventSound(){
+  if(!MONTHLY) return;
+  var state=FOOTAGE && FOOTAGE.player && FOOTAGE.player.state(), button=document.getElementById('soundBtn'), range=document.getElementById('volRange');
+  var reason=state ? state.audioReason : 'Select an event with an archival clip to hear its sound.';
+  if(button){button.disabled=!state || !state.audioAvailable;button.setAttribute('aria-pressed',SOUND.on && !!state && state.audioAvailable ? 'true':'false');button.title=reason;button.setAttribute('aria-label',SOUND.on?'Mute selected event':'Enable selected event sound');}
+  if(range) range.disabled=!state || !state.audioAvailable;
+  var label=document.getElementById('eventAudioStatus');if(label)label.textContent=state && state.error ? state.error : reason;
+  var status=document.getElementById('soundStatus');if(status)status.textContent=state ? reason : 'Event audio only';
 }
 // Sharing a moment: the URL hash already carries the mode, the month and the open event, so the address bar is
 // the share button. The header button is gone — it was taking a slot next to the categories to do what Cmd-L does.
@@ -1687,13 +1849,16 @@ function spinTo(e){ flyTo(e, null, camDist); }
 // eased together over a second and a half; then the panel opens. Pulling back up is the viewer's own scroll.
 var FLY_HEIGHT = 1.62;
 function flyTo(e, done, heightOverride){
+  if(!e || !Number.isFinite(e.lat) || !Number.isFinite(e.lon)) return;
+  if(MONTHLY) setPlayDir(0);
   var flightGeneration = ++navigationGeneration;
   setObserverMode('orbit'); velX = velY = 0;
   var from = orbitQuat.clone(), to = targetQuat(e.lat, e.lon);
-  var d0 = camDist, d1 = heightOverride != null ? heightOverride : Math.max(minCamDist, Math.min(camDist, FLY_HEIGHT));
+  var d0 = camDist, d1 = heightOverride != null ? heightOverride : MONTHLY ? 2.05 : Math.max(minCamDist, Math.min(camDist, FLY_HEIGHT));
   var t0 = clockNow(), dur = Math.abs(d1 - d0) > 0.05 ? 1500 : 700;
   ANIMS.length = 0;                                    // a new flight replaces any flight under way
   ANIMS.push(function(t){
+    if(flightGeneration !== navigationGeneration) return true;
     var k = Math.min(1, (t - t0) / dur);
     var ease = k < 0.5 ? 2*k*k : 1 - Math.pow(-2*k + 2, 2) / 2;
     orbitQuat.copy(from).slerp(to, ease); syncObserver();
@@ -1810,7 +1975,7 @@ function endDrag(ev){
   if (moved < 5){ velX = 0; velY = 0;
     var rect = canvas.getBoundingClientRect();
     var hit = pick(ev.clientX - rect.left, ev.clientY - rect.top);
-    if (hit) openPanel(hit); else closePanel();
+    if (hit) selectEvent(hit); else closePanel();
   }
 }
 canvas.addEventListener('pointerup', endDrag);
@@ -1850,8 +2015,8 @@ function tick(){
 }
 function tickOnce(){
   runAnims(); tickTicker();
-  var moving = kenBurns(clockNow()); tickPlay(clockNow()); if (selected || moving) render();
-  if (updateLiveGlyphs(clockNow()) && !selected) render();
+  var moving = MONTHLY ? false : kenBurns(clockNow()); tickPlay(clockNow()); if (selected || moving) render();
+  if (!MONTHLY && updateLiveGlyphs(clockNow()) && !selected) render();
   if (SOUND.on) updateSound();
   if (liveClips){ updateLive(); if (!selected) render(); }
   var tickNow=clockNow(),seconds=observerTickLast==null ? 0 : Math.max(0,Math.min(0.1,(tickNow-observerTickLast)/1000));
@@ -1891,13 +2056,32 @@ var playBtn = document.getElementById('playBtn'), rewBtn = document.getElementBy
 var toStartBtn = document.getElementById('toStartBtn'), toEndBtn = document.getElementById('toEndBtn');
 var speedSelect = document.getElementById('speedSelect');
 var footageSeek = document.getElementById('footageSeek'), returnHistory = document.getElementById('returnHistory');
-function boundedTime(t){ return TIME.clamp(t, ERAS[0].from, presentTime()); }
+function boundedTime(t){ return MONTHLY ? TIME.monthStart(TIME.clamp(t,ERAS[0].from,ERAS[ERAS.length-1].to)) : TIME.clamp(t, ERAS[0].from, presentTime()); }
 function yearsPerSecNow(){
   var era = ERAS[WINDOWS[wi].era];
   return (era.slider ? 1 / 24 : era.step / 4) * SPEEDS[speedIx];
 }
 function clipClock(seconds){ seconds=Math.max(0,seconds||0);return Math.floor(seconds/60)+':'+String(Math.floor(seconds%60)).padStart(2,'0'); }
 function showSpeed(){
+  if(MONTHLY){
+    var state=FOOTAGE && FOOTAGE.player && FOOTAGE.player.state(), locked=!!selected;
+    document.getElementById('rail').classList.toggle('month-held',locked);
+    if(playBtn){playBtn.innerHTML=!locked && playDir?'&#10074;&#10074;':'&#9654;';playBtn.setAttribute('aria-pressed',!locked && !!playDir?'true':'false');playBtn.setAttribute('aria-label',playDir&&!locked?'Pause monthly browsing':'Play monthly browsing');}
+    [playBtn,rewBtn,ffBtn,toStartBtn,toEndBtn,document.getElementById('monthInput'),document.getElementById('monthDuration')].forEach(function(el){if(el)el.disabled=locked;});
+    var prev=document.getElementById('previousMonth'), next=document.getElementById('nextMonth');
+    if(prev)prev.disabled=locked || wi===0;if(next)next.disabled=locked || wi===WINDOWS.length-1;
+    if(playVal)playVal.textContent=locked?'MONTH HELD':monthLoading?'WAITING FOR DATA':(playDir<0?'REVERSE':playDir>0?'FORWARD':'PAUSED')+' · '+secondsPerMonth+' SEC / MONTH';
+    document.getElementById('transportPhase').textContent='Monthly Earth';
+    if(returnHistory)returnHistory.hidden=true;if(footageSeek)footageSeek.hidden=true;
+    document.getElementById('footageNote').hidden=true;
+    if(state){
+      var clock=document.getElementById('eventClock'), play=document.getElementById('eventPlay'), seek=document.getElementById('eventSeek');
+      if(clock)clock.textContent=clipClock(state.position)+' / '+clipClock(state.duration);
+      if(play){play.textContent=state.direction?'❚❚ Pause':'▶ Play';play.setAttribute('aria-label',state.direction?'Pause event':'Play event');}
+      if(seek){seek.max=state.duration;if(document.activeElement!==seek)seek.value=state.position;}
+    }
+    syncEventSound();return;
+  }
   document.getElementById('rail').classList.toggle('footage-mode',!!FOOTAGE);
   var phaseLabel = document.getElementById('transportPhase');
   if (phaseLabel) phaseLabel.textContent = FOOTAGE ? 'Event footage · '+clipClock(FOOTAGE.live.position)+' / '+clipClock(FOOTAGE.live.duration) : 'History';
@@ -1914,8 +2098,14 @@ function showSpeed(){
   }
 }
 function setPlayDir(dir){
+  if(MONTHLY && FOOTAGE && FOOTAGE.player){
+    if(dir)lastPlayDir=dir;
+    FOOTAGE.player.setDirection(dir);playLast=clockNow();return;
+  }
   nowT = boundedTime(nowT);
-  if (!FOOTAGE && (dir > 0 && nowT >= presentTime() - 1e-8 || dir < 0 && nowT <= ERAS[0].from)) dir = 0;
+  if(MONTHLY && selected)dir=0;
+  if (!FOOTAGE && (dir > 0 && nowT >= (MONTHLY?ERAS[ERAS.length-1].to:presentTime()) - 1e-8 || dir < 0 && nowT <= ERAS[0].from)) dir = 0;
+  if(MONTHLY && dir && dir!==lastPlayDir)monthElapsed=0;
   if (dir) lastPlayDir = dir < 0 ? -1 : 1;
   if (FOOTAGE && dir > 0 && FOOTAGE.live.position >= FOOTAGE.live.duration) dir = 0;
   playDir = dir; playing = dir !== 0; playLast = clockNow(); showSpeed();
@@ -1924,14 +2114,14 @@ function setPlayDir(dir){
     setSkyDate(dateOfNow()); syncHeader(); placeHandle(); writeHash(); render();
   }
 }
-function setSpeed(rate){ var i = SPEEDS.indexOf(+rate); if (i >= 0){ speedIx = i; showSpeed(); } }
+function setSpeed(rate){ if(MONTHLY && FOOTAGE && FOOTAGE.player){FOOTAGE.player.setRate(+rate);return;}var i = SPEEDS.indexOf(+rate); if (i >= 0){ speedIx = i; showSpeed(); } }
 if (speedSelect) speedSelect.onchange = function(){ setSpeed(this.value); };
 function runToward(dir){ setPlayDir(dir); }
 if (playBtn) playBtn.onclick = function(){ setPlayDir(playDir ? 0 : lastPlayDir); };
 if (rewBtn) rewBtn.onclick = function(){ runToward(-1); };
 if (ffBtn) ffBtn.onclick = function(){ runToward(1); };
-if (toStartBtn) toStartBtn.onclick = function(){ setPlayDir(0); if(FOOTAGE){FOOTAGE.live.position=0;FOOTAGE.live.seeker.seek(0);showSpeed();}else goToMoment(ERAS[0].from); };
-if (toEndBtn) toEndBtn.onclick = function(){ setPlayDir(0); if(FOOTAGE){FOOTAGE.live.position=FOOTAGE.live.duration;FOOTAGE.live.seeker.seek(FOOTAGE.live.position);showSpeed();}else goToMoment(presentTime()); };
+if (toStartBtn) toStartBtn.onclick = function(){ setPlayDir(0); if(FOOTAGE && FOOTAGE.player){FOOTAGE.player.seek(0);}else if(FOOTAGE){FOOTAGE.live.position=0;FOOTAGE.live.seeker.seek(0);showSpeed();}else goToMoment(ERAS[0].from); };
+if (toEndBtn) toEndBtn.onclick = function(){ setPlayDir(0); if(FOOTAGE){if(FOOTAGE.player)FOOTAGE.player.seek(FOOTAGE.live.duration);else{FOOTAGE.live.position=FOOTAGE.live.duration;FOOTAGE.live.seeker.seek(FOOTAGE.live.position);showSpeed();}}else goToMoment(MONTHLY?ERAS[0].to:presentTime()); };
 if(returnHistory) returnHistory.onclick=function(){exitFootage(false);};
 if(footageSeek) footageSeek.oninput=function(){if(!FOOTAGE)return;var position=+this.value;setPlayDir(0);FOOTAGE.live.position=Math.max(0,Math.min(FOOTAGE.live.duration,position));FOOTAGE.live.seeker.seek(FOOTAGE.live.position);showSpeed();};
 showSpeed();
@@ -1939,6 +2129,17 @@ function setPlaying(on){ setPlayDir(on ? 1 : 0); }
 var lastDayShown = '', lastSkyAt = -Infinity;
 function tickPlay(now){
   var dt = Math.min(0.25, Math.max(0, (now - playLast) / 1000)); playLast = now;
+  if(MONTHLY){
+    clipFrameSeconds=!document.hidden && !selected ? dt : 0;
+    if(document.hidden)return;
+    if(FOOTAGE && FOOTAGE.player){FOOTAGE.player.tick(dt);return;}
+    if(!playDir || selected || monthLoading)return;
+    var step=MONTHLY.stepIndex(wi,monthElapsed,dt,playDir,secondsPerMonth,WINDOWS.length);
+    monthElapsed=step.elapsed;
+    if(step.index!==wi){nowT=WINDOWS[step.index].end;setWindow(step.index,true);}
+    if(step.ended)setPlayDir(0);
+    return;
+  }
   clipFrameSeconds = playDir ? dt : 0;
   if (!playDir) return;
   if (FOOTAGE){
@@ -1970,6 +2171,11 @@ var handle = null;
 function buildRail(){
   track.innerHTML = '';
   track.classList.toggle('slider', !!ERAS[0].slider);
+  if(MONTHLY){
+    track.classList.add('month-track');
+    WINDOWS.forEach(function(w,index){var button=document.createElement('button');button.type='button';button.className='month-tick';button.textContent=MONTHS[TIME.parts(w.end).month-1];button.setAttribute('aria-label',monthLabel(w.end));button.onclick=function(){if(selected)return;setPlayDir(0);setWindow(index);};track.appendChild(button);});
+    handle=document.createElement('div');handle.id='handle';handle.hidden=true;track.appendChild(handle);return;
+  }
   if (ERAS[0].slider){
     var era = ERAS[0], span = era.to - era.from;
     for (var y = era.from; y <= era.to; y++){
@@ -1989,6 +2195,7 @@ function buildRail(){
 }
 buildRail();
 function placeHandle(){
+  if(MONTHLY){Array.prototype.forEach.call(track.querySelectorAll('.month-tick'),function(button,i){button.setAttribute('aria-current',i===wi?'date':'false');button.disabled=!!selected;});return;}
   var w = WINDOWS[wi], era = ERAS[w.era];
   if (era.slider){
     var span = era.to - era.from;
@@ -2012,12 +2219,17 @@ function railSet(clientX){
 }
 
 var railDrag = false;
-track.addEventListener('pointerdown', function(ev){ if (playing) setPlaying(false); railDrag = true; track.setPointerCapture(ev.pointerId); railSet(ev.clientX, true); });
+track.addEventListener('pointerdown', function(ev){ if(MONTHLY)return;if (playing) setPlaying(false); railDrag = true; track.setPointerCapture(ev.pointerId); railSet(ev.clientX, true); });
 track.addEventListener('pointermove', function(ev){ if (railDrag) railSet(ev.clientX); });
 track.addEventListener('pointerup', function(){ railDrag = false; });
 window.addEventListener('keydown', function(ev){
   if(ev.key==='Escape'){closePanel();return;}
   if (/^(INPUT|SELECT|TEXTAREA)$/.test(ev.target.tagName)) return;
+  if(MONTHLY && selected){
+    if(FOOTAGE && FOOTAGE.player && (ev.key==='ArrowLeft'||ev.key==='ArrowRight')){FOOTAGE.player.seek(FOOTAGE.player.state().position+(ev.key==='ArrowLeft'?-1:1));ev.preventDefault();}
+    if(FOOTAGE && ev.key===' ' && ev.target===document.body){setPlayDir(playDir?0:1);ev.preventDefault();}
+    return;
+  }
   if(FOOTAGE && (ev.key==='ArrowLeft'||ev.key==='ArrowRight')){setPlayDir(0);FOOTAGE.live.position=Math.max(0,Math.min(FOOTAGE.live.duration,FOOTAGE.live.position+(ev.key==='ArrowLeft'?-1:1)*(ev.shiftKey?5:1)));FOOTAGE.live.seeker.seek(FOOTAGE.live.position);showSpeed();ev.preventDefault();return;}
   var stepN = ERAS[0].slider && ev.shiftKey ? Math.round(1 / ERAS[0].step) : 1;     // shift + arrow: a whole year
   if (ev.key === 'ArrowLeft'){ setWindow(wi - stepN); ev.preventDefault(); }
@@ -2026,6 +2238,7 @@ window.addEventListener('keydown', function(ev){
   if (ev.key === ' ' && ev.target === document.body && playBtn){ playBtn.onclick(); ev.preventDefault(); }
 });
 function setWindow(next, keepNow){
+  if(MONTHLY && !keepNow)monthElapsed=0;
   if(!keepNow){if(FOOTAGE)closePanel();navigationGeneration++;ANIMS.length=0;pendingEventHash=null;}
   next = Math.max(0, Math.min(WINDOWS.length - 1, next));
   wi = next;
@@ -2038,6 +2251,13 @@ function setWindow(next, keepNow){
 }
 
 function syncHeader(){
+  if(MONTHLY){
+    document.getElementById('now').innerHTML='<span class="nowlab">MONTH</span><b>'+monthLabel(nowT)+'</b>';
+    document.getElementById('periodLabel').textContent=selected?'Month held while you explore this event':'One calendar month at a time';
+    document.getElementById('monthInput').value=MONTHLY.monthKey(nowT,TIME);
+    track.setAttribute('aria-label','Choose a month in 2011');track.setAttribute('role','group');
+    return;
+  }
   var w = WINDOWS[wi], era = ERAS[w.era], b = viewBounds(nowT, w), p = TIME.parts(nowT);
   var nowText = era.slider ? p.day + ' ' + MONTHS[p.month - 1] + ' ' + p.year : rangeLabel(w.start, w.end);
   var detail = FOOTAGE ? 'EVENT FOOTAGE · RECORDING DAY HELD' : era.slider ? (temporalView === 'moment' ? 'MOMENT · events on this date' : 'PERIOD · ' + monthLabel(b.start) + ' — ' + monthLabel(b.end)) : era.name + ' · PERIOD OVERVIEW';
@@ -2053,9 +2273,15 @@ if (viewSelect) viewSelect.onchange = function(){
   bindWindow(); syncHeader(); render(); writeHash();
   ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added){ if (added){ bindWindow(); render(); } });
 };
-var photosOnly = document.getElementById('photosOnly'); if (photosOnly) photosOnly.onchange = function(){ PHOTOS_ONLY = this.checked; bindNow(true); render(); };
+var photosOnly = document.getElementById('photosOnly'); if (photosOnly) photosOnly.onchange = function(){ PHOTOS_ONLY = this.checked; bindNow(true); if(MONTHLY)renderMonthList();render(); };
 var densitySelect = document.getElementById('densitySelect');
 if (densitySelect) densitySelect.onchange = function(){ densityLevel = +this.value; bindNow(true); render(); };
+if(MONTHLY){
+  document.getElementById('monthInput').onchange=function(){var t=TIME.parseISO(this.value+'-01');if(Number.isFinite(t)){setPlayDir(0);goToMoment(t);}else syncHeader();};
+  document.getElementById('previousMonth').onclick=function(){setPlayDir(0);setWindow(wi-1);};
+  document.getElementById('nextMonth').onclick=function(){setPlayDir(0);setWindow(wi+1);};
+  document.getElementById('monthDuration').onchange=function(){secondsPerMonth=+this.value;monthElapsed=0;showSpeed();};
+}
 
 // ---------- filters ----------
 var fWrap = document.getElementById('filters');
@@ -2103,6 +2329,7 @@ function goToMoment(t){
   setWindow(i, true);
 }
 function writeHash(){
+  if(MONTHLY){var monthParts=['month='+MONTHLY.monthKey(nowT,TIME)];var id=pendingEventHash||selected&&selected.stableId;if(id)monthParts.push('event='+encodeURIComponent(id));history.replaceState(null,'','#'+monthParts.join('&'));return;}
   var parts = ['mode=' + mode, 'y=' + String(nowT), 'view=' + (temporalView === 'moment' ? 'moment' : periodDays)];
   var eventId = pendingEventHash || selected && selected.stableId;
   if (eventId) parts.push('event=' + encodeURIComponent(eventId));
@@ -2113,14 +2340,20 @@ function resolvePendingEvent(){
   if (!pendingEventHash) return;
   var e = EVENTS.find(function(x){ return x.stableId === pendingEventHash || x.slug === pendingEventHash; });
   if (!e || !eligibleEvent(e)) return;
+  if(MONTHLY && (e.t0<ERAS[0].from || TIME.monthStart(e.t0)>ERAS[0].to)){pendingEventHash=null;return;}
   pendingEventHash = null;
   goToMoment(e.t0);
-  flyTo(e, function(){ openPanel(e); });
+  selectEvent(e);
 }
 function readHash(){
   var h = Object.fromEntries(new URLSearchParams(location.hash.slice(1)));
   var requestedEvent = h.event || h.e || null;
   if(FOOTAGE)closePanel();
+  if(MONTHLY){
+    var requested=TIME.parseISO((h.month||'2011-02')+'-01');
+    if(Number.isFinite(requested))goToMoment(requested);
+    pendingEventHash=requestedEvent;writeHash();resolvePendingEvent();return;
+  }
   if (h.view){ temporalView = h.view === 'moment' ? 'moment' : 'period'; if ([30,365,1825].indexOf(+h.view) >= 0) periodDays = +h.view; if (viewSelect) viewSelect.value = temporalView === 'moment' ? 'moment' : String(periodDays); }
   if (h.mode && ERA_SETS[h.mode] && h.mode !== mode) setMode(h.mode, Number.isFinite(+h.y) ? +h.y : nowT);
   if (h.y && Number.isFinite(+h.y)) goToMoment(+h.y);
@@ -2148,6 +2381,7 @@ function partnerQuality(e){
   return q;
 }
 function coincidences(){
+  if(MONTHLY)return [];
   // The line under the globe: one calendar day, two things from two distant parts of the world — "28 Dec · X, while
   // Y" — or one thing alone when it is big enough to carry the line (9/11 needs no partner). Only the same day
   // qualifies; a consequence years later belongs to the panel's links, not here. Lines close to NOW come first,
@@ -2215,7 +2449,7 @@ function tickerSide(e){
   // the place is added only when the headline does not already say it
   var t = shortTitle(e);
   var place = e.place && t.toLowerCase().indexOf(e.place.toLowerCase().split(/[ ,(]/)[0]) < 0 ? e.place : '';
-  return '<span class="ts" data-id="' + e.id + '">' + t + (place ? '<em>' + place + '</em>' : '') + '</span>';
+  return '<span class="ts" data-event="' + encodeURIComponent(e.stableId) + '">' + t + (place ? '<em>' + place + '</em>' : '') + '</span>';
 }
 function showTicker(){
   var el = document.getElementById('ticker');
@@ -2224,7 +2458,7 @@ function showTicker(){
   el.innerHTML = '<span class="tk">' + dayLabel(p.a.date) + '</span>' + tickerSide(p.a) + (p.b ? '<span class="tw">while</span>' + tickerSide(p.b) : '');
   el.classList.add('on');
   Array.prototype.forEach.call(el.querySelectorAll('.ts'), function(side){
-    side.onclick = function(){ var t = EVENTS[+side.dataset.id]; if (playDir) setPlayDir(0); flyTo(t, function(){ openPanel(t); }); };
+    side.onclick = function(){ selectEvent(decodeURIComponent(side.dataset.event)); };
   });
 }
 function resetTicker(){
@@ -2236,13 +2470,14 @@ document.getElementById('aboutBtn').onclick = function(){ document.getElementByI
 document.getElementById('aboutClose').onclick = function(){ document.getElementById('about').classList.remove('on'); };
 window.addEventListener('resize', resize);
 var initialHash = location.hash;
-nowT = TIME.parseISO('2014-08-01T12:00:00Z'); wi = windowIndexFor(nowT);
+nowT = TIME.parseISO(MONTHLY?'2011-02-01':'2014-08-01T12:00:00Z'); wi = windowIndexFor(nowT);
 buildSkyStatic(); setSkyDate(dateOfNow());
 bindWindow(); syncHeader(); placeHandle(); resize(); tick();
 if (initialHash){ history.replaceState(null, '', initialHash); readHash(); }
 resetTicker(); setTimeout(placeHandle, 60);
 ensureYears(WINDOWS[wi].start, WINDOWS[wi].end, function(added){ if (added){ bindWindow(); render(); resetTicker(); } resolvePendingEvent(); });
 function refreshPresentBounds(){
+  if(MONTHLY)return;
   var end = presentTime(), previous = ERAS[ERAS.length - 1].to;
   var rebuild = TIME.monthStart(previous) !== TIME.monthStart(end) ||
     mode === 'century' && ERAS[0].from !== Math.floor(end) - 100;
@@ -2258,13 +2493,26 @@ function refreshPresentBounds(){
 setInterval(refreshPresentBounds, 60000);
 window.__gtDensity = function(){ return Object.assign({}, densityStats, {rendered:shown.filter(function(e){return e._sx != null;}).length, renderedPhotos:shown.filter(function(e){return e._sx != null && photoFor(e);}).length, folded:shown.reduce(function(n,e){return n+(e.folded ? e.folded.length : 0);},0)}); };
 window.__gtState = function(){ return { time:nowT, date:dateOfNow() && dateOfNow().toISOString(), present:presentTime(), mode:mode, direction:playDir, speed:SPEEDS[speedIx], view:temporalView, periodDays:periodDays, selected:selected && selected.stableId, loaded:EVENTS.length, range:{from:ERAS[0].from,to:ERAS[ERAS.length-1].to,lastMonth:WINDOWS[WINDOWS.length-1].end}, shards:shardLoader && shardLoader.status() }; };
-window.__gtControls = { time:goToMoment, mode:setMode, speed:setSpeed, direction:setPlayDir, select:openPanel, close:closePanel, refreshBounds:refreshPresentBounds, view:function(v){ viewSelect.value = String(v); viewSelect.onchange(); } };
+if(MONTHLY){
+  window.__gtMonthly=function(){return {month:MONTHLY.monthKey(nowT,TIME),secondsPerMonth:secondsPerMonth,elapsed:monthElapsed,loading:monthLoading,countries:monthSelection.countries,events:monthSelection.events.map(function(e){return {id:e.stableId,title:e.title,date:e.date,country:e.monthCountry};}),held:!!selected,footage:FOOTAGE&&FOOTAGE.player?FOOTAGE.player.state():null};};
+  document.addEventListener('visibilitychange',function(){if(document.hidden){setPlayDir(0);Object.keys(LIVE).forEach(function(k){LIVE[k].seeker.cancel();});}});
+  syncEventSound();
+}
+window.__gtControls = { time:goToMoment, mode:setMode, speed:setSpeed, direction:setPlayDir, select:selectEvent, close:closePanel, refreshBounds:refreshPresentBounds, view:function(v){ viewSelect.value = String(v); viewSelect.onchange(); } };
+window.__cgtFly = selectEvent;
 
 };
 // Load data files, then start the app.
 (function(){
   if (window.__GT){ window.__gtStart(); return; }   // playground build: data already inlined
-  function get(url){ return fetch(url).then(function(r){ if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); }); }
+  function get(url){ return fetch(url,{cache:'no-cache'}).then(function(r){ if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); }); }
+  if(window.GTMonthly){
+    Promise.all([get('data/monthly-catalog.json'),get('assets/countries-110m.json'),get('data/event-media.json'),get('data/event-photos.json'),get('data/monthly-coverage-policy.json')]).then(function(res){
+      window.__GT={events:res[0].events,images:{},borders:res[1],skyLabels:{stars:[],deep:[],constellations:[]},media:res[2],eventPhotos:res[3],coveragePolicy:res[4],starCatalog:{features:[]},shards:null,links:[],skyFacts:{}};
+      window.__gtStart();
+    }).catch(function(err){var status=document.getElementById('dataStatus');status.hidden=false;status.disabled=false;status.textContent='Prototype data could not load · Reload';status.onclick=function(){location.reload();};console.error(err);});
+    return;
+  }
   Promise.all([ get('data/events.json'), get('data/images.json'), get('assets/countries-110m.json'), get('assets/skylabels.json'),
                 get('data/event-media.json'), get('data/index.json').catch(function(){ return null; }), get('data/links.json').catch(function(){ return []; }),
                 get('data/skyfacts.json').catch(function(){ return {}; }), get('assets/stars-catalog.json'), get('data/event-photos.json') ])

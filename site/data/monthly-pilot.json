@@ -1,0 +1,677 @@
+{
+  "version": 1,
+  "from": "2011-01",
+  "through": "2011-12",
+  "updatedAt": "2026-09-05",
+  "policy": "Local, source-checked 2011 pilot with 11 selected events, not comprehensive world coverage or a live feed. Events belong only to their start month. Up to three per source-backed event-location country; no fabricated fills for missing months or countries. Exact coordinate and media-date limitations are recorded per entry.",
+  "events": [
+    [
+      "Tahrir Square protests begin",
+      30.04,
+      31.24,
+      2011,
+      2011,
+      "con",
+      4,
+      "Tahrir Square, Cairo, Egypt",
+      "Protesters gathered in Cairo's Tahrir Square on January 25. Human Rights Watch staff witnessed the demonstrations on January 25 and 26.",
+      "Egyptian_revolution_of_2011",
+      "2011-01-25",
+      null,
+      null,
+      "Tahrir Square protests",
+      {
+        "id": "evt-cjibll-9z0wgv",
+        "sourceIdentity": "curated|Egyptian_revolution_of_2011|Tahrir Square protests|2011-01-25|30.04|31.24",
+        "mediaKey": "Egyptian_revolution_of_2011|2011-01-25|30.04|31.24",
+        "source": {
+          "type": "curated",
+          "file": "core.json",
+          "url": "https://en.wikipedia.org/wiki/Egyptian_revolution_of_2011"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-01-25",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.hrw.org/news/2011/01/27/egypt-end-crackdown-peaceful-demonstrations",
+            "title": "Human Rights Watch: Egypt — End Crackdown on Peaceful Demonstrations"
+          }
+        },
+        "end": null,
+        "monthCountry": "Egypt",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.hrw.org/news/2011/01/27/egypt-end-crackdown-peaceful-demonstrations",
+            "title": "Human Rights Watch: Egypt — End Crackdown on Peaceful Demonstrations"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "Start-day entry, not a claim that the protests lasted only one day. January 28 footage belongs to this protest movement; the February 8 photograph is later than the selected start month.",
+          "coordinates": "Existing catalog coordinates retained as an approximate event-area marker; source confirms the named place and country, not exact latitude and longitude.",
+          "originalStart": {
+            "iso": "2011-01-25",
+            "precision": "day",
+            "source": {
+              "type": "curated",
+              "file": "core.json",
+              "url": "https://en.wikipedia.org/wiki/Egyptian_revolution_of_2011"
+            }
+          },
+          "originalEnd": null,
+          "originalTitle": "Tahrir Square protests"
+        }
+      }
+    ],
+    [
+      "FIS Alpine World Ski Championships open",
+      47.47,
+      11.06,
+      2011,
+      2011,
+      "cul",
+      3,
+      "Garmisch-Partenkirchen, Germany",
+      "The 2011 Alpine World Ski Championships took place in Garmisch-Partenkirchen, Germany, from February 7 to 20.",
+      "FIS_Alpine_World_Ski_Championships_2011",
+      "2011-02-07",
+      null,
+      "2011-02-20",
+      "FIS Alpine World Ski Championships 2011",
+      {
+        "id": "evt-1p1mdbn-1epfpgd",
+        "sourceIdentity": "dated|FIS_Alpine_World_Ski_Championships_2011|FIS Alpine World Ski Championships 2011|2011-02-07|47.47|11.06",
+        "mediaKey": "FIS_Alpine_World_Ski_Championships_2011|2011-02-07|47.47|11.06",
+        "source": {
+          "type": "dated",
+          "file": "events_wikidata.json",
+          "url": "https://en.wikipedia.org/wiki/FIS_Alpine_World_Ski_Championships_2011"
+        },
+        "kind": "interval",
+        "start": {
+          "iso": "2011-02-07",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://medias4.fis-ski.com/pdf/2011/AL/0073/2011AL0073.pdf",
+            "title": "FIS Alpine World Ski Championships 2011 — Official Results"
+          }
+        },
+        "end": {
+          "iso": "2011-02-20",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://medias4.fis-ski.com/pdf/2011/AL/0073/2011AL0073.pdf",
+            "title": "FIS Alpine World Ski Championships 2011 — Official Results"
+          }
+        },
+        "durationSource": "Article interval matched the event start date",
+        "monthCountry": "Germany",
+        "monthlyReview": {
+          "source": {
+            "url": "https://medias4.fis-ski.com/pdf/2011/AL/0073/2011AL0073.pdf",
+            "title": "FIS Alpine World Ski Championships 2011 — Official Results"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "The official championship dates and German venue replace an unknown end-year bound and the coarse map's Austrian country grouping. The original Garmisch Classic coordinate remains an approximate venue marker, not a source-verified survey point.",
+          "coordinates": "Existing catalog coordinates retained as an approximate event-area marker; source confirms the named place and country, not exact latitude and longitude.",
+          "originalStart": {
+            "iso": "2011-02-07",
+            "precision": "day",
+            "source": {
+              "type": "dated",
+              "file": "events_wikidata.json",
+              "url": "https://en.wikipedia.org/wiki/FIS_Alpine_World_Ski_Championships_2011"
+            }
+          },
+          "originalEnd": {
+            "iso": null,
+            "precision": "year",
+            "source": {
+              "type": "legacy-facts",
+              "url": "https://en.wikipedia.org/wiki/FIS_Alpine_World_Ski_Championships_2011",
+              "note": "Original end precision was not retained; only its year is used."
+            }
+          },
+          "originalTitle": "FIS Alpine World Ski Championships 2011"
+        }
+      }
+    ],
+    [
+      "Christchurch earthquake",
+      -43.58,
+      172.7,
+      2011,
+      2011,
+      "dis",
+      4,
+      "Christchurch, New Zealand",
+      "A shallow earthquake struck near Christchurch on February 22, causing severe damage and casualties in the city.",
+      "2011_Christchurch_earthquake",
+      "2011-02-22",
+      null,
+      null,
+      "February 2011 Christchurch earthquake",
+      {
+        "id": "evt-6feosh-1vepl6n",
+        "sourceIdentity": "event|2011_Christchurch_earthquake|February 2011 Christchurch earthquake|2011-02-22|-43.58|172.7",
+        "mediaKey": "2011_Christchurch_earthquake|2011-02-22|-43.58|172.7",
+        "source": {
+          "type": "event",
+          "file": "events_wikidata.json",
+          "url": "https://en.wikipedia.org/wiki/2011_Christchurch_earthquake"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-02-22",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.geonet.org.nz/earthquake/story/3468575",
+            "title": "GeoNet: M 6.2 Christchurch — 22 February 2011"
+          }
+        },
+        "end": null,
+        "monthCountry": "New Zealand",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.geonet.org.nz/earthquake/story/3468575",
+            "title": "GeoNet: M 6.2 Christchurch — 22 February 2011"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "The event date and Christchurch association are independently checked. Removed the unsupported M6.8 headline rather than mixing different magnitude scales. The associated April 22 photograph is aftermath from two months later, not February footage.",
+          "coordinates": "Existing catalog coordinates retained as an approximate event-area marker; source confirms the named place and country, not exact latitude and longitude.",
+          "originalStart": {
+            "iso": "2011-02-22",
+            "precision": "day",
+            "source": {
+              "type": "event",
+              "file": "events_wikidata.json",
+              "url": "https://en.wikipedia.org/wiki/2011_Christchurch_earthquake",
+              "note": "Legacy extraction did not retain statement precision; date requires source verification."
+            }
+          },
+          "originalEnd": null,
+          "originalTitle": "February 2011 Christchurch earthquake"
+        }
+      }
+    ],
+    [
+      "Discovery launches on its final mission",
+      28.58,
+      -80.65,
+      2011,
+      2011,
+      "sci",
+      2,
+      "Kennedy Space Center, Pad 39A, Florida, United States",
+      "Space shuttle Discovery launched from Kennedy Space Center on February 24 for STS-133, its final mission.",
+      "STS-133",
+      "2011-02-24",
+      null,
+      null,
+      "STS-133: Space Shuttle Discovery launches from Kennedy Space Center for the final time, carrying the Permanent Multipurpose Module to the International Space St",
+      {
+        "id": "evt-1ouxa88-1i8lkjy",
+        "sourceIdentity": "yearpage|STS-133|STS-133: Space Shuttle Discovery launches from Kennedy Space Center for the final time, carrying the Permanent Multipurpose Module to the International Space St|2011-02-24|28.58|-80.65",
+        "mediaKey": "STS-133|2011-02-24|28.58|-80.65",
+        "source": {
+          "type": "yearpage",
+          "file": "events_yearpages.json",
+          "url": "https://en.wikipedia.org/wiki/STS-133"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-02-24",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.nasa.gov/mission/sts-133/",
+            "title": "NASA: STS-133"
+          }
+        },
+        "end": null,
+        "monthCountry": "United States of America",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.nasa.gov/mission/sts-133/",
+            "title": "NASA: STS-133"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "This is the Earth launch, not the mission's orbital location. NASA confirms February 24, 2011 and Pad 39A. Retains the correctly located year-page identity and reviewed launch-video key; the separate NASA-headquarters row is excluded.",
+          "coordinates": "Existing catalog coordinates retained as an approximate event-area marker; source confirms the named place and country, not exact latitude and longitude.",
+          "originalStart": {
+            "iso": "2011-02-24",
+            "precision": "day",
+            "source": {
+              "type": "yearpage",
+              "file": "events_yearpages.json",
+              "url": "https://en.wikipedia.org/wiki/STS-133"
+            }
+          },
+          "originalEnd": null,
+          "originalTitle": "STS-133: Space Shuttle Discovery launches from Kennedy Space Center for the final time, carrying the Permanent Multipurpose Module to the International Space St"
+        }
+      }
+    ],
+    [
+      "Tōhoku earthquake and tsunami",
+      38.10333333333333,
+      142.86,
+      2011,
+      2011,
+      "dis",
+      4,
+      "Off northeastern Honshu, Japan",
+      "A major earthquake struck off northeastern Japan on March 11 and generated a destructive tsunami.",
+      "2011_T%C5%8Dhoku_earthquake_and_tsunami",
+      "2011-03-11",
+      null,
+      null,
+      "2011 Tōhoku earthquake and tsunami",
+      {
+        "id": "evt-1dexzza-1jobf2g",
+        "sourceIdentity": "event|2011_T%C5%8Dhoku_earthquake_and_tsunami|2011 Tōhoku earthquake and tsunami|2011-03-11|38.32|142.37",
+        "mediaKey": "2011_T%25C5%258Dhoku_earthquake_and_tsunami|2011-03-11|38.32|142.37",
+        "source": {
+          "type": "event",
+          "file": "events_wikidata.json",
+          "url": "https://en.wikipedia.org/wiki/2011_T%25C5%258Dhoku_earthquake_and_tsunami"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-03-11",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.jma.go.jp/jma/en/2011_Earthquake/Information_on_2011_Earthquake.html",
+            "title": "Japan Meteorological Agency: Information on the 2011 Great East Japan Earthquake"
+          }
+        },
+        "end": null,
+        "monthCountry": "Japan",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.jma.go.jp/jma/en/2011_Earthquake/Information_on_2011_Earthquake.html",
+            "title": "Japan Meteorological Agency: Information on the 2011 Great East Japan Earthquake"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "Japan grouping represents the source-identified earthquake and affected coastline, not polygon containment of the offshore hypocenter. The retained media key still identifies this same event; the March 12 photograph is aftermath at Sendai, not an image of the epicenter.",
+          "coordinates": "JMA hypocenter converted from 38 degrees 6.2 minutes north, 142 degrees 51.6 minutes east. The event's existing stable ID and media key are retained.",
+          "originalStart": {
+            "iso": "2011-03-11",
+            "precision": "day",
+            "source": {
+              "type": "event",
+              "file": "events_wikidata.json",
+              "url": "https://en.wikipedia.org/wiki/2011_T%25C5%258Dhoku_earthquake_and_tsunami",
+              "note": "Legacy extraction did not retain statement precision; date requires source verification."
+            }
+          },
+          "originalEnd": null,
+          "originalTitle": "2011 Tōhoku earthquake and tsunami"
+        }
+      }
+    ],
+    [
+      "Fukushima Daiichi nuclear accident",
+      37.42,
+      141.03,
+      2011,
+      2011,
+      "dis",
+      4,
+      "Fukushima Daiichi Nuclear Power Station, Japan",
+      "The March 11 earthquake and tsunami triggered the Fukushima Daiichi nuclear accident in Japan.",
+      "Fukushima_nuclear_accident",
+      "2011-03-11",
+      null,
+      null,
+      "Fukushima Daiichi disaster",
+      {
+        "id": "evt-drcliq-1mn13b6",
+        "sourceIdentity": "curated|Fukushima_nuclear_accident|Fukushima Daiichi disaster|2011-03-11|37.42|141.03",
+        "mediaKey": "Fukushima_nuclear_accident|2011-03-11|37.42|141.03",
+        "source": {
+          "type": "curated",
+          "file": "core.json",
+          "url": "https://en.wikipedia.org/wiki/Fukushima_nuclear_accident"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-03-11",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://gnssn.iaea.org/FukushimaLessonsLearned/SitePages/default.aspx",
+            "title": "IAEA: Fukushima Observations and Lessons Learned"
+          }
+        },
+        "end": null,
+        "monthCountry": "Japan",
+        "monthlyReview": {
+          "source": {
+            "url": "https://gnssn.iaea.org/FukushimaLessonsLearned/SitePages/default.aspx",
+            "title": "IAEA: Fukushima Observations and Lessons Learned"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "IAEA dates the accident to March 11 at the Fukushima Daiichi Nuclear Power Station in Japan. Explicit country association avoids a low-resolution coastal-polygon miss. The associated March 16 satellite photograph is aftermath.",
+          "coordinates": "Existing catalog coordinates retained as an approximate event-area marker; source confirms the named place and country, not exact latitude and longitude.",
+          "originalStart": {
+            "iso": "2011-03-11",
+            "precision": "day",
+            "source": {
+              "type": "curated",
+              "file": "core.json",
+              "url": "https://en.wikipedia.org/wiki/Fukushima_nuclear_accident"
+            }
+          },
+          "originalEnd": null,
+          "originalTitle": "Fukushima Daiichi disaster"
+        }
+      }
+    ],
+    [
+      "Prince William and Catherine Middleton marry",
+      51.5,
+      -0.13,
+      2011,
+      2011,
+      "cul",
+      4,
+      "Westminster Abbey, London, United Kingdom",
+      "Prince William and Catherine Middleton married at Westminster Abbey on April 29.",
+      "Wedding_of_Prince_William_and_Catherine_Middleton",
+      "2011-04-29",
+      null,
+      null,
+      "Wedding of Prince William and Catherine Middleton",
+      {
+        "id": "evt-9tfkpm-1gwyjkg",
+        "sourceIdentity": "dated|Wedding_of_Prince_William_and_Catherine_Middleton|wedding of Prince William and Catherine Middleton|2011-04-29|51.5|-0.13",
+        "mediaKey": "Wedding_of_Prince_William_and_Catherine_Middleton|2011-04-29|51.5|-0.13",
+        "source": {
+          "type": "dated",
+          "file": "events_wikidata.json",
+          "url": "https://en.wikipedia.org/wiki/Wedding_of_Prince_William_and_Catherine_Middleton"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-04-29",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.westminster-abbey.org/abbey-news/abbey-hosts-royal-wedding",
+            "title": "Westminster Abbey: Abbey Hosts Royal Wedding"
+          }
+        },
+        "end": null,
+        "monthCountry": "United Kingdom",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.westminster-abbey.org/abbey-news/abbey-hosts-royal-wedding",
+            "title": "Westminster Abbey: Abbey Hosts Royal Wedding"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "The venue's own account verifies the date and location. The event-specific photograph was taken on the wedding day.",
+          "coordinates": "Existing catalog coordinates retained as an approximate event-area marker; source confirms the named place and country, not exact latitude and longitude.",
+          "originalStart": {
+            "iso": "2011-04-29",
+            "precision": "day",
+            "source": {
+              "type": "dated",
+              "file": "events_wikidata.json",
+              "url": "https://en.wikipedia.org/wiki/Wedding_of_Prince_William_and_Catherine_Middleton"
+            }
+          },
+          "originalEnd": null,
+          "originalTitle": "Wedding of Prince William and Catherine Middleton"
+        }
+      }
+    ],
+    [
+      "Lorca earthquake",
+      37.7,
+      -1.56,
+      2011,
+      2011,
+      "dis",
+      4,
+      "Near Lorca, Murcia, Spain",
+      "An earthquake struck near Lorca in Murcia on May 11.",
+      "2011_Lorca_earthquake",
+      "2011-05-11",
+      null,
+      null,
+      "2011 Lorca earthquake",
+      {
+        "id": "evt-1ee7svq-xk7x64",
+        "sourceIdentity": "event|2011_Lorca_earthquake|2011 Lorca earthquake|2011-05-11|37.7|-1.56",
+        "mediaKey": "2011_Lorca_earthquake|2011-05-11|37.7|-1.56",
+        "source": {
+          "type": "event",
+          "file": "events_wikidata.json",
+          "url": "https://en.wikipedia.org/wiki/2011_Lorca_earthquake"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-05-11",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.ign.es/web/gl/decimo-aniversario-lorca",
+            "title": "Instituto Geográfico Nacional: Décimo Aniversario Lorca"
+          }
+        },
+        "end": null,
+        "monthCountry": "Spain",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.ign.es/web/gl/decimo-aniversario-lorca",
+            "title": "Instituto Geográfico Nacional: Décimo Aniversario Lorca"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "Spain's IGN verifies May 11 and an epicenter near Lorca. The catalog marker is retained as approximate regional geography, not the exact sourced epicenter. The associated photograph is next-day aftermath.",
+          "coordinates": "Existing catalog coordinates retained as an approximate event-area marker; source confirms the named place and country, not exact latitude and longitude.",
+          "originalStart": {
+            "iso": "2011-05-11",
+            "precision": "day",
+            "source": {
+              "type": "event",
+              "file": "events_wikidata.json",
+              "url": "https://en.wikipedia.org/wiki/2011_Lorca_earthquake",
+              "note": "Legacy extraction did not retain statement precision; date requires source verification."
+            }
+          },
+          "originalEnd": null,
+          "originalTitle": "2011 Lorca earthquake"
+        }
+      }
+    ],
+    [
+      "Attacks in Oslo and on Utøya",
+      60.02,
+      10.25,
+      2011,
+      2011,
+      "con",
+      4,
+      "Utøya and Oslo, Norway",
+      "Terrorist attacks took place in Oslo's Government Quarter and on Utøya on July 22.",
+      "2011_Norway_attacks",
+      "2011-07-22",
+      null,
+      null,
+      "2011 Norway attacks",
+      {
+        "id": "evt-1sq4450-1gmjnto",
+        "sourceIdentity": "event|2011_Norway_attacks|2011 Norway attacks|2011-07-22|60.02|10.25",
+        "mediaKey": "2011_Norway_attacks|2011-07-22|60.02|10.25",
+        "source": {
+          "type": "event",
+          "file": "events_wikidata.json",
+          "url": "https://en.wikipedia.org/wiki/2011_Norway_attacks"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-07-22",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://www.22julisenteret.no/en",
+            "title": "22 July Centre: The attacks of 22 July 2011"
+          }
+        },
+        "end": null,
+        "monthCountry": "Norway",
+        "monthlyReview": {
+          "source": {
+            "url": "https://www.22julisenteret.no/en",
+            "title": "22 July Centre: The attacks of 22 July 2011"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "The national memorial and learning centre confirms the attack date and the two sites. The catalog marker is on Utøya; the event-specific photograph shows aftermath in Oslo and must not be labeled an Utøya photograph.",
+          "coordinates": "Existing catalog coordinates retained as an approximate event-area marker; source confirms the named place and country, not exact latitude and longitude.",
+          "originalStart": {
+            "iso": "2011-07-22",
+            "precision": "day",
+            "source": {
+              "type": "event",
+              "file": "events_wikidata.json",
+              "url": "https://en.wikipedia.org/wiki/2011_Norway_attacks",
+              "note": "Legacy extraction did not retain statement precision; date requires source verification."
+            }
+          },
+          "originalEnd": null,
+          "originalTitle": "2011 Norway attacks"
+        }
+      }
+    ],
+    [
+      "England riots begin in Tottenham",
+      51.59,
+      -0.07,
+      2011,
+      2011,
+      "con",
+      4,
+      "Tottenham, London, United Kingdom",
+      "The first disturbances began in Tottenham on August 6, before riots spread to other parts of England.",
+      "2011_England_riots",
+      "2011-08-06",
+      null,
+      null,
+      "2011 England riots",
+      {
+        "id": "evt-195bs0r-1bnict9",
+        "sourceIdentity": "dated|2011_England_riots|2011 England riots|2011-08-06|51.59|-0.07",
+        "mediaKey": "2011_England_riots|2011-08-06|51.59|-0.07",
+        "source": {
+          "type": "dated",
+          "file": "events_wikidata.json",
+          "url": "https://en.wikipedia.org/wiki/2011_England_riots"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-08-06",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://assets.publishing.service.gov.uk/media/5a7cc9d9e5274a34d8d32f31/Govt_Response_to_the_Riots_-_Final_Report.pdf",
+            "title": "UK Government: Response to the Riots, Communities and Victims Panel's Final Report"
+          }
+        },
+        "end": null,
+        "durationSource": "Article interval matched the event start date",
+        "monthCountry": "United Kingdom",
+        "monthlyReview": {
+          "source": {
+            "url": "https://assets.publishing.service.gov.uk/media/5a7cc9d9e5274a34d8d32f31/Govt_Response_to_the_Riots_-_Final_Report.pdf",
+            "title": "UK Government: Response to the Riots, Communities and Victims Panel's Final Report"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "The government report identifies the August 6 Tottenham protest and subsequent disorder. Corrects the unrelated catalog place label Bristol; the retained latitude and longitude are a Tottenham-area marker. This row represents the start, without inventing an exact event end date.",
+          "coordinates": "Existing catalog coordinates retained as an approximate event-area marker; source confirms the named place and country, not exact latitude and longitude.",
+          "originalStart": {
+            "iso": "2011-08-06",
+            "precision": "day",
+            "source": {
+              "type": "dated",
+              "file": "events_wikidata.json",
+              "url": "https://en.wikipedia.org/wiki/2011_England_riots"
+            }
+          },
+          "originalEnd": {
+            "iso": null,
+            "precision": "year",
+            "source": {
+              "type": "legacy-facts",
+              "url": "https://en.wikipedia.org/wiki/2011_England_riots",
+              "note": "Original end precision was not retained; only its year is used."
+            }
+          },
+          "originalTitle": "2011 England riots"
+        }
+      }
+    ],
+    [
+      "Occupy Wall Street begins",
+      40.71,
+      -74.01,
+      2011,
+      2011,
+      "con",
+      4,
+      "Zuccotti Park, New York City, United States",
+      "Occupy Wall Street began at Zuccotti Park in New York City on September 17.",
+      "Occupy_Wall_Street",
+      "2011-09-17",
+      null,
+      null,
+      "Occupy Wall Street",
+      {
+        "id": "evt-1u7udrb-15s6n6v",
+        "sourceIdentity": "dated|Occupy_Wall_Street|Occupy Wall Street|2011-09-17|40.71|-74.01",
+        "mediaKey": "Occupy_Wall_Street|2011-09-17|40.71|-74.01",
+        "source": {
+          "type": "dated",
+          "file": "events_wikidata.json",
+          "url": "https://en.wikipedia.org/wiki/Occupy_Wall_Street"
+        },
+        "kind": "point",
+        "start": {
+          "iso": "2011-09-17",
+          "precision": "day",
+          "source": {
+            "type": "monthly-reviewed",
+            "url": "https://legistar.council.nyc.gov/LegislationDetail.aspx?GUID=A7DA630D-C460-437C-A50C-8206F6DC72F8&ID=1014486&Options=&Search=",
+            "title": "New York City Council: Resolution 1125-2011"
+          }
+        },
+        "end": null,
+        "monthCountry": "United States of America",
+        "monthlyReview": {
+          "source": {
+            "url": "https://legistar.council.nyc.gov/LegislationDetail.aspx?GUID=A7DA630D-C460-437C-A50C-8206F6DC72F8&ID=1014486&Options=&Search=",
+            "title": "New York City Council: Resolution 1125-2011"
+          },
+          "checkedAt": "2026-09-05",
+          "notes": "The council resolution identifies September 17 and Zuccotti Park. The selected record represents the movement's start; its October 13 photograph was taken later and must not appear as a September capture.",
+          "coordinates": "Existing catalog coordinates retained as an approximate event-area marker; source confirms the named place and country, not exact latitude and longitude.",
+          "originalStart": {
+            "iso": "2011-09-17",
+            "precision": "day",
+            "source": {
+              "type": "dated",
+              "file": "events_wikidata.json",
+              "url": "https://en.wikipedia.org/wiki/Occupy_Wall_Street"
+            }
+          },
+          "originalEnd": null,
+          "originalTitle": "Occupy Wall Street"
+        }
+      }
+    ]
+  ]
+}

@@ -10,8 +10,8 @@ function fixture(){
   let texture = 0;
   const noop = () => {};
   const ctx = {
-    console, JSON, Number, Math, Object, Array, playDir:1,SPEEDS:[1],speedIx:0,lastPlayDir:1,nowT: Date.parse('2011-01-29'), MEDIA:{}, MEDIA_DIR:'media/', PHOTO_INDEX:{},
-    window:{GTTime:{parseISO:Date.parse},GTEventPhotos:{photosFor:e=>e.photos || []},GTEventSelection:require('../site/event-selection.js'),GTMediaTransport:{advance:require('../site/media-transport.js').advance,createSeeker:(video,options)=>({seek:(position)=>{video.pause();video.currentTime=position;options.onFrame(video);},cancel:()=>video.pause(),pending:()=>false,settle:()=>Promise.resolve(),error:()=>null})}},
+    MONTHLY:null,console, JSON, Number, Math, Object, Array, playDir:1,SPEEDS:[1],speedIx:0,lastPlayDir:1,nowT: Date.parse('2011-01-29'), MEDIA:{}, MEDIA_DIR:'media/', PHOTO_INDEX:{},
+    window:{GTMonthly:null,GTTime:{parseISO:Date.parse},GTEventPhotos:{photosFor:e=>e.photos || []},GTEventSelection:require('../site/event-selection.js'),GTMediaTransport:{advance:require('../site/media-transport.js').advance,createSeeker:(video,options)=>({seek:(position)=>{video.pause();video.currentTime=position;options.onFrame(video);},cancel:()=>video.pause(),pending:()=>false,settle:()=>Promise.resolve(),error:()=>null})}},
     document:{createElement:tag=>{
       if(tag==='canvas') return {frames:0};
       assert.equal(tag,'video');

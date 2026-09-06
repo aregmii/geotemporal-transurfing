@@ -1,0 +1,2445 @@
+{
+  "version": 1,
+  "source": {
+    "url": "https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups",
+    "title": "World Bank Country and Lending Groups"
+  },
+  "classificationYear": "FY2027",
+  "updatedAt": "2026-09-05",
+  "idScheme": "wb-prefixed normalized economy name; not an ISO country code",
+  "scope": "All 218 economies in the World Bank FY2027 income tables, including territories and small economies absent from the bundled 110m map.",
+  "policy": "Minimum 12 events per country or economy per month for all high-income economies; minimum 3 for every other listed economy. These are coverage targets, not event caps.",
+  "classificationNote": "The current FY2027 classification is used as a coverage-priority policy for every displayed historical month; it does not claim to describe historical income classifications.",
+  "mapNote": "Map names match the bundled Natural Earth 110m geometries. Empty mapNames means no separate matching geometry; the economy remains in coverage. Unclassified map features are not assigned an inferred World Bank income group.",
+  "incomeCounts": {
+    "LIC": 25,
+    "LMC": 47,
+    "UMC": 59,
+    "HIC": 87
+  },
+  "countries": [
+    {
+      "id": "wb-afghanistan",
+      "name": "Afghanistan",
+      "aliases": [],
+      "mapNames": [
+        "Afghanistan"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-albania",
+      "name": "Albania",
+      "aliases": [],
+      "mapNames": [
+        "Albania"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-algeria",
+      "name": "Algeria",
+      "aliases": [],
+      "mapNames": [
+        "Algeria"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-american-samoa",
+      "name": "American Samoa",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-andorra",
+      "name": "Andorra",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-angola",
+      "name": "Angola",
+      "aliases": [],
+      "mapNames": [
+        "Angola"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-antigua-and-barbuda",
+      "name": "Antigua and Barbuda",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-argentina",
+      "name": "Argentina",
+      "aliases": [],
+      "mapNames": [
+        "Argentina"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-armenia",
+      "name": "Armenia",
+      "aliases": [],
+      "mapNames": [
+        "Armenia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-aruba",
+      "name": "Aruba",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-australia",
+      "name": "Australia",
+      "aliases": [],
+      "mapNames": [
+        "Australia"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-austria",
+      "name": "Austria",
+      "aliases": [],
+      "mapNames": [
+        "Austria"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-azerbaijan",
+      "name": "Azerbaijan",
+      "aliases": [],
+      "mapNames": [
+        "Azerbaijan"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-bahamas-the",
+      "name": "Bahamas, The",
+      "aliases": [
+        "Bahamas",
+        "The Bahamas"
+      ],
+      "mapNames": [
+        "Bahamas"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-bahrain",
+      "name": "Bahrain",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-bangladesh",
+      "name": "Bangladesh",
+      "aliases": [],
+      "mapNames": [
+        "Bangladesh"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-barbados",
+      "name": "Barbados",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-belarus",
+      "name": "Belarus",
+      "aliases": [],
+      "mapNames": [
+        "Belarus"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-belgium",
+      "name": "Belgium",
+      "aliases": [],
+      "mapNames": [
+        "Belgium"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-belize",
+      "name": "Belize",
+      "aliases": [],
+      "mapNames": [
+        "Belize"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-benin",
+      "name": "Benin",
+      "aliases": [],
+      "mapNames": [
+        "Benin"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-bermuda",
+      "name": "Bermuda",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-bhutan",
+      "name": "Bhutan",
+      "aliases": [],
+      "mapNames": [
+        "Bhutan"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-bolivia",
+      "name": "Bolivia",
+      "aliases": [],
+      "mapNames": [
+        "Bolivia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-bosnia-and-herzegovina",
+      "name": "Bosnia and Herzegovina",
+      "aliases": [
+        "Bosnia and Herz."
+      ],
+      "mapNames": [
+        "Bosnia and Herz."
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-botswana",
+      "name": "Botswana",
+      "aliases": [],
+      "mapNames": [
+        "Botswana"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-brazil",
+      "name": "Brazil",
+      "aliases": [],
+      "mapNames": [
+        "Brazil"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-british-virgin-islands",
+      "name": "British Virgin Islands",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-brunei-darussalam",
+      "name": "Brunei Darussalam",
+      "aliases": [
+        "Brunei"
+      ],
+      "mapNames": [
+        "Brunei"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-bulgaria",
+      "name": "Bulgaria",
+      "aliases": [],
+      "mapNames": [
+        "Bulgaria"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-burkina-faso",
+      "name": "Burkina Faso",
+      "aliases": [],
+      "mapNames": [
+        "Burkina Faso"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-burundi",
+      "name": "Burundi",
+      "aliases": [],
+      "mapNames": [
+        "Burundi"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-cabo-verde",
+      "name": "Cabo Verde",
+      "aliases": [
+        "Cape Verde"
+      ],
+      "mapNames": [],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-cambodia",
+      "name": "Cambodia",
+      "aliases": [],
+      "mapNames": [
+        "Cambodia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-cameroon",
+      "name": "Cameroon",
+      "aliases": [],
+      "mapNames": [
+        "Cameroon"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-canada",
+      "name": "Canada",
+      "aliases": [],
+      "mapNames": [
+        "Canada"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-cayman-islands",
+      "name": "Cayman Islands",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-central-african-republic",
+      "name": "Central African Republic",
+      "aliases": [
+        "Central African Rep."
+      ],
+      "mapNames": [
+        "Central African Rep."
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-chad",
+      "name": "Chad",
+      "aliases": [],
+      "mapNames": [
+        "Chad"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-channel-islands",
+      "name": "Channel Islands",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-chile",
+      "name": "Chile",
+      "aliases": [],
+      "mapNames": [
+        "Chile"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-china",
+      "name": "China",
+      "aliases": [],
+      "mapNames": [
+        "China"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-colombia",
+      "name": "Colombia",
+      "aliases": [],
+      "mapNames": [
+        "Colombia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-comoros",
+      "name": "Comoros",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-congo-dem-rep",
+      "name": "Congo, Dem. Rep.",
+      "aliases": [
+        "Dem. Rep. Congo",
+        "Democratic Republic of the Congo",
+        "Democratic Republic of Congo",
+        "DR Congo",
+        "Congo, Dem. Rep"
+      ],
+      "mapNames": [
+        "Dem. Rep. Congo"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-congo-rep",
+      "name": "Congo, Rep.",
+      "aliases": [
+        "Congo",
+        "Republic of the Congo",
+        "Republic of Congo",
+        "Congo, Rep"
+      ],
+      "mapNames": [
+        "Congo"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-costa-rica",
+      "name": "Costa Rica",
+      "aliases": [],
+      "mapNames": [
+        "Costa Rica"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-cote-d-ivoire",
+      "name": "Côte d'Ivoire",
+      "aliases": [
+        "Cote d'Ivoire",
+        "Côte d’Ivoire",
+        "Ivory Coast"
+      ],
+      "mapNames": [
+        "Côte d'Ivoire"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-croatia",
+      "name": "Croatia",
+      "aliases": [],
+      "mapNames": [
+        "Croatia"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-cuba",
+      "name": "Cuba",
+      "aliases": [],
+      "mapNames": [
+        "Cuba"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-curacao",
+      "name": "Curaçao",
+      "aliases": [
+        "Curacao"
+      ],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-cyprus",
+      "name": "Cyprus",
+      "aliases": [],
+      "mapNames": [
+        "Cyprus"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-czechia",
+      "name": "Czechia",
+      "aliases": [
+        "Czech Republic"
+      ],
+      "mapNames": [
+        "Czechia"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-denmark",
+      "name": "Denmark",
+      "aliases": [],
+      "mapNames": [
+        "Denmark"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-djibouti",
+      "name": "Djibouti",
+      "aliases": [],
+      "mapNames": [
+        "Djibouti"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-dominica",
+      "name": "Dominica",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-dominican-republic",
+      "name": "Dominican Republic",
+      "aliases": [
+        "Dominican Rep."
+      ],
+      "mapNames": [
+        "Dominican Rep."
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-ecuador",
+      "name": "Ecuador",
+      "aliases": [],
+      "mapNames": [
+        "Ecuador"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-egypt-arab-rep",
+      "name": "Egypt, Arab Rep.",
+      "aliases": [
+        "Egypt"
+      ],
+      "mapNames": [
+        "Egypt"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-el-salvador",
+      "name": "El Salvador",
+      "aliases": [],
+      "mapNames": [
+        "El Salvador"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-equatorial-guinea",
+      "name": "Equatorial Guinea",
+      "aliases": [
+        "Eq. Guinea"
+      ],
+      "mapNames": [
+        "Eq. Guinea"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-eritrea",
+      "name": "Eritrea",
+      "aliases": [],
+      "mapNames": [
+        "Eritrea"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-estonia",
+      "name": "Estonia",
+      "aliases": [],
+      "mapNames": [
+        "Estonia"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-eswatini",
+      "name": "Eswatini",
+      "aliases": [
+        "eSwatini",
+        "Swaziland"
+      ],
+      "mapNames": [
+        "eSwatini"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-ethiopia",
+      "name": "Ethiopia",
+      "aliases": [],
+      "mapNames": [
+        "Ethiopia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-faroe-islands",
+      "name": "Faroe Islands",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-fiji",
+      "name": "Fiji",
+      "aliases": [],
+      "mapNames": [
+        "Fiji"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-finland",
+      "name": "Finland",
+      "aliases": [],
+      "mapNames": [
+        "Finland"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-france",
+      "name": "France",
+      "aliases": [],
+      "mapNames": [
+        "France"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-french-polynesia",
+      "name": "French Polynesia",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-gabon",
+      "name": "Gabon",
+      "aliases": [],
+      "mapNames": [
+        "Gabon"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-gambia-the",
+      "name": "Gambia, The",
+      "aliases": [
+        "Gambia",
+        "The Gambia"
+      ],
+      "mapNames": [
+        "Gambia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-georgia",
+      "name": "Georgia",
+      "aliases": [],
+      "mapNames": [
+        "Georgia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-germany",
+      "name": "Germany",
+      "aliases": [],
+      "mapNames": [
+        "Germany"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-ghana",
+      "name": "Ghana",
+      "aliases": [],
+      "mapNames": [
+        "Ghana"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-gibraltar",
+      "name": "Gibraltar",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-greece",
+      "name": "Greece",
+      "aliases": [],
+      "mapNames": [
+        "Greece"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-greenland",
+      "name": "Greenland",
+      "aliases": [],
+      "mapNames": [
+        "Greenland"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-grenada",
+      "name": "Grenada",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-guam",
+      "name": "Guam",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-guatemala",
+      "name": "Guatemala",
+      "aliases": [],
+      "mapNames": [
+        "Guatemala"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-guinea",
+      "name": "Guinea",
+      "aliases": [],
+      "mapNames": [
+        "Guinea"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-guinea-bissau",
+      "name": "Guinea-Bissau",
+      "aliases": [],
+      "mapNames": [
+        "Guinea-Bissau"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-guyana",
+      "name": "Guyana",
+      "aliases": [],
+      "mapNames": [
+        "Guyana"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-haiti",
+      "name": "Haiti",
+      "aliases": [],
+      "mapNames": [
+        "Haiti"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-honduras",
+      "name": "Honduras",
+      "aliases": [],
+      "mapNames": [
+        "Honduras"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-hong-kong-sar-china",
+      "name": "Hong Kong SAR, China",
+      "aliases": [
+        "Hong Kong"
+      ],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-hungary",
+      "name": "Hungary",
+      "aliases": [],
+      "mapNames": [
+        "Hungary"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-iceland",
+      "name": "Iceland",
+      "aliases": [],
+      "mapNames": [
+        "Iceland"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-india",
+      "name": "India",
+      "aliases": [],
+      "mapNames": [
+        "India"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-indonesia",
+      "name": "Indonesia",
+      "aliases": [],
+      "mapNames": [
+        "Indonesia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-iran-islamic-rep",
+      "name": "Iran, Islamic Rep.",
+      "aliases": [
+        "Iran"
+      ],
+      "mapNames": [
+        "Iran"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-iraq",
+      "name": "Iraq",
+      "aliases": [],
+      "mapNames": [
+        "Iraq"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-ireland",
+      "name": "Ireland",
+      "aliases": [],
+      "mapNames": [
+        "Ireland"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-isle-of-man",
+      "name": "Isle of Man",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-israel",
+      "name": "Israel",
+      "aliases": [],
+      "mapNames": [
+        "Israel"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-italy",
+      "name": "Italy",
+      "aliases": [],
+      "mapNames": [
+        "Italy"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-jamaica",
+      "name": "Jamaica",
+      "aliases": [],
+      "mapNames": [
+        "Jamaica"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-japan",
+      "name": "Japan",
+      "aliases": [],
+      "mapNames": [
+        "Japan"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-jordan",
+      "name": "Jordan",
+      "aliases": [],
+      "mapNames": [
+        "Jordan"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-kazakhstan",
+      "name": "Kazakhstan",
+      "aliases": [],
+      "mapNames": [
+        "Kazakhstan"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-kenya",
+      "name": "Kenya",
+      "aliases": [],
+      "mapNames": [
+        "Kenya"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-kiribati",
+      "name": "Kiribati",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-korea-dem-people-s-rep",
+      "name": "Korea, Dem. People's Rep.",
+      "aliases": [
+        "North Korea",
+        "Democratic People's Republic of Korea",
+        "Korea, Dem. People's Rep"
+      ],
+      "mapNames": [
+        "North Korea"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-korea-rep",
+      "name": "Korea, Rep.",
+      "aliases": [
+        "South Korea",
+        "Republic of Korea"
+      ],
+      "mapNames": [
+        "South Korea"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-kosovo",
+      "name": "Kosovo",
+      "aliases": [],
+      "mapNames": [
+        "Kosovo"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-kuwait",
+      "name": "Kuwait",
+      "aliases": [],
+      "mapNames": [
+        "Kuwait"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-kyrgyz-republic",
+      "name": "Kyrgyz Republic",
+      "aliases": [
+        "Kyrgyzstan"
+      ],
+      "mapNames": [
+        "Kyrgyzstan"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-lao-pdr",
+      "name": "Lao PDR",
+      "aliases": [
+        "Laos"
+      ],
+      "mapNames": [
+        "Laos"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-latvia",
+      "name": "Latvia",
+      "aliases": [],
+      "mapNames": [
+        "Latvia"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-lebanon",
+      "name": "Lebanon",
+      "aliases": [],
+      "mapNames": [
+        "Lebanon"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-lesotho",
+      "name": "Lesotho",
+      "aliases": [],
+      "mapNames": [
+        "Lesotho"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-liberia",
+      "name": "Liberia",
+      "aliases": [],
+      "mapNames": [
+        "Liberia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-libya",
+      "name": "Libya",
+      "aliases": [],
+      "mapNames": [
+        "Libya"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-liechtenstein",
+      "name": "Liechtenstein",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-lithuania",
+      "name": "Lithuania",
+      "aliases": [],
+      "mapNames": [
+        "Lithuania"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-luxembourg",
+      "name": "Luxembourg",
+      "aliases": [],
+      "mapNames": [
+        "Luxembourg"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-macao-sar-china",
+      "name": "Macao SAR, China",
+      "aliases": [
+        "Macao",
+        "Macau"
+      ],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-madagascar",
+      "name": "Madagascar",
+      "aliases": [],
+      "mapNames": [
+        "Madagascar"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-malawi",
+      "name": "Malawi",
+      "aliases": [],
+      "mapNames": [
+        "Malawi"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-malaysia",
+      "name": "Malaysia",
+      "aliases": [],
+      "mapNames": [
+        "Malaysia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-maldives",
+      "name": "Maldives",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-mali",
+      "name": "Mali",
+      "aliases": [],
+      "mapNames": [
+        "Mali"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-malta",
+      "name": "Malta",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-marshall-islands",
+      "name": "Marshall Islands",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-mauritania",
+      "name": "Mauritania",
+      "aliases": [],
+      "mapNames": [
+        "Mauritania"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-mauritius",
+      "name": "Mauritius",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-mexico",
+      "name": "Mexico",
+      "aliases": [],
+      "mapNames": [
+        "Mexico"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-micronesia-fed-sts",
+      "name": "Micronesia, Fed. Sts.",
+      "aliases": [
+        "Micronesia",
+        "Federated States of Micronesia"
+      ],
+      "mapNames": [],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-moldova",
+      "name": "Moldova",
+      "aliases": [],
+      "mapNames": [
+        "Moldova"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-monaco",
+      "name": "Monaco",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-mongolia",
+      "name": "Mongolia",
+      "aliases": [],
+      "mapNames": [
+        "Mongolia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-montenegro",
+      "name": "Montenegro",
+      "aliases": [],
+      "mapNames": [
+        "Montenegro"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-morocco",
+      "name": "Morocco",
+      "aliases": [],
+      "mapNames": [
+        "Morocco"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-mozambique",
+      "name": "Mozambique",
+      "aliases": [],
+      "mapNames": [
+        "Mozambique"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-myanmar",
+      "name": "Myanmar",
+      "aliases": [
+        "Burma"
+      ],
+      "mapNames": [
+        "Myanmar"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-namibia",
+      "name": "Namibia",
+      "aliases": [],
+      "mapNames": [
+        "Namibia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-nauru",
+      "name": "Nauru",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-nepal",
+      "name": "Nepal",
+      "aliases": [],
+      "mapNames": [
+        "Nepal"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-netherlands",
+      "name": "Netherlands",
+      "aliases": [],
+      "mapNames": [
+        "Netherlands"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-new-caledonia",
+      "name": "New Caledonia",
+      "aliases": [],
+      "mapNames": [
+        "New Caledonia"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-new-zealand",
+      "name": "New Zealand",
+      "aliases": [],
+      "mapNames": [
+        "New Zealand"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-nicaragua",
+      "name": "Nicaragua",
+      "aliases": [],
+      "mapNames": [
+        "Nicaragua"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-niger",
+      "name": "Niger",
+      "aliases": [],
+      "mapNames": [
+        "Niger"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-nigeria",
+      "name": "Nigeria",
+      "aliases": [],
+      "mapNames": [
+        "Nigeria"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-north-macedonia",
+      "name": "North Macedonia",
+      "aliases": [
+        "Macedonia",
+        "Republic of North Macedonia"
+      ],
+      "mapNames": [
+        "Macedonia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-northern-mariana-islands",
+      "name": "Northern Mariana Islands",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-norway",
+      "name": "Norway",
+      "aliases": [],
+      "mapNames": [
+        "Norway"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-oman",
+      "name": "Oman",
+      "aliases": [],
+      "mapNames": [
+        "Oman"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-pakistan",
+      "name": "Pakistan",
+      "aliases": [],
+      "mapNames": [
+        "Pakistan"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-palau",
+      "name": "Palau",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-panama",
+      "name": "Panama",
+      "aliases": [],
+      "mapNames": [
+        "Panama"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-papua-new-guinea",
+      "name": "Papua New Guinea",
+      "aliases": [],
+      "mapNames": [
+        "Papua New Guinea"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-paraguay",
+      "name": "Paraguay",
+      "aliases": [],
+      "mapNames": [
+        "Paraguay"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-peru",
+      "name": "Peru",
+      "aliases": [],
+      "mapNames": [
+        "Peru"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-philippines",
+      "name": "Philippines",
+      "aliases": [],
+      "mapNames": [
+        "Philippines"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-poland",
+      "name": "Poland",
+      "aliases": [],
+      "mapNames": [
+        "Poland"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-portugal",
+      "name": "Portugal",
+      "aliases": [],
+      "mapNames": [
+        "Portugal"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-puerto-rico",
+      "name": "Puerto Rico",
+      "aliases": [],
+      "mapNames": [
+        "Puerto Rico"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-qatar",
+      "name": "Qatar",
+      "aliases": [],
+      "mapNames": [
+        "Qatar"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-romania",
+      "name": "Romania",
+      "aliases": [],
+      "mapNames": [
+        "Romania"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-russian-federation",
+      "name": "Russian Federation",
+      "aliases": [
+        "Russia"
+      ],
+      "mapNames": [
+        "Russia"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-rwanda",
+      "name": "Rwanda",
+      "aliases": [],
+      "mapNames": [
+        "Rwanda"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-samoa",
+      "name": "Samoa",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-san-marino",
+      "name": "San Marino",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-sao-tome-and-principe",
+      "name": "São Tomé and Principe",
+      "aliases": [
+        "Sao Tome and Principe",
+        "São Tomé and Príncipe"
+      ],
+      "mapNames": [],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-saudi-arabia",
+      "name": "Saudi Arabia",
+      "aliases": [],
+      "mapNames": [
+        "Saudi Arabia"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-senegal",
+      "name": "Senegal",
+      "aliases": [],
+      "mapNames": [
+        "Senegal"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-serbia",
+      "name": "Serbia",
+      "aliases": [],
+      "mapNames": [
+        "Serbia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-seychelles",
+      "name": "Seychelles",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-sierra-leone",
+      "name": "Sierra Leone",
+      "aliases": [],
+      "mapNames": [
+        "Sierra Leone"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-singapore",
+      "name": "Singapore",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-sint-maarten-dutch-part",
+      "name": "Sint Maarten (Dutch part)",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-slovak-republic",
+      "name": "Slovak Republic",
+      "aliases": [
+        "Slovakia"
+      ],
+      "mapNames": [
+        "Slovakia"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-slovenia",
+      "name": "Slovenia",
+      "aliases": [],
+      "mapNames": [
+        "Slovenia"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-solomon-islands",
+      "name": "Solomon Islands",
+      "aliases": [
+        "Solomon Is."
+      ],
+      "mapNames": [
+        "Solomon Is."
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-somalia",
+      "name": "Somalia",
+      "aliases": [],
+      "mapNames": [
+        "Somalia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-south-africa",
+      "name": "South Africa",
+      "aliases": [],
+      "mapNames": [
+        "South Africa"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-south-sudan",
+      "name": "South Sudan",
+      "aliases": [
+        "S. Sudan"
+      ],
+      "mapNames": [
+        "S. Sudan"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-spain",
+      "name": "Spain",
+      "aliases": [],
+      "mapNames": [
+        "Spain"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-sri-lanka",
+      "name": "Sri Lanka",
+      "aliases": [],
+      "mapNames": [
+        "Sri Lanka"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-st-kitts-and-nevis",
+      "name": "St. Kitts and Nevis",
+      "aliases": [
+        "Saint Kitts and Nevis"
+      ],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-st-lucia",
+      "name": "St. Lucia",
+      "aliases": [
+        "Saint Lucia"
+      ],
+      "mapNames": [],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-st-martin-french-part",
+      "name": "St. Martin (French part)",
+      "aliases": [
+        "Saint Martin"
+      ],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-st-vincent-and-the-grenadines",
+      "name": "St. Vincent and the Grenadines",
+      "aliases": [
+        "Saint Vincent and the Grenadines"
+      ],
+      "mapNames": [],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-sudan",
+      "name": "Sudan",
+      "aliases": [],
+      "mapNames": [
+        "Sudan"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-suriname",
+      "name": "Suriname",
+      "aliases": [],
+      "mapNames": [
+        "Suriname"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-sweden",
+      "name": "Sweden",
+      "aliases": [],
+      "mapNames": [
+        "Sweden"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-switzerland",
+      "name": "Switzerland",
+      "aliases": [],
+      "mapNames": [
+        "Switzerland"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-syrian-arab-republic",
+      "name": "Syrian Arab Republic",
+      "aliases": [
+        "Syria"
+      ],
+      "mapNames": [
+        "Syria"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-taiwan-china",
+      "name": "Taiwan, China",
+      "aliases": [
+        "Taiwan"
+      ],
+      "mapNames": [
+        "Taiwan"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-tajikistan",
+      "name": "Tajikistan",
+      "aliases": [],
+      "mapNames": [
+        "Tajikistan"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-tanzania",
+      "name": "Tanzania",
+      "aliases": [],
+      "mapNames": [
+        "Tanzania"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-thailand",
+      "name": "Thailand",
+      "aliases": [],
+      "mapNames": [
+        "Thailand"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-timor-leste",
+      "name": "Timor-Leste",
+      "aliases": [
+        "East Timor",
+        "Timor Leste"
+      ],
+      "mapNames": [
+        "Timor-Leste"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-togo",
+      "name": "Togo",
+      "aliases": [],
+      "mapNames": [
+        "Togo"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-tonga",
+      "name": "Tonga",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-trinidad-and-tobago",
+      "name": "Trinidad and Tobago",
+      "aliases": [],
+      "mapNames": [
+        "Trinidad and Tobago"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-tunisia",
+      "name": "Tunisia",
+      "aliases": [],
+      "mapNames": [
+        "Tunisia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-turkiye",
+      "name": "Türkiye",
+      "aliases": [
+        "Turkey",
+        "Turkiye"
+      ],
+      "mapNames": [
+        "Turkey"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-turkmenistan",
+      "name": "Turkmenistan",
+      "aliases": [],
+      "mapNames": [
+        "Turkmenistan"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-turks-and-caicos-islands",
+      "name": "Turks and Caicos Islands",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-tuvalu",
+      "name": "Tuvalu",
+      "aliases": [],
+      "mapNames": [],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-uganda",
+      "name": "Uganda",
+      "aliases": [],
+      "mapNames": [
+        "Uganda"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-ukraine",
+      "name": "Ukraine",
+      "aliases": [],
+      "mapNames": [
+        "Ukraine"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-united-arab-emirates",
+      "name": "United Arab Emirates",
+      "aliases": [
+        "UAE"
+      ],
+      "mapNames": [
+        "United Arab Emirates"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-united-kingdom",
+      "name": "United Kingdom",
+      "aliases": [
+        "UK",
+        "Great Britain"
+      ],
+      "mapNames": [
+        "United Kingdom"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-united-states",
+      "name": "United States",
+      "aliases": [
+        "United States of America",
+        "USA",
+        "U.S.",
+        "US"
+      ],
+      "mapNames": [
+        "United States of America"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-uruguay",
+      "name": "Uruguay",
+      "aliases": [],
+      "mapNames": [
+        "Uruguay"
+      ],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-uzbekistan",
+      "name": "Uzbekistan",
+      "aliases": [],
+      "mapNames": [
+        "Uzbekistan"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-vanuatu",
+      "name": "Vanuatu",
+      "aliases": [],
+      "mapNames": [
+        "Vanuatu"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-venezuela",
+      "name": "Venezuela",
+      "aliases": [
+        "Venezuela, RB"
+      ],
+      "mapNames": [
+        "Venezuela"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-vietnam",
+      "name": "Vietnam",
+      "aliases": [
+        "Viet Nam"
+      ],
+      "mapNames": [
+        "Vietnam"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "UMC"
+    },
+    {
+      "id": "wb-virgin-islands-u-s",
+      "name": "Virgin Islands (U.S.)",
+      "aliases": [
+        "U.S. Virgin Islands",
+        "United States Virgin Islands"
+      ],
+      "mapNames": [],
+      "minimum": 12,
+      "highIncome": true,
+      "incomeLevel": "HIC"
+    },
+    {
+      "id": "wb-west-bank-and-gaza",
+      "name": "West Bank and Gaza",
+      "aliases": [
+        "Palestine",
+        "Palestinian territories"
+      ],
+      "mapNames": [
+        "Palestine"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-yemen-rep",
+      "name": "Yemen, Rep.",
+      "aliases": [
+        "Yemen"
+      ],
+      "mapNames": [
+        "Yemen"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LIC"
+    },
+    {
+      "id": "wb-zambia",
+      "name": "Zambia",
+      "aliases": [],
+      "mapNames": [
+        "Zambia"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    },
+    {
+      "id": "wb-zimbabwe",
+      "name": "Zimbabwe",
+      "aliases": [],
+      "mapNames": [
+        "Zimbabwe"
+      ],
+      "minimum": 3,
+      "highIncome": false,
+      "incomeLevel": "LMC"
+    }
+  ]
+}
